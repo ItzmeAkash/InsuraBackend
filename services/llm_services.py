@@ -44,7 +44,7 @@ greeting_templates = questions_data["greeting_templates"]
 def process_user_input(user_input: UserInput):
     user_id = user_input.user_id.strip()
     user_message = user_input.message.strip()
-    # Initialize user state if not already present
+    # Initialize user state if not already presents
     if user_id not in user_states:
         user_states[user_id] = {
             "current_question_index": 0,
