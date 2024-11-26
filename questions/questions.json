@@ -48,7 +48,7 @@
       "Tell me Sponsor's VAT Number",
       {
         "question": "Could you kindly provide me with the sponsor's Source of Income",
-        "options": ["Business", "Salary"]
+        "options": ["Business","Salary"]
       },
       "Next, could you please provide the details of the member for whom the policy is being purchased? May I kindly ask for the member name?"
     ],
@@ -65,8 +65,37 @@
       }
     ],
     "car_questions": [
-      "Car Model"
-    ],
+      {
+          "question": "Let's start with your motor insurance details. Select the city of registration",
+          "options": [
+              "Abudhabi",
+              "Ajman",
+              "Dubai",
+              "Fujairah",
+              "Ras Al Khaimah",
+              "Sharjah",
+              "Umm Al Quwain"
+          ]
+      },
+      "Now, let's gather some details about your car. Let me know the make of the car.",
+      "Could you please let me know the year your car was made?",
+      "May I know the model number of your car, please?",
+      "May I know the variant of your car, please?",
+      "Could you please provide the registration details? When was your car first registered?",
+      "Could you please provide the car owner's date of birth?",
+      {
+       "question":"How many years of driving experience do you have in the UAE?",
+       "options":[
+         "0-1 year",
+         "1-2 years",
+         "2+ years"  
+       ]
+       }
+      
+      
+    
+  ]
+  ,
     "bike_questions": [
       "Motor Model"
     ],
