@@ -179,7 +179,36 @@ def process_user_input(user_input: UserInput):
                "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
                 }
             
-                    
+        elif question == "May I have the sponsor's Email Address, please?":
+            # Regex pattern for validating email address
+            email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+            if re.match(email_pattern, user_message):
+                responses[question] = user_message
+                conversation_state["current_question_index"] += 1
+
+                # Check if there are more questions
+                if conversation_state["current_question_index"] < len(questions):
+                    next_question = questions[conversation_state["current_question_index"]]
+                    return {
+                        "response": f"Thank you! That was helpful. Now, let's move on to: {next_question}"
+                    }
+                else:
+                    with open("user_responses.json", "w") as file:
+                        json.dump(responses, file, indent=4)
+                    return {
+                        "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                        "final_responses": responses
+                    }
+            else:
+                # Handle invalid input
+                general_assistant_prompt = f"The user entered '{user_message}'. Please assist."
+                general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+                return {
+                    "response": f"{general_assistant_response.content.strip()}",
+                    "question": f"Let's move back to: {question}"
+                }    
+                
+                                    
         elif question == "Please enter your Entry Date or Visa Change Status Date.":
             date_pattern = r"^\d{2}-\d{2}-\d{4}$"
             if re.match(date_pattern, user_message):
