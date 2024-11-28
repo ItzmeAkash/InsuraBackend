@@ -22,20 +22,25 @@
       "Please enter your Entry Date or Visa Change Status Date.",
       "What type of plan are you looking for? Basic Plan or Enhanced Plan?",
       {
-        "question": "To whom are you purchasing this plan?",
-        "options": [
-          "Employee",
-          "Dependents",
-          "Small Investors",
-          "Domestic Help",
-          "4th Child Children above 18 years and Parents"
-        ]
+          "question": "To whom are you purchasing this plan?",
+          "options": [
+              "Employee", 
+              "Dependents", 
+              "Small Investors", 
+              "Domestic Help", 
+              "4th Child Children above 18 years and Parents"
+        
+          ]
       },
       "Could you please tell us your monthly salary in AED?",
       {
-        "question": "Is accommodation provided to you?",
-        "options": ["Yes", "No"]
+          "question": "Is accommodation provided to you?",
+          "options":[
+              "Yes",
+              "No"
+            ]
       },
+      
       "Please provide us with your job title",
       "Now, let’s move to the sponsor details. Please provide the Sponsor's Name?",
       "Could you share your PO Box number, please?",
@@ -44,14 +49,40 @@
       "May I have the sponsor's mobile number, please?",
       "May I have the sponsor's Email Address, please?",
       "Could you kindly provide me with the sponsor's Company Name",
-      "Tell me Sponsor's Emirate ID",
-      "Tell me Sponsor's VAT Number",
-      {
-        "question": "Could you kindly provide me with the sponsor's Source of Income",
-        "options": ["Business","Salary"]
+      "Tell me Sponsor's  Emirate ID",
+      "Tell me Sponsor's  VAT Number",
+      {"question":"Could you kindly provide me with the sponsor's Source of Income",
+       
+      "options":[
+              "Business",
+              "Salary"]
       },
-      "Next, could you please provide the details of the member for whom the policy is being purchased? May I kindly ask for the member name?"
-    ],
+      "Next, we need the details of the member for whom the policy is being purchased. Please provide Name",
+      "Date of Birth (DOB)",
+      {
+          "question":"May I Know you gender.Please",
+          "options":[
+              "Male",
+              "Female"
+          ]
+       
+      },
+      "May I know your marital status?",
+      "Tell me you Height in Cm",
+      "Tell me you Weight in Kg",
+      "Tell your relationship with the Sponsor",
+      {"question":"Have you been vaccinated for Covid-19?",
+       "options":[
+           "Yes",
+           "No"
+       ]
+       },
+       { "question":"Are you suffering from any pre-existing or chronic conditions?",
+        "options":[
+            "Yes",
+            "No"
+        ]
+       }  ],
     "existing_policy_questions": [
       "Could you kindly provide me with the sponsor's Company Name"
     ],
@@ -66,31 +97,40 @@
     ],
     "car_questions": [
       {
-          "question": "Let's start with your motor insurance details. Select the city of registration",
-          "options": [
-              "Abudhabi",
-              "Ajman",
-              "Dubai",
-              "Fujairah",
-              "Ras Al Khaimah",
-              "Sharjah",
-              "Umm Al Quwain"
-          ]
-      },
-      "Now, let's gather some details about your car. Let me know the make of the car.",
-      "Could you please let me know the year your car was made?",
-      "May I know the model number of your car, please?",
-      "May I know the variant of your car, please?",
-      "Could you please provide the registration details? When was your car first registered?",
-      "Could you please provide the car owner's date of birth?",
-      {
-       "question":"How many years of driving experience do you have in the UAE?",
-       "options":[
-         "0-1 year",
-         "1-2 years",
-         "2+ years"  
-       ]
-       }
+        "question": "Let's start with your motor insurance details. Select the city of registration",
+        "options": [
+            "Abudhabi",
+            "Ajman",
+            "Dubai",
+            "Fujairah",
+            "Ras Al Khaimah",
+            "Sharjah",
+            "Umm Al Quwain"
+        ]
+    },
+    "Now, let's gather some details about your car. Let me know the make of the car.",
+    "Could you please let me know the year your car was made?",
+    "May I know the model number of your car, please?",
+    "May I know the variant of your car, please?",
+    "Could you please provide the registration details? When was your car first registered?",
+    "Could you please provide the car owner's date of birth?",
+    {
+     "question":"How many years of driving experience do you have in the UAE?",
+     "options":[
+       "0-1 year",
+       "1-2 years",
+       "2+ years"  
+     ]
+     },
+      "Could you let me know your nationality?",
+          {
+        "question": "Is your car currently insured?",
+        "options": [
+            "Yes",
+            "No"
+        ]
+    },
+    "Welcome Back tell me you number please"
       
       
     
