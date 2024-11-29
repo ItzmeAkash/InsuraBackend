@@ -14,7 +14,8 @@ groq_api_key = os.getenv('GROQ_API_KEY')
 llm = ChatGroq(
     model="llama-3.1-70b-versatile",
     temperature=0,
-    api_key=groq_api_key
+    api_key=groq_api_key,
+    groq_proxy="https://insurabackend.onrender.com/"
 )
 
 user_states = {}
