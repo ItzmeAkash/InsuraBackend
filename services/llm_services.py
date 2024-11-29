@@ -207,8 +207,7 @@ def process_user_input(user_input: UserInput):
                     "response": f"{general_assistant_response.content.strip()}",
                     "question": f"Let's move back to: {question}"
                 }    
-                
-                                    
+                                                   
         elif question == "Please enter your Entry Date or Visa Change Status Date.":
             date_pattern = r"^\d{2}-\d{2}-\d{4}$"
             if re.match(date_pattern, user_message):
