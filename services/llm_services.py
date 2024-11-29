@@ -15,7 +15,7 @@ llm = ChatGroq(
     model="llama-3.1-70b-versatile",
     temperature=0,
     api_key=groq_api_key,
-    groq_proxy="https://insurabackend.onrender.com/"
+    groq_proxy=None
 )
 
 user_states = {}
