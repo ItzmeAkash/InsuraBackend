@@ -13,7 +13,8 @@ import os
 llm = ChatGroq(
     model="llama-3.1-70b-versatile",
     temperature=0,
-    api_key=os.getenv('GROQ_API_KEY')
+    api_key=os.getenv('GROQ_API_KEY'),
+    http_client=None
 )
 
 user_states = {}
