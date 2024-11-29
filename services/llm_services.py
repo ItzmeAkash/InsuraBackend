@@ -10,9 +10,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
-groq_api_key = os.getenv('OPENAI_API_KEY')
-llm = ChatOpenAI(
-    model="gpt-4o-mini-2024-07-18",
+groq_api_key = os.getenv('GROQ_API_KEY')
+llm = ChatGroq(
+    model="llama-3.1-70b-versatile",
     temperature=0,
     api_key=groq_api_key
 )
