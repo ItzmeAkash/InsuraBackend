@@ -1,5 +1,6 @@
 from utils.helper import get_user_name
 from langchain_groq.chat_models import ChatGroq
+from langchain_openai.chat_models import ChatOpenAI
 from langchain_core.messages import HumanMessage,SystemMessage
 from models.user_input import UserInput
 from random import choice
@@ -10,8 +11,8 @@ load_dotenv()
 
 import os
 
-llm = ChatGroq(
-    model="llama-3.1-70b-versatile",
+llm = ChatOpenAI(
+    model="gpt-4o",
     temperature=0,
     api_key=os.getenv('GROQ_API_KEY'),
     http_client=None
