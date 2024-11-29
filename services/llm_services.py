@@ -10,12 +10,11 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
-
-llm = ChatOpenAI(
-    model="gpt-4o",
+groq_api_key = os.getenv('GROQ_API_KEY')
+llm = ChatGroq(
+    model="llama-3.1-70b-versatile",
     temperature=0,
-    api_key=os.getenv('GROQ_API_KEY'),
-    http_client=None
+    api_key=groq_api_key
 )
 
 user_states = {}
