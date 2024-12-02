@@ -381,7 +381,41 @@ def process_user_input(user_input: UserInput):
                     "response": f"{general_assistant_response.content.strip()}",
                     "question":f"Let's Move back to {question}"
                 }
- 
+        
+        elif question == "What is your Visa issued Emirate?":
+           valid_options = ["Abudhabi",
+              "Ajman",
+              "Dubai",
+              "Fujairah",
+              "Ras Al Khaimah",
+              "Sharjah",
+              "Umm Al Quwain"]
+           if user_message in valid_options:
+               responses[question] = user_message
+               conversation_state["current_question_index"] += 1
+
+        # Check if there are more questions
+               if conversation_state["current_question_index"] < len(questions):
+                next_question = questions[conversation_state["current_question_index"]]
+                return {
+                "response": f"Thank you for your response. Now, let's move on to: {next_question}"
+                }
+               else:
+                with open("user_responses.json", "w") as file:
+                 json.dump(responses, file, indent=4)
+                return {
+                "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                "final_responses": responses
+                 }
+           else:
+           # Handle invalid responses or unrelated queries
+            general_assistant_prompt = f"user response: {user_message}. Please assist."
+            general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+            return {
+            "response": f"{general_assistant_response.content.strip()}",
+             "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
+          }
+       
        # For other free-text questions
         evaluation_prompt = f"Is the user's response '{user_message}' correct for the question '{question}'? Answer 'yes' or 'no'."
         evaluation_response = llm.invoke([HumanMessage(content=evaluation_prompt)])
