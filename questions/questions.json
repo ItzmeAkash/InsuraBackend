@@ -9,8 +9,19 @@
       }
     ],
     "medical_questions": [
-      "What is your Visa issued Emirate?",
-      {
+      {"question":"What is your Visa issued Emirate?",
+      "options":[
+
+              "Abudhabi",
+              "Ajman",
+              "Dubai",
+              "Fujairah",
+              "Ras Al Khaimah",
+              "Sharjah",
+              "Umm Al Quwain"
+          
+      ]
+      },{
         "question": "What would you like to do today?",
         "options": [
           "Purchase a new policy",
@@ -84,8 +95,85 @@
         ]
        }  ],
     "existing_policy_questions": [
-      "Could you kindly provide me with the sponsor's Company Name"
-    ],
+      "Please enter your policy number",
+       {
+         "question":"Your policy is up for renewal. Would you like to proceed with renewing it?",
+         "options":[
+             "Yes",
+             "No"
+         ]
+         },
+       "Let's help you with your insurance policy!.Can you please share the details of your current insurance policy.What is the policy expiry date?",
+       "Which insurance company is your current policy with?",
+       {"question":"Now, let's find a suitable plan for you.!What type of plan are you looking for?",
+        "options":[
+            "Basic Plan",
+            "Enhanced Plan"
+        ]
+       },
+         {"question":"Who will this plan be for?",
+        "options":[
+           "Employee",
+         "Dependents",
+         "Small Investors",
+         "Domestic Help",
+         "4th Child",
+         "Children above 18 years",
+         "Parents"
+        ]
+       },
+         "Could you please tell me your monthly salary (in AED)?",
+         {
+             "question": "Is accommodation provided to you?",
+             "options":[
+                 "Yes",
+                 "No"]
+         },
+         "Please provide us with the member job title.",
+         "Now, let’s move to the sponsor details. Please provide the Sponsor's Name?",
+         "Could you share your PO Box number, please?",
+         "Which emirate is your sponsor located in?",
+         "Could you let me know the sponsor's nationality?",
+         "May I have the sponsor's mobile number, please?",
+         "May I have the sponsor's Email Address, please?",
+         "What company does the sponsor work for?",
+         "Could you provide the sponsor's Emirates ID?",
+         "What is the VAT number of the sponsor/company?",
+         {"question":"Could you kindly provide me with the sponsor's Source of Income?",
+          
+         "options":[
+                 "Business",
+                 "Salary"
+                 ]
+         },
+         "Next, Please provide the member's details.Please tell me the Name",
+         "Date of Birth (DOB)",
+         {
+             "question":"May I Know you gender.Please",
+             "options":[
+                 "Male",
+                 "Female"
+             ]
+          
+         },
+         "May I know your marital status?",
+         "Tell me you Height in Cm",
+         "Tell me you Weight in Kg",
+         "Tell your relationship with the Sponsor",
+         {
+          "question":"Have you been vaccinated for Covid-19?",
+          "options":[
+              "Yes",
+              "No"
+          ]
+          },
+          { "question":"Are you suffering from any pre-existing or chronic conditions?",
+           "options":[
+               "Yes",
+               "No"
+           ]
+          }  
+       ],
     "motor_insurance_questions": [
       {
         "question": "What would you like to do today?",
@@ -97,48 +185,148 @@
     ],
     "car_questions": [
       {
-        "question": "Let's start with your motor insurance details. Select the city of registration",
-        "options": [
-            "Abudhabi",
-            "Ajman",
-            "Dubai",
-            "Fujairah",
-            "Ras Al Khaimah",
-            "Sharjah",
-            "Umm Al Quwain"
-        ]
-    },
-    "Now, let's gather some details about your car. Let me know the make of the car.",
-    "Could you please let me know the year your car was made?",
-    "May I know the model number of your car, please?",
-    "May I know the variant of your car, please?",
-    "Could you please provide the registration details? When was your car first registered?",
-    "Could you please provide the car owner's date of birth?",
-    {
-     "question":"How many years of driving experience do you have in the UAE?",
-     "options":[
-       "0-1 year",
-       "1-2 years",
-       "2+ years"  
-     ]
-     },
-      "Could you let me know your nationality?",
+          "question": "Let's start with your motor insurance details. Select the city of registration",
+          "options": [
+              "Abudhabi",
+              "Ajman",
+              "Dubai",
+              "Fujairah",
+              "Ras Al Khaimah",
+              "Sharjah",
+              "Umm Al Quwain"
+          ]
+      },
+      "Now, let's gather some details about your car. Let me know the make of the car.",
+      "Could you please let me know the year your car was made?",
+      "May I know the model number of your car, please?",
+      "May I know the variant of your car, please?",
+      "Could you please provide the registration details? When was your car first registered?",
+      "Could you please provide the car owner's date of birth?",
+      {
+       "question":"How many years of driving experience do you have in the UAE?",
+       "options":[
+         "0-1 year",
+         "1-2 years",
+         "2+ years"  
+       ]
+       },
+        "Could you let me know your nationality?",
+            {
+          "question": "Is your car currently insured?",
+          "options": [
+              "Yes",
+              "No"
+          ]
+      },
+      {
+      "question":"Do you have a vehicle test passing certificate?",
+      "options":[
+          "Yes",
+          "No"
+      ]
+            },
           {
-        "question": "Is your car currently insured?",
-        "options": [
-            "Yes",
-            "No"
-        ]
-    },
-    "Welcome Back tell me you number please"
-      
-      
-    
+      "question":"Does your current policy have comprehensive cover?",
+      "options":[
+          "Yes",
+          "No"
+      ]
+            },
+                  {
+      "question":"Does your policy include agency repair?",
+      "options":[
+          "Yes",
+          "No"
+      ]
+            },
+                                  {
+      "question":"Do you have a No Claim certificate?",
+      "options":[
+          "No",
+          "1 Year",
+          "2 Years",
+          "3+ Years"
+      ]
+            },
+          "Could you kindly share your contact details with me? To start, may I know your name, please?",
+          "May i know your Email address",
+          "May i know your Phone number"
+            
+        
   ]
   ,
     "bike_questions": [
-      "Motor Model"
-    ],
+      {
+      "question": "Let's start with your motor insurance details. Select the city of registration",
+      "options": [
+          "Abudhabi",
+          "Ajman",
+          "Dubai",
+          "Fujairah",
+          "Ras Al Khaimah",
+          "Sharjah",
+          "Umm Al Quwain"
+      ]
+  },
+      "Now, let's gather some details about your bike. Let me know the make of the bike.",
+      "Could you please tell me the year your bike was made?",
+      "Could you please tell me the model number of your bike",
+      "Could you please tell me the Variant of your bike",
+      "Could you please provide the registration details? When was your bike first registered?",
+      "Could you please provide the car owner's date of birth?",
+  {
+   "question":"How many years of driving experience do you have in the UAE?",
+   "options":[
+     "0-1 year",
+     "1-2 years",
+     "2+ years"  
+   ]
+   },
+    "Could you let me know your nationality?",
+        {
+      "question": "Is your car currently insured?",
+      "options": [
+          "Yes",
+          "No"
+      ]
+  },
+  {
+  "question":"Do you have a vehicle test passing certificate?",
+  "options":[
+      "Yes",
+      "No"
+  ]
+        },
+      {
+  "question":"Does your current policy have comprehensive cover?",
+  "options":[
+      "Yes",
+      "No"
+  ]
+        },
+              {
+  "question":"Does your policy include agency repair?",
+  "options":[
+      "Yes",
+      "No"
+  ]
+        },
+                              {
+  "question":"Do you have a No Claim certificate?",
+  "options":[
+      "No",
+      "1 Year",
+      "2 Years",
+      "3+ Years"
+  ]
+        },
+      "Could you kindly share your contact details with me? To start, may I know your name, please?",
+      "May i know your Email address",
+      "May i know your Phone number"
+        
+      
+      
+],
     "greeting_templates": [
       "Hey {user_name}, nice to know you! Let's dive in: {first_question}",
       "Hello {user_name}! really great to work on your request{first_question}",
