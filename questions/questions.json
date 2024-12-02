@@ -9,7 +9,7 @@
       }
     ],
     "medical_questions": [
-      {"question":"What is your Visa issued Emirate?",
+      {"question":"Let's start with your Medical insurance details. Chosse your Visa issued Emirate?",
       "options":[
 
               "Abudhabi",
