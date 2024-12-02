@@ -379,7 +379,7 @@ def process_user_input(user_input: UserInput):
                 
                 # Redirect to general assistant for help
                 general_assistant_prompt = f"User response: {user_message}. Please assist."
-                general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly AI assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
+                general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurances assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
                 return {
                     "response": f"{general_assistant_response.content.strip()}",
                     "question":f"Let's Move back to {question}"
@@ -408,7 +408,7 @@ def process_user_input(user_input: UserInput):
                      }
             else:    
                general_assistant_prompt = f"user response: {user_message}. Please assist."
-               general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly AI assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
+               general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
                return {
                "response": f"{general_assistant_response.content.strip()}",
                "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
@@ -441,11 +441,11 @@ def process_user_input(user_input: UserInput):
                         }
                 else:
                     # Handle invalid or unrelated input
-                    general_assistant_prompt = f"The user entered '{user_message}', . Please assist."
+                    general_assistant_prompt = f"User response: {user_message}. Please assist."
                     general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly AI assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
                     return {
                         "response": f"{general_assistant_response.content.strip()}",
-                        "question":f"Let's Move Back {question}"
+                        "question":f"Let's Move back to {question}"
                     }
 
         elif question == "Have you been vaccinated for Covid-19?":
@@ -584,6 +584,48 @@ def process_user_input(user_input: UserInput):
                     "response": "Invalid response. Please answer with 'Yes' or 'No'."
                 }
 
+        elif question == "Now, let’s move to the sponsor details. Please provide the Sponsor Name?":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Prompt LLM to check if the input is a valid person name
+                check_prompt = f"The user has responded with: '{user_message}'. Is this a valid person's name? Respond with 'Yes' or 'No'."
+                llm_response = llm.invoke([
+                    SystemMessage(content="You are Insura, an AI assistant specialized in insurance-related tasks. Your task is to determine if the input provided by the user is a valid person's name.Make sure it a valide name for a person"),
+                    HumanMessage(content=check_prompt)
+                ])
+                is_person_name = llm_response.content.strip().lower() == "yes"
+
+                if is_person_name:
+                    # Store the person's name
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        return {
+                            "response": f"Thank you for providing the sponsor's name. Now, let's move on to: {next_question}"
+                        }
+                    else:
+                        # If all questions are completed, save responses and end conversation
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insura. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses
+                        }
+                else:
+                    # Handle invalid or unrelated input
+                    general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a person's name. Please assist."
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. Your role is to assist users with their inquiries. Your task here is to redirect or assist the user appropriately."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's move back to: {question}"
+                    }
+
+
    
        # For other free-text questions
         evaluation_prompt = f"Is the user's response '{user_message}' correct for the question '{question}'? Answer 'yes' or 'no'."
@@ -622,13 +664,13 @@ def process_user_input(user_input: UserInput):
         else:
             # Redirect to general assistant for help
             general_assistant_prompt = f"User response: {user_message}. Please assist."
-            general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+            general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
             return {
                 "response": f"{general_assistant_response.content.strip()}",
                 "question":f"Let's Move back to {question}"
             }
     else:
-        # Handle unexpected queries after completion
+        
         general_assistant_prompt = f"General query: {user_message}."
-        general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+        general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
         return {"response": f"{general_assistant_response.content.strip()}"}
