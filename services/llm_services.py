@@ -397,7 +397,8 @@ def process_user_input(user_input: UserInput):
                 if conversation_state["current_question_index"]< len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
                     return {
-                     "response": f"Thank you! That was helpful. Now, let's move on to: {next_question}"
+                     "response": f"Thank you! That was helpful. Now, let's move on to: {next_question}",
+                     
                      }
                 else:
                     with open("user_responses.json", "w") as file:
@@ -418,7 +419,7 @@ def process_user_input(user_input: UserInput):
             if conversation_state["current_question_index"] == questions.index(question):
                 # Check if the input is a company name using LLM
                 check_prompt = f"The user has responded with: '{user_message}'. Is this a valid company name? Respond with 'Yes' or 'No'."
-                llm_response = llm.invoke([SystemMessage(content=f"Check {user_message} this message is a valid Company name not an general topic make sure check all the details "),HumanMessage(content=check_prompt)])
+                llm_response = llm.invoke([SystemMessage(content=f"You are a friendly assistant working in Isuran's company department. Your primary task is to verify the user's input, which could be a company name. The input might include examples such as 'Fallout Private Limited' or 'Fallout Technologies'. Your role is to validate and identify whether the given input is a valid company name or needs clarification"),HumanMessage(content=check_prompt)])
                 is_company_name = llm_response.content.strip().lower() == "yes"
 
                 if is_company_name:
@@ -488,7 +489,8 @@ def process_user_input(user_input: UserInput):
                     if conversation_state["current_question_index"] < len(questions):
                         next_question = questions[conversation_state["current_question_index"]]
                         return {
-                            "response": f"Thank you! Now, let's move on to: {next_question}"
+                            "response": f"Thank you! Now, let's move on to: {next_question["question"]}",
+                            "options": f"{next_question['options']}"
                         }
                     else:
                         # All predefined questions have been answered
@@ -534,7 +536,8 @@ def process_user_input(user_input: UserInput):
                 if conversation_state["current_question_index"] < len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
                     return {
-                        "response": f"Thank you! Now, let's move on to: {next_question}"
+                        "response": f"Thank you! Now, let's move on to: {next_question[question]}",
+                        "options":f"{next_question[options]}"
                     }
                 else:
                     # All questions have been answered
