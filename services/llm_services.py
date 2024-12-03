@@ -535,9 +535,10 @@ def process_user_input(user_input: UserInput):
                 # Check if there are more questions to ask
                 if conversation_state["current_question_index"] < len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
+                    options = ", ".join(next_question["options"])
                     return {
-                        "response": f"Thank you! Now, let's move on to: {next_question[question]}",
-                        "options":f"{next_question[options]}"
+                        "response": f"Thank you! Now, let's move on to: {next_question["question"]}",
+                        "options":options
                     }
                 else:
                     # All questions have been answered
@@ -626,6 +627,42 @@ def process_user_input(user_input: UserInput):
                     return {
                         "response": f"{general_assistant_response.content.strip()}",
                         "question": f"Let's move back to: {question}"
+                    }
+
+        elif question == "Which insurance company is your current policy with?":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Check if the input is a company name using LLM
+                check_prompt = f"The user has responded with: '{user_message}'. Is this a valid company name? Respond with 'Yes' or 'No'."
+                llm_response = llm.invoke([SystemMessage(content=f"You are a friendly assistant working in Isuran's company department. Your primary task is to verify the user's input, which could be a company name. The input might include examples such as 'Fallout Private Limited' or 'Fallout Technologies'. Your role is to validate and identify whether the given input is a valid company name or needs clarification"),HumanMessage(content=check_prompt)])
+                is_company_name = llm_response.content.strip().lower() == "yes"
+
+                if is_company_name:
+                    # Store the company name
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        options = ", ".join(next_question["options"])
+                        return {
+                            "response": f"Thank you for providing the company name. Now, let's move on to: {next_question['question']}",
+                            "options": options
+                        }
+                    else:
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses
+                        }
+                else:
+                    # Handle invalid or unrelated input
+                    general_assistant_prompt = f"The user entered '{user_message}', . Please assist."
+                    general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly AI assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question":f"Let's Move Back {question}"
                     }
 
 
