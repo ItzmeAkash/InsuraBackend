@@ -489,8 +489,8 @@ def process_user_input(user_input: UserInput):
                     if conversation_state["current_question_index"] < len(questions):
                         next_question = questions[conversation_state["current_question_index"]]
                         return {
-                            "response": f"Thank you! Now, let's move on to: {next_question["question"]}",
-                            "options": f"{next_question['options']}"
+                            "response": f"Thank you! Now, let's move on to: {next_question}",
+                           
                         }
                     else:
                         # All predefined questions have been answered
