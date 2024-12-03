@@ -535,10 +535,9 @@ def process_user_input(user_input: UserInput):
                 # Check if there are more questions to ask
                 if conversation_state["current_question_index"] < len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
-                    options = ", ".join(next_question["options"])
+                    
                     return {
-                        "response": f"Thank you! Now, let's move on to: {next_question["question"]}",
-                        "options":options
+                         "response": f"Thank you! Now, let's move on to: {next_question}"
                     }
                 else:
                     # All questions have been answered
