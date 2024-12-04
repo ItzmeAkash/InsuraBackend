@@ -1,3 +1,4 @@
+from datetime import datetime
 from utils.helper import get_user_name,valid_date_format
 from langchain_groq.chat_models import ChatGroq
 
@@ -327,8 +328,10 @@ def process_user_input(user_input: UserInput):
                     conversation_state["current_question_index"] += 1
                     if conversation_state["current_question_index"] < len(questions):
                         next_question = questions[conversation_state["current_question_index"]]
+                        options = ", ".join(next_question["options"])
                         return {
-                            "response": f"Thank you! Now, let's move on to: {next_question}"
+                            "response": f"Thank you! Now, let's move on to: {next_question["question"]}",
+                            "options":options 
                         }
                     else:
                         # All predefined questions have been answered
@@ -346,11 +349,13 @@ def process_user_input(user_input: UserInput):
                         responses[follow_up_question] = None
                         # Insert the new question immediately after the current one
                         questions.insert(conversation_state["current_question_index"] + 1, follow_up_question)
-                    
+                      
                     # Move to the new follow-up question
                     conversation_state["current_question_index"] += 1
+                    
                     return {
-                        "response": f"Thank you! Now, let's move on to: {follow_up_question}"
+                        "response": f"Thank you! Now, let's move on to: {follow_up_question}",
+        
                     }
             else:
                 return {
@@ -366,8 +371,10 @@ def process_user_input(user_input: UserInput):
                 # Check if there are more questions to ask
                 if conversation_state["current_question_index"] < len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
+                    options = ", ".join(next_question["options"])
                     return {
-                        "response": f"Thank you! Now, let's move on to: {next_question}"
+                        "response": f"Thank you! Now, let's move on to: {next_question['question']}",
+                        "options": options
                     }
                 else:
                     # All questions have been answered
@@ -668,6 +675,292 @@ def process_user_input(user_input: UserInput):
                         "question":f"Let's Move Back {question}"
                     }
 
+        elif question == "How many years of driving experience do you have in the UAE?":
+           valid_options = ["0-1 year","1-2 years","2+ years" ]
+           if user_message in valid_options:
+               responses[question] = user_message
+               conversation_state["current_question_index"] += 1
+
+        # Check if there are more questions
+               if conversation_state["current_question_index"] < len(questions):
+                next_question = questions[conversation_state["current_question_index"]]
+                return {
+                "response": f"Thank you for your response. Now, let's move on to: {next_question}"
+                }
+               else:
+                with open("user_responses.json", "w") as file:
+                 json.dump(responses, file, indent=4)
+                return {
+                "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                "final_responses": responses
+                 }
+           else:
+           # Handle invalid responses or unrelated queries
+            general_assistant_prompt = f"user response: {user_message}. Please assist."
+            general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+            return {
+            "response": f"{general_assistant_response.content.strip()}",
+             "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
+          }
+ 
+        elif question == "Could you please let me know the year your car was made?":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Check if the input is a valid year
+                try:
+                    year = int(user_message)
+                    current_year = datetime.now().year
+                    if 1886 <= year <= current_year:  # Cars were invented in 1886
+                        # Valid year
+                        responses[question] = user_message
+                        conversation_state["current_question_index"] += 1
+
+                        # Check if there are more questions
+                        if conversation_state["current_question_index"] < len(questions):
+                            next_question = questions[conversation_state["current_question_index"]]
+                            
+                            return {
+                                "response": f"Thank you for providing the year. Now, let's move on to: {next_question}",
+                                
+                            }
+                        else:
+                            # Save responses and end the conversation
+                            with open("user_responses.json", "w") as file:
+                                json.dump(responses, file, indent=4)
+                            return {
+                                "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                                "final_responses": responses
+                            }
+                    else:
+                        # Year is out of range
+                        raise ValueError("Invalid year range")
+                except ValueError:
+                    # Handle invalid or unrelated input
+                    general_assistant_prompt = f"The user entered '{user_message}' when asked for the year their car was made. Please assist."
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, a friendly AI assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's revisit: {question}"
+                    }
+
+        elif question == "Could you please provide the registration details? When was your car first registered?":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Check if the input is a valid year
+                try:
+                    year = int(user_message)
+                    current_year = datetime.now().year
+                    if 1886 <= year <= current_year:  # Cars were invented in 1886
+                        # Valid year
+                        responses[question] = user_message
+                        conversation_state["current_question_index"] += 1
+
+                        # Check if there are more questions
+                        if conversation_state["current_question_index"] < len(questions):
+                            next_question = questions[conversation_state["current_question_index"]]
+                            
+                            return {
+                                "response": f"Thank you for providing the year. Now, let's move on to: {next_question}",
+                                
+                            }
+                        else:
+                            # Save responses and end the conversation
+                            with open("user_responses.json", "w") as file:
+                                json.dump(responses, file, indent=4)
+                            return {
+                                "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                                "final_responses": responses
+                            }
+                    else:
+                        # Year is out of range
+                        raise ValueError("Invalid year range")
+                except ValueError:
+                    # Handle invalid or unrelated input
+                    general_assistant_prompt = f"The user entered '{user_message}' when asked for the year their car was made. Please assist."
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, a friendly AI assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's revisit: {question}"
+                    }
+        
+        elif question == "Do you have a vehicle test passing certificate?":
+            valid_options = ["Yes", "No"]
+            if user_message in valid_options:
+                responses[question] = user_message  # Store the response
+
+                if user_message == "Yes":
+                    # Check if the follow-up question is already in the list
+                    follow_up_question = "Can you please tell me the year your insurance expired?"
+                    if follow_up_question in questions:
+                        # If the follow-up question exists, skip it and proceed
+                        questions.remove(follow_up_question)
+                    
+                    # Proceed to the next predefined question
+                    conversation_state["current_question_index"] += 1
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        options = ", ".join(next_question["options"])
+                        return {
+                            "response": f"Thank you! Now, let's move on to: {next_question["question"]}",
+                            "options":options 
+                        }
+                    else:
+                        # All predefined questions have been answered
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses
+                        }
+
+                elif user_message == "No":
+                    # Dynamically add the follow-up question if not already present
+                    follow_up_question = "Can you please tell me the year your insurance expired?"
+                    if follow_up_question not in questions:
+                        responses[follow_up_question] = None
+                        # Insert the new question immediately after the current one
+                        questions.insert(conversation_state["current_question_index"] + 1, follow_up_question)
+                    
+                    # Move to the new follow-up question
+                    conversation_state["current_question_index"] += 1
+                    return {
+                        "response": f"Thank you! Now, let's move on to: {follow_up_question}"
+                    }
+            else:
+                return {
+                    "response": "Invalid response. Please answer with 'Yes' or 'No'."
+                }
+
+        elif question == "Does your current policy have comprehensive cover?":
+            valid_options = ["Yes", "No"]
+            if user_message in valid_options:
+                responses[question] = user_message  # Store the response
+
+                if user_message == "Yes":
+                    # Check if the follow-up question is already in the list
+                    follow_up_question = "Can you please tell me the year your insurance expired?"
+                    if follow_up_question in questions:
+                        # If the follow-up question exists, skip it and proceed
+                        questions.remove(follow_up_question)
+                    
+                    # Proceed to the next predefined question
+                    conversation_state["current_question_index"] += 1
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        options = ", ".join(next_question["options"])
+                        return {
+                            "response": f"Thank you! Now, let's move on to: {next_question["question"]}",
+                            "options":options 
+                        }
+                    else:
+                        # All predefined questions have been answered
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses
+                        }
+
+                elif user_message == "No":
+                    # Dynamically add the follow-up question if not already present
+                    follow_up_question = "Can you please tell me the year your insurance expired?"
+                    if follow_up_question not in questions:
+                        responses[follow_up_question] = None
+                        # Insert the new question immediately after the current one
+                        questions.insert(conversation_state["current_question_index"] + 1, follow_up_question)
+                    
+                    # Move to the new follow-up question
+                    conversation_state["current_question_index"] += 1
+                    return {
+                        "response": f"Thank you! Now, let's move on to: {follow_up_question}"
+                    }
+            else:
+                return {
+                    "response": "Invalid response. Please answer with 'Yes' or 'No'."
+                }
+
+        elif question == "Does your policy include agency repair?":
+            valid_options = ["Yes", "No"]
+            if user_message in valid_options:
+                responses[question] = user_message  # Store the response
+
+                if user_message == "Yes":
+                    # Check if the follow-up question is already in the list
+                    follow_up_question = "Can you please tell me the year your insurance expired?"
+                    if follow_up_question in questions:
+                        # If the follow-up question exists, skip it and proceed
+                        questions.remove(follow_up_question)
+                    
+                    # Proceed to the next predefined question
+                    conversation_state["current_question_index"] += 1
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        options = ", ".join(next_question["options"])
+                        return {
+                            "response": f"Thank you! Now, let's move on to: {next_question["question"]}",
+                            "options":options 
+                        }
+                    else:
+                        # All predefined questions have been answered
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses
+                        }
+
+                elif user_message == "No":
+                    # Dynamically add the follow-up question if not already present
+                    follow_up_question = "Can you please tell me the year your insurance expired?"
+                    if follow_up_question not in questions:
+                        responses[follow_up_question] = None
+                        # Insert the new question immediately after the current one
+                        questions.insert(conversation_state["current_question_index"] + 1, follow_up_question)
+                    
+                    # Move to the new follow-up question
+                    conversation_state["current_question_index"] += 1
+                    options = ", ".join(follow_up_question["options"])
+                    return {
+                        "response": f"Thank you! Now, let's move on to: {follow_up_question["question"]}",
+                        "options":options
+                    }
+            else:
+                return {
+                    "response": "Invalid response. Please answer with 'Yes' or 'No'."
+                }
+
+        elif question == "Do you have a No Claim certificate?":
+           valid_options = ["No","1 Year","2 Years","3+ Years"]
+           if user_message in valid_options:
+               responses[question] = user_message
+               conversation_state["current_question_index"] += 1
+
+        # Check if there are more questions
+               if conversation_state["current_question_index"] < len(questions):
+                next_question = questions[conversation_state["current_question_index"]]
+                return {
+                "response": f"Thank you for your response. Now, let's move on to: {next_question}"
+                }
+               else:
+                with open("user_responses.json", "w") as file:
+                 json.dump(responses, file, indent=4)
+                return {
+                "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                "final_responses": responses
+                 }
+           else:
+           # Handle invalid responses or unrelated queries
+            general_assistant_prompt = f"user response: {user_message}. Please assist."
+            general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+            return {
+            "response": f"{general_assistant_response.content.strip()}",
+             "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
+          }
+ 
 
    
        # For other free-text questions
