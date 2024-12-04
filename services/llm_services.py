@@ -154,11 +154,13 @@ def process_user_input(user_input: UserInput):
 
         if question=="To whom are you purchasing this plan?":
             valid_options =[
-                "Employee",
-                "Dependents",
-               "Small Investors",
-             "Domestic Help",
-              "4th Child Children above 18 years and Parents"
+         "Employee",
+         "Dependents",
+         "Small Investors",
+         "Domestic Help",
+         "4th Child",
+         "Children above 18 years",
+         "Parents"
             ]
             if user_message in valid_options:
                 responses[question]=user_message
@@ -535,9 +537,11 @@ def process_user_input(user_input: UserInput):
                 # Check if there are more questions to ask
                 if conversation_state["current_question_index"] < len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
+                    options = ", ".join(next_question["options"])
                     
                     return {
-                         "response": f"Thank you! Now, let's move on to: {next_question}"
+                         "response": f"Thank you! Now, let's move on to: {next_question["question"]}",
+                         "options":options
                     }
                 else:
                     # All questions have been answered

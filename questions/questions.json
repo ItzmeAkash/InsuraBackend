@@ -103,7 +103,7 @@
              "No"
          ]
          },
-       "Let's help you with your insurance policy!.Can you please share the details of your current insurance policy.What is the policy expiry date?",
+       "Your Insurance policy!.Can you please share the details of your current insurance policy.What is the policy expiry date?",
        "Which insurance company is your current policy with?",
        {"question":"Now, let's find a suitable plan for you.!What type of plan are you looking for?",
         "options":[
@@ -111,7 +111,7 @@
             "Enhanced Plan"
         ]
        },
-         {"question":"Who will this plan be for?",
+         {"question":"To whom are you purchasing this plan?",
         "options":[
            "Employee",
          "Dependents",
@@ -139,7 +139,7 @@
          "What company does the sponsor work for?",
          "Could you provide the sponsor's Emirates ID?",
          "What is the VAT number of the sponsor/company?",
-         {"question":"Could you kindly provide me with the sponsor's Source of Income?",
+         {"question":"Could you kindly provide me with the sponsor's Source of Income",
           
          "options":[
                  "Business",
