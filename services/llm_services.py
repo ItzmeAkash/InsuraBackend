@@ -217,39 +217,33 @@ def process_user_input(user_input: UserInput):
                 }    
                                                    
         elif question == "Please enter your Entry Date or Visa Change Status Date.":
-            date_pattern = r"^\d{2}-\d{2}-\d{4}$"
-            if re.match(date_pattern, user_message):
+            # Validate and store the second dose date
+            if valid_date_format(user_message):  # Replace with your date validation function
                 responses[question] = user_message
                 conversation_state["current_question_index"] += 1
 
-                # Check if there are more questions
+                # Check if there are more questions to ask
                 if conversation_state["current_question_index"] < len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
+                    
+                    
                     return {
-                        "response": f"Thank you! That was helpful. Now, let's move on to: {next_question}"
+                         "response": f"Thank you! Now, let's move on to: {next_question}",
+
                     }
                 else:
+                    # All questions have been answered
                     with open("user_responses.json", "w") as file:
                         json.dump(responses, file, indent=4)
                     return {
-                        "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                        "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
                         "final_responses": responses
                     }
             else:
-                # Handle invalid date format
-                if re.search(r"[a-zA-Z]", user_message):  # Detect non-date queries
-                    general_assistant_prompt = f"user response: {user_message}. Please assist."
-                    
-                    general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
-                    return {
-                        "response": f"{general_assistant_response.content.strip()}",
-                        "question":f"Let’s move back to: {question}"
-                    }
-                else:
-                    return {
-                        "response": "The date format should be DD-MM-YYYY. Please provide the correct format. For example: 25-12-2024."
-                    }
-       
+                return {
+                    "response": "Invalid date format. Please provide the date in the format DD/MM/YYYY or MM-DD-YYYY."
+                }
+          
         elif question == "Is accommodation provided to you?":
            valid_options = ["Yes", "No"]
            if user_message in valid_options:
