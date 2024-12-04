@@ -901,7 +901,7 @@ def process_user_input(user_input: UserInput):
                         next_question = questions[conversation_state["current_question_index"]]
                        
                         return {
-                            "response": f"Thank you! Now, let's move on to: {next_question["question"]}",
+                            "response": f"Thank you! Now, let's move on to: {next_question}",
                             
                         }
                     else:
