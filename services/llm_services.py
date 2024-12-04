@@ -851,10 +851,10 @@ def process_user_input(user_input: UserInput):
                     conversation_state["current_question_index"] += 1
                     if conversation_state["current_question_index"] < len(questions):
                         next_question = questions[conversation_state["current_question_index"]]
-                        options = ", ".join(next_question["options"])
+                        
                         return {
-                            "response": f"Thank you! Now, let's move on to: {next_question["question"]}",
-                            "options":options 
+                            "response": f"Thank you! Now, let's move on to: {next_question}",
+                           
                         }
                     else:
                         # All predefined questions have been answered
@@ -899,10 +899,10 @@ def process_user_input(user_input: UserInput):
                     conversation_state["current_question_index"] += 1
                     if conversation_state["current_question_index"] < len(questions):
                         next_question = questions[conversation_state["current_question_index"]]
-                        options = ", ".join(next_question["options"])
+                       
                         return {
                             "response": f"Thank you! Now, let's move on to: {next_question["question"]}",
-                            "options":options 
+                            
                         }
                     else:
                         # All predefined questions have been answered
@@ -923,10 +923,10 @@ def process_user_input(user_input: UserInput):
                     
                     # Move to the new follow-up question
                     conversation_state["current_question_index"] += 1
-                    options = ", ".join(follow_up_question["options"])
+                    
                     return {
-                        "response": f"Thank you! Now, let's move on to: {follow_up_question["question"]}",
-                        "options":options
+                        "response": f"Thank you! Now, let's move on to: {follow_up_question}",
+                      
                     }
             else:
                 return {
