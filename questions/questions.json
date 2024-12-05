@@ -35,12 +35,13 @@
       {
           "question": "To whom are you purchasing this plan?",
           "options": [
-              "Employee", 
-              "Dependents", 
-              "Small Investors", 
-              "Domestic Help", 
-              "4th Child Children above 18 years and Parents"
-        
+            "Employee",
+            "Dependents",
+            "Small Investors",
+            "Domestic Help",
+            "4th Child",
+            "Children above 18 years",
+            "Parents"
           ]
       },
       "Could you please tell us your monthly salary in AED?",
