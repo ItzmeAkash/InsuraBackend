@@ -1043,7 +1043,7 @@ def process_user_input(user_input: UserInput):
                         f"{general_assistant_response.content.strip()} \n\n"
                         
                     ),
-                    "example": f"Here's an example of a valid Emirates ID for reference: {emirates_id_example}. Please ensure it follows the format: 784-YYYY-XXXXXXX-X, where YYYY is your birth year, followed by a 7-digit number, and ending with a single digit.",
+                    "example": f"Here's an example of a valid Emirates ID for reference: {emirates_id_example}. Please ensure  it follows the format: 784-YYYY-XXXXXXX-X, where YYYY is your birth year, followed by a 7-digit number, and ending with a single digit.",
                     "question": f"Let’s try again: {question}"
                 }
        
