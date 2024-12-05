@@ -821,103 +821,7 @@ def process_user_input(user_input: UserInput):
                         "response": f"{general_assistant_response.content.strip()}",
                         "question": f"Let's revisit: {question}"
                     }
-        
-        elif question == "Do you have a vehicle test passing certificate?":
-            valid_options = ["Yes", "No"]
-            if user_message in valid_options:
-                responses[question] = user_message  # Store the response
-
-                if user_message == "Yes":
-                    # Check if the follow-up question is already in the list
-                    follow_up_question = "Can you please tell me the year your insurance expired?"
-                    if follow_up_question in questions:
-                        # If the follow-up question exists, skip it and proceed
-                        questions.remove(follow_up_question)
-                    
-                    # Proceed to the next predefined question
-                    conversation_state["current_question_index"] += 1
-                    if conversation_state["current_question_index"] < len(questions):
-                        next_question = questions[conversation_state["current_question_index"]]
-                        
-                        return {
-                            "response": f"Thank you! Now, let's move on to: {next_question}",
-                            
-                        }
-                    else:
-                        # All predefined questions have been answered
-                        with open("user_responses.json", "w") as file:
-                            json.dump(responses, file, indent=4)
-                        return {
-                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
-                            "final_responses": responses
-                        }
-
-                elif user_message == "No":
-                    # Dynamically add the follow-up question if not already present
-                    follow_up_question = "Can you please tell me the year your insurance expired?"
-                    if follow_up_question not in questions:
-                        responses[follow_up_question] = None
-                        # Insert the new question immediately after the current one
-                        questions.insert(conversation_state["current_question_index"] + 1, follow_up_question)
-                    
-                    # Move to the new follow-up question
-                    conversation_state["current_question_index"] += 1
-                    return {
-                        "response": f"Thank you! Now, let's move on to: {follow_up_question}"
-                    }
-            else:
-                return {
-                    "response": "Invalid response. Please answer with 'Yes' or 'No'."
-                }
-
-        elif question == "Does your current policy have comprehensive cover?":
-            valid_options = ["Yes", "No"]
-            if user_message in valid_options:
-                responses[question] = user_message  # Store the response
-
-                if user_message == "Yes":
-                    # Check if the follow-up question is already in the list
-                    follow_up_question = "Can you please tell me the year your insurance expired?"
-                    if follow_up_question in questions:
-                        # If the follow-up question exists, skip it and proceed
-                        questions.remove(follow_up_question)
-                    
-                    # Proceed to the next predefined question
-                    conversation_state["current_question_index"] += 1
-                    if conversation_state["current_question_index"] < len(questions):
-                        next_question = questions[conversation_state["current_question_index"]]
-                        
-                        return {
-                            "response": f"Thank you! Now, let's move on to: {next_question}",
-                           
-                        }
-                    else:
-                        # All predefined questions have been answered
-                        with open("user_responses.json", "w") as file:
-                            json.dump(responses, file, indent=4)
-                        return {
-                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
-                            "final_responses": responses
-                        }
-
-                elif user_message == "No":
-                    # Dynamically add the follow-up question if not already present
-                    follow_up_question = "Can you please tell me the year your insurance expired?"
-                    if follow_up_question not in questions:
-                        responses[follow_up_question] = None
-                        # Insert the new question immediately after the current one
-                        questions.insert(conversation_state["current_question_index"] + 1, follow_up_question)
-                    
-                    # Move to the new follow-up question
-                    conversation_state["current_question_index"] += 1
-                    return {
-                        "response": f"Thank you! Now, let's move on to: {follow_up_question}"
-                    }
-            else:
-                return {
-                    "response": "Invalid response. Please answer with 'Yes' or 'No'."
-                }
-
+              
         elif question == "Does your policy include agency repair?":
            valid_options = ["Yes", "No"]
            if user_message in valid_options:
@@ -974,34 +878,6 @@ def process_user_input(user_input: UserInput):
              "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
           }
             
-        elif question == "Do you have a vehicle test passing certificate?":
-           valid_options = ["Yes", "No"]
-           if user_message in valid_options:
-               responses[question] = user_message
-               conversation_state["current_question_index"] += 1
-
-        # Check if there are more questions
-               if conversation_state["current_question_index"] < len(questions):
-                next_question = questions[conversation_state["current_question_index"]]
-                return {
-                "response": f"Thank you for your response. Now, let's move on to: {next_question}"
-                }
-               else:
-                with open("user_responses.json", "w") as file:
-                 json.dump(responses, file, indent=4)
-                return {
-                "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                "final_responses": responses
-                 }
-           else:
-           # Handle invalid responses or unrelated queries
-            general_assistant_prompt = f"user response: {user_message}. Please assist."
-            general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
-            return {
-            "response": f"{general_assistant_response.content.strip()}",
-             "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
-          }
- 
         elif question == "Tell me Sponsor's  Emirate ID":
 
             # Validate sponsor Emirates ID
@@ -1012,9 +888,9 @@ def process_user_input(user_input: UserInput):
                 # Move to the next question or finalize responses
                 if conversation_state["current_question_index"] < len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
-                    progress = f"Question {conversation_state['current_question_index'] + 1} of {len(questions)}"
+                    
                     return {
-                        "response": f"Thank you! Now, let's move on to: {next_question} ({progress})"
+                        "response": f"Thank you! Now, let's move on to: {next_question}"
                     }
                 else:
                     # All questions answered
@@ -1043,7 +919,7 @@ def process_user_input(user_input: UserInput):
                         f"{general_assistant_response.content.strip()} \n\n"
                         
                     ),
-                    "example": f"Here's an example of a valid Emirates ID for reference: {emirates_id_example}. Please ensure  it follows the format: 784-YYYY-XXXXXXX-X, where YYYY is your birth year, followed by a 7-digit number, and ending with a single digit.",
+                    "example": f"Here's an example of a valid Emirates ID for your reference: {emirates_id_example}.",
                     "question": f"Let’s try again: {question}"
                 }
        
