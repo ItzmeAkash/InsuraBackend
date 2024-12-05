@@ -1,5 +1,5 @@
 from datetime import datetime
-from utils.helper import get_user_name,valid_date_format
+from utils.helper import get_user_name,valid_date_format,valid_emirates_id
 from langchain_groq.chat_models import ChatGroq
 
 from langchain_core.messages import HumanMessage,SystemMessage
@@ -1001,6 +1001,51 @@ def process_user_input(user_input: UserInput):
             "response": f"{general_assistant_response.content.strip()}",
              "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
           }
+ 
+        elif question == "Tell me Sponsor's  Emirate ID":
+
+            # Validate sponsor Emirates ID
+            if valid_emirates_id(user_message):
+                responses[question] = user_message
+                conversation_state["current_question_index"] += 1
+
+                # Move to the next question or finalize responses
+                if conversation_state["current_question_index"] < len(questions):
+                    next_question = questions[conversation_state["current_question_index"]]
+                    progress = f"Question {conversation_state['current_question_index'] + 1} of {len(questions)}"
+                    return {
+                        "response": f"Thank you! Now, let's move on to: {next_question} ({progress})"
+                    }
+                else:
+                    # All questions answered
+                    try:
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insura. Your responses have been recorded. "
+                                        "Feel free to ask any other questions. Have a great day!",
+                            "final_responses": responses
+                        }
+                    except Exception as e:
+                        return {
+                            "response": f"An error occurred while saving your responses: {str(e)}"
+                        }
+            else:
+                # Handle invalid Emirates ID or unrelated query
+                general_assistant_prompt = f"user response: {user_message}. Please assist."
+                general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+
+                # Example of a valid Emirates ID
+                emirates_id_example = "784-1990-1234567-0"
+
+                return {
+                    "response": (
+                        f"{general_assistant_response.content.strip()} \n\n"
+                        
+                    ),
+                    "question": f"Let’s try again: {question}",
+                    "example": f" Here's an example of a valid Emirates ID for reference: {emirates_id_example}. Please ensure it follows the format: 784-YYYY-XXXXXXX-X, where YYYY is your birth year, followed by a 7-digit number, and ending with a single digit."
+                }
        
 
    
