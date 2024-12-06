@@ -221,12 +221,9 @@
       },
       {
       "question":"Do you have a vehicle test passing certificate?",
-      "options":[
-          "Yes",
-          "No"
-      ]
-            },
-          {
+      "options":["Yes","No"]
+      },
+      {
       "question":"Does your current policy have comprehensive cover?",
       "options":[
           "Yes",
