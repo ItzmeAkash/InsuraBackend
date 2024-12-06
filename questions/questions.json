@@ -239,12 +239,7 @@
             },
                                   {
       "question":"Do you have a No Claim certificate?",
-      "options":[
-          "No",
-          "1 Year",
-          "2 Years",
-          "3+ Years"
-      ]
+      "options":["No","1 Year","2 Years","3+ Years"]
             },
           "Could you kindly share your contact details with me? To start, may I know your name, please?",
           "May i know your Email address",
@@ -309,14 +304,9 @@
       "No"
   ]
         },
-                              {
+  {
   "question":"Do you have a No Claim certificate?",
-  "options":[
-      "No",
-      "1 Year",
-      "2 Years",
-      "3+ Years"
-  ]
+  "options":["No","1 Year","2 Years","3+ Years"]
         },
       "Could you kindly share your contact details with me? To start, may I know your name, please?",
       "May i know your Email address",
