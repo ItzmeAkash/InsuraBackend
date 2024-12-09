@@ -31,7 +31,13 @@
     ],
     "new_policy_questions": [
       "Please enter your Entry Date or Visa Change Status Date.",
-      "What type of plan are you looking for? Basic Plan or Enhanced Plan?",
+      {"question":"What type of plan are you looking for?",
+      "options":[
+          "Basic Plan",
+          "Enhanced Plan"
+      ]
+     },
+
       {
           "question": "To whom are you purchasing this plan?",
           "options": [
@@ -106,7 +112,7 @@
          },
        "Your Insurance policy!.Can you please share the details of your current insurance policy.What is the policy expiry date?",
        "Which insurance company is your current policy with?",
-       {"question":"Now, let's find a suitable plan for you.!What type of plan are you looking for?",
+       {"question":"What type of plan are you looking for?",
         "options":[
             "Basic Plan",
             "Enhanced Plan"

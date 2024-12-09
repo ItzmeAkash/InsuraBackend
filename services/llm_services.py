@@ -228,10 +228,13 @@ def process_user_input(user_input: UserInput):
                 # Check if there are more questions to ask
                 if conversation_state["current_question_index"] < len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
-                    
+                    options = ", ".join(next_question["options"])
+                    next_questions = next_question["question"]
+                        
                     
                     return {
-                         "response": f"Thank you! Now, let's move on to: {next_question}",
+                         "response": f"Thank you! Now, let's move on to: {next_questions}",
+                         "options":options
 
                     }
                 else:
@@ -393,34 +396,50 @@ def process_user_input(user_input: UserInput):
                     "question":f"Let's Move back to {question}"
                 }
         
-        elif question=="Are you suffering from any pre-existing or chronic conditions?":
-            valid_options =[
-                "Yes",
-               "No"
-            ]
+        elif question == "Are you suffering from any pre-existing or chronic conditions?":
+            valid_options = ["Yes", "No"]
+            
             if user_message in valid_options:
-                responses[question]=user_message
-                conversation_state["current_question_index"]+=1
-                if conversation_state["current_question_index"]< len(questions):
+                responses[question] = user_message
+                
+                # Handle file upload if the answer is "Yes"
+                # if user_message == "Yes":
+                #     # Trigger upload API request
+                #     upload_response = {
+                #         "response": "Please upload a document related to your condition using the upload API.",
+                #         "upload_api": "/upload/"
+                #     }
+                #     return upload_response
+                
+                # If upload is complete or if the answer is "No", move to the next question
+                conversation_state["current_question_index"] += 1
+                
+                if conversation_state["current_question_index"] < len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
                     return {
-                     "response": f"Thank you! That was helpful. Now, let's move on to: {next_question}",
-                     
-                     }
+                        "response": f"Thank you! That was helpful. Now, let's move on to: {next_question}"
+                    }
                 else:
+                    # Save responses to file if the survey is complete
                     with open("user_responses.json", "w") as file:
-                         json.dump(responses, file, indent=4)
+                        json.dump(responses, file, indent=4)
                     return {
-                     "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
-                     "final_responses": responses
-                     }
-            else:    
-               general_assistant_prompt = f"user response: {user_message}. Please assist."
-               general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
-               return {
-               "response": f"{general_assistant_response.content.strip()}",
-               "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
+                        "response": "Thank you for using Insura. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                        "final_responses": responses
+                    }
+
+            else:
+                # Handle invalid response with LLM assistance
+                general_assistant_prompt = f"user response: {user_message}. Please assist."
+                general_assistant_response = llm.invoke([
+                    SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),
+                    HumanMessage(content=general_assistant_prompt)
+                ])
+                return {
+                    "response": f"{general_assistant_response.content.strip()}",
+                    "question": f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
                 }
+
 
         elif question == "What company does the sponsor work for?":
             if conversation_state["current_question_index"] == questions.index(question):
@@ -1123,7 +1142,37 @@ def process_user_input(user_input: UserInput):
                         "question": f"Let's move back to: {question}"
                     }
       
-            
+
+        elif question == "Could you kindly provide me with the sponsor's Source of Income":
+           valid_options = ["Business","Salary"]
+           if user_message in valid_options:
+               responses[question] = user_message
+               conversation_state["current_question_index"] += 1
+
+        # Check if there are more questions
+               if conversation_state["current_question_index"] < len(questions):
+                next_question = questions[conversation_state["current_question_index"]]
+                return {
+                "response": f"Thank you for your response. Now, let's move on to: {next_question}"
+                }
+               else:
+                with open("user_responses.json", "w") as file:
+                 json.dump(responses, file, indent=4)
+                return {
+                "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                "final_responses": responses
+                 }
+           else:
+           # Handle invalid responses or unrelated queries
+            general_assistant_prompt = f"user response: {user_message}. Please assist."
+            general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+            return {
+            "response": f"{general_assistant_response.content.strip()}",
+             "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
+          }
+
+         
+                      
        # For other free-text questions
         evaluation_prompt = f"Is the user's response '{user_message}' correct for the question '{question}'? Answer 'yes' or 'no'."
         evaluation_response = llm.invoke([HumanMessage(content=evaluation_prompt)])
