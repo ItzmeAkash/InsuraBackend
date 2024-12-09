@@ -1,16 +1,16 @@
 from datetime import datetime
 from utils.helper import get_user_name,valid_date_format,valid_emirates_id
 from langchain_groq.chat_models import ChatGroq
-
+from fastapi import FastAPI, File, UploadFile
 from langchain_core.messages import HumanMessage,SystemMessage
 from models.user_input import UserInput
 from random import choice
 import json
 import re
+import os
 from dotenv import load_dotenv
 load_dotenv()
 
-import os
 groq_api_key = os.getenv('GROQ_API_KEY')
 llm = ChatGroq(
     model="llama-3.1-70b-versatile",
@@ -105,7 +105,7 @@ def process_user_input(user_input: UserInput):
         # Handle options
         if options:
             # Validate user response against options
-            if user_message in options:
+            if user_message in options:               
                 responses[question] = user_message
                 if user_message == "Purchase a Medical Insurance":
                     conversation_state["current_flow"] = "medical_insurance"
@@ -401,7 +401,6 @@ def process_user_input(user_input: UserInput):
             if user_message in valid_options:
                 responses[question]=user_message
                 conversation_state["current_question_index"]+=1
-                
                 if conversation_state["current_question_index"]< len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
                     return {
@@ -998,7 +997,133 @@ def process_user_input(user_input: UserInput):
             "response": f"{general_assistant_response.content.strip()}",
              "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
           }
+
+        elif question == "Could you please tell me the year your bike was made?":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Check if the input is a valid year
+                try:
+                    year = int(user_message)
+                    current_year = datetime.now().year
+                    if 1886 <= year <= current_year:  # Cars were invented in 1886
+                        # Valid year
+                        responses[question] = user_message
+                        conversation_state["current_question_index"] += 1
+
+                        # Check if there are more questions
+                        if conversation_state["current_question_index"] < len(questions):
+                            next_question = questions[conversation_state["current_question_index"]]
+                            
+                            return {
+                                "response": f"Thank you for providing the year. Now, let's move on to: {next_question}",
+                                
+                            }
+                        else:
+                            # Save responses and end the conversation
+                            with open("user_responses.json", "w") as file:
+                                json.dump(responses, file, indent=4)
+                            return {
+                                "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                                "final_responses": responses
+                            }
+                    else:
+                        # Year is out of range
+                        raise ValueError("Invalid year range")
+                except ValueError:
+                    # Handle invalid or unrelated input
+                    general_assistant_prompt = f"The user entered '{user_message}' when asked for the year their car was made. Please assist."
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, a friendly AI assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's revisit: {question}"
+                    }
+
+        elif question == "Could you please provide the registration details? When was your bike first registered?":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Check if the input is a valid year
+                try:
+                    year = int(user_message)
+                    current_year = datetime.now().year
+                    if 1886 <= year <= current_year:  # Cars were invented in 1886
+                        # Valid year
+                        responses[question] = user_message
+                        conversation_state["current_question_index"] += 1
+
+                        # Check if there are more questions
+                        if conversation_state["current_question_index"] < len(questions):
+                            next_question = questions[conversation_state["current_question_index"]]
+                            
+                            return {
+                                "response": f"Thank you for providing the year. Now, let's move on to: {next_question}",
+                                
+                            }
+                        else:
+                            # Save responses and end the conversation
+                            with open("user_responses.json", "w") as file:
+                                json.dump(responses, file, indent=4)
+                            return {
+                                "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                                "final_responses": responses
+                            }
+                    else:
+                        # Year is out of range
+                        raise ValueError("Invalid year range")
+                except ValueError:
+                    # Handle invalid or unrelated input
+                    general_assistant_prompt = f"The user entered '{user_message}' when asked for the year their car was made. Please assist."
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, a friendly AI assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's revisit: {question}"
+                    }
+
+        elif question == "Could you kindly share your contact details with me? To start, may I know your name, please?":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Prompt LLM to check if the input is a valid person name
+                check_prompt = f"The user has responded with: '{user_message}'. Is this a valid person's name? Respond with 'Yes' or 'No'."
+                llm_response = llm.invoke([
+                    SystemMessage(content="You are Insura, an AI assistant specialized in insurance-related tasks. Your task is to determine if the input provided by the user is a valid person's name.Make sure it a valide name for a person"),
+                    HumanMessage(content=check_prompt)
+                ])
+                is_person_name = llm_response.content.strip().lower() == "yes"
+
+                if is_person_name:
+                    # Store the person's name
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        return {
+                            "response": f"Thank you for providing your name. Now, let's move on to: {next_question}"
+                        }
+                    else:
+                        # If all questions are completed, save responses and end conversation
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insura. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses
+                        }
+                else:
+                    # Handle invalid or unrelated input
+                    general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a person's name. Please assist."
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. Your role is to assist users with their inquiries. Your task here is to redirect or assist the user appropriately."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's move back to: {question}"
+                    }
       
+            
        # For other free-text questions
         evaluation_prompt = f"Is the user's response '{user_message}' correct for the question '{question}'? Answer 'yes' or 'no'."
         evaluation_response = llm.invoke([HumanMessage(content=evaluation_prompt)])
@@ -1046,3 +1171,4 @@ def process_user_input(user_input: UserInput):
         general_assistant_prompt = f"General query: {user_message}."
         general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
         return {"response": f"{general_assistant_response.content.strip()}"}
+

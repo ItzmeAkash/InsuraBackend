@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import chat
+from routes import chat,upload
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -16,5 +16,6 @@ app.add_middleware(
 
 # Routes
 app.include_router(chat.router)
+app.include_router(upload.router)
 
 
