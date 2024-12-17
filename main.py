@@ -1,6 +1,7 @@
+from re import search
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import chat,upload
+from routes import chat, searchInternet,upload
 
 # Initialize FastAPI app
 app = FastAPI()
@@ -17,5 +18,5 @@ app.add_middleware(
 # Routes
 app.include_router(chat.router)
 app.include_router(upload.router)
-
+app.include_router(searchInternet.router)
 

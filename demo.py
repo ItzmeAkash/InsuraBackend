@@ -68,3 +68,9 @@ def chat_with_bot(user_input: dict):
         json.dump(responses, file, indent=4)
 
     return {"response": "Thank you for completing the form.", "final_responses": responses}
+
+
+
+
+
+# Please attach the medical report for the chronic condition.

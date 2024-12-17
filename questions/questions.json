@@ -4,7 +4,8 @@
         "question": "What would you like to do today?",
         "options": [
           "Purchase a Medical Insurance",
-          "Purchase a Motor Insurance"
+          "Purchase a Motor Insurance",
+          "Claim a Motor Insurance"
         ]
       }
     ],
@@ -327,6 +328,29 @@
       "Hi {user_name},  thanks for connecting today! {first_question}",
       "Hi {user_name},excited to work on your requirements {first_question}",
       "Hi {user_name},great to chat! Let start with {first_question}"
+    ],
+    "motor_claim":[
+      "Could you please provide your full name",
+      "Could you provide your Policy Number",
+      "Please upload photos of your driving license Front side",
+      "Please upload photos of your driving license Back side",
+      "Please upload photos of your vehicle registration (Mulkiya) Front side",
+      "Please upload photos of your vehicle registration (Mulkiya)  Back side",
+      "Please upload a copy of the police report related to the incident",
+      {
+        "question":"In which emirate would you prefer your vehicle to be repaired?",
+          "options": [
+          "Abudhabi",
+          "Ajman",
+          "Dubai",
+          "Fujairah",
+          "Ras Al Khaimah",
+          "Sharjah",
+          "Umm Al Quwain"
+      ]
+      },
+      "Which area you prefer for the vehicle repair? Please type the name of the area"
+      
     ]
   }
   

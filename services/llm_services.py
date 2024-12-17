@@ -4,7 +4,11 @@ from langchain_groq.chat_models import ChatGroq
 from fastapi import FastAPI, File, UploadFile
 from langchain_core.messages import HumanMessage,SystemMessage
 from models.user_input import UserInput
+from langchain_community.tools import DuckDuckGoSearchRun
+from langchain_core.tools import tool
+from langchain.agents import initialize_agent
 from random import choice
+import requests
 import json
 import re
 import os
@@ -18,6 +22,7 @@ llm = ChatGroq(
     api_key=groq_api_key,
     groq_proxy=None
 )
+
 
 user_states = {}
 
@@ -41,6 +46,7 @@ existing_policy_questions = questions_data["existing_policy_questions"]
 motor_insurance_questions = questions_data["motor_insurance_questions"]
 car_questions = questions_data["car_questions"]
 bike_questions = questions_data["bike_questions"]
+motor_claim = questions_data["motor_claim"]
 greeting_templates = questions_data["greeting_templates"]
 
 
@@ -85,6 +91,8 @@ def process_user_input(user_input: UserInput):
         questions = new_policy_questions
     elif current_flow == "existing_policy":
         questions = existing_policy_questions
+    elif current_flow == "motor_claim":
+        questions = motor_claim
     else:
         questions = []
 
@@ -149,6 +157,12 @@ def process_user_input(user_input: UserInput):
                     conversation_state["current_question_index"] = 0
                     return {
                         "response": f"Great choice! {existing_policy_questions[0]}"
+                    }
+                elif user_message == "Claim a Motor Insurance":
+                    conversation_state["current_flow"] = "motor_claim"
+                    conversation_state["current_question_index"] = 0
+                    return {
+                        "response": f"Great choice! {motor_claim[0]}"
                     }
             else:
                 return {
@@ -394,52 +408,7 @@ def process_user_input(user_input: UserInput):
                 return {
                     "response": f"{general_assistant_response.content.strip()}",
                     "question":f"Let's Move back to {question}"
-                }
-        
-        elif question == "Are you suffering from any pre-existing or chronic conditions?":
-            valid_options = ["Yes", "No"]
-            
-            if user_message in valid_options:
-                responses[question] = user_message
-                
-                # Handle file upload if the answer is "Yes"
-                # if user_message == "Yes":
-                #     # Trigger upload API request
-                #     upload_response = {
-                #         "response": "Please upload a document related to your condition using the upload API.",
-                #         "upload_api": "/upload/"
-                #     }
-                #     return upload_response
-                
-                # If upload is complete or if the answer is "No", move to the next question
-                conversation_state["current_question_index"] += 1
-                
-                if conversation_state["current_question_index"] < len(questions):
-                    next_question = questions[conversation_state["current_question_index"]]
-                    return {
-                        "response": f"Thank you! That was helpful. Now, let's move on to: {next_question}"
-                    }
-                else:
-                    # Save responses to file if the survey is complete
-                    with open("user_responses.json", "w") as file:
-                        json.dump(responses, file, indent=4)
-                    return {
-                        "response": "Thank you for using Insura. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
-                        "final_responses": responses
-                    }
-
-            else:
-                # Handle invalid response with LLM assistance
-                general_assistant_prompt = f"user response: {user_message}. Please assist."
-                general_assistant_response = llm.invoke([
-                    SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),
-                    HumanMessage(content=general_assistant_prompt)
-                ])
-                return {
-                    "response": f"{general_assistant_response.content.strip()}",
-                    "question": f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
-                }
-
+                }       
 
         elif question == "What company does the sponsor work for?":
             if conversation_state["current_question_index"] == questions.index(question):
@@ -502,8 +471,8 @@ def process_user_input(user_input: UserInput):
                     }
                 elif user_message == "No":
                     # Remove the questions about first and second doses if they exist
-                    first_dose_question = "Please provide the date of the first dose"
-                    second_dose_question = "Please provide the date of the second dose"
+                    first_dose_question = "Can you please tell me the date of your first dose?"
+                    second_dose_question = "Can you please tell me the date of your second dose?"
 
                     if first_dose_question in questions:
                         questions.remove(first_dose_question)
@@ -514,9 +483,12 @@ def process_user_input(user_input: UserInput):
                     conversation_state["current_question_index"] += 1
                     if conversation_state["current_question_index"] < len(questions):
                         next_question = questions[conversation_state["current_question_index"]]
+                        options = ", ".join(next_question["options"])
+                        next_questions = next_question["question"]
+                        
                         return {
-                            "response": f"Thank you! Now, let's move on to: {next_question}",
-                           
+                            "response": f"Thank you for your response. Now, let's move on to: {next_questions}",
+                            "options":options 
                         }
                     else:
                         # All predefined questions have been answered
@@ -844,7 +816,6 @@ def process_user_input(user_input: UserInput):
                         "question": f"Let's revisit: {question}"
                     }
               
-
         elif question == "Do you have a No Claim certificate?":
            valid_options = ["No","1 Year","2 Years","3+ Years"]
            if user_message in valid_options:
@@ -1142,7 +1113,6 @@ def process_user_input(user_input: UserInput):
                         "question": f"Let's move back to: {question}"
                     }
       
-
         elif question == "Could you kindly provide me with the sponsor's Source of Income":
            valid_options = ["Business","Salary"]
            if user_message in valid_options:
@@ -1171,9 +1141,370 @@ def process_user_input(user_input: UserInput):
              "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
           }
 
-         
+        elif question == "Are you suffering from any pre-existing or chronic conditions?":
+            valid_options = ["Yes", "No"]
+            if user_message in valid_options:
+                responses[question] = user_message  # Store the response
+
+                if user_message == "No":
+                    # Check if the follow-up question is already in the list
+                    follow_up_question = "Please provide us with the details of your Chronic Conditions Medical Report"
+                    if follow_up_question in questions:
+                        # If the follow-up question exists, skip it and proceed
+                        questions.remove(follow_up_question)
+                    
+                    # Proceed to the next predefined question
+                    conversation_state["current_question_index"] += 1
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        options = ", ".join(next_question["options"])
+                        next_questions = next_question["question"]
+                        
+                        return {
+                            "response": f"Thank you! Now, let's move on to: {next_questions}",
+                            "options":options 
+                        }
+                    else:
+                        # All predefined questions have been answered
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses
+                        }
+
+                elif user_message == "Yes":
+                    # Dynamically add the follow-up question if not already present
+                    follow_up_question = "Please provide us with the details of your Chronic Conditions Medical Report"
+                    if follow_up_question not in questions:
+                        responses[follow_up_question] = None
+                        # Insert the new question immediately after the current one
+                        questions.insert(conversation_state["current_question_index"] + 1, follow_up_question)
                       
+                    # Move to the new follow-up question
+                    conversation_state["current_question_index"] += 1
+                    
+                    return {
+                        "response": f"Thank you! Now, let's move on to: {follow_up_question}",
+        
+                    }
+            else:
+                return {
+                    "response": "Invalid response. Please answer with 'Yes' or 'No'."
+                }
+
+        elif question == "Please provide us with the details of your Chronic Conditions Medical Report":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Enhanced file path validation
+                upload_pattern = re.compile(
+                    r"^uploads\/(?:[\w\s-]+\/)*[\w\s-]+\.(pdf|docx|jpg|png|jpeg)$", re.IGNORECASE
+                )
+
+                if upload_pattern.match(user_message):
+                    # Valid file format
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        return {
+                            "response": f"Thank you for providing the document. Now, let's move on to: {next_question}",
+                        }
+                    else:
+                        # Save responses and end the conversation
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses,
+                        }
+                else:
+                    # Invalid file format
+                    return {
+                       "response": "The file format seems incorrect. Please upload a valid document."
+                    }
+
+        elif question == "Tell your relationship with the Sponsor":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Validate the relationship
+                relationship_prompt = f"The user responded with: '{user_message}'. Is this a valid relationship descriptor (e.g., spouse, parent, guardian)? Respond with 'Yes' or 'No'."
+                llm_response = llm.invoke([
+                    SystemMessage(content="You are Insura, an AI assistant specialized in insurance-related tasks. Your task is to determine if the input provided by the user is a valid relationship descriptor."),
+                    HumanMessage(content=relationship_prompt)
+                ])
+                is_valid_relationship = llm_response.content.strip().lower() == "yes"
+
+                if is_valid_relationship:
+                    # Store the relationship
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+                    next_question = questions[conversation_state["current_question_index"]]
+                    options = ", ".join(next_question["options"])
+                    next_questions = next_question["question"]
+    
+                    return {
+                        "response": f"Thank you for providing your relationship with the sponsor. Now, let's move on to: {next_questions}",
+                        "options":options 
+                    }
+                else:
+                    # Handle invalid input
+                    general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a valid relationship descriptor. Please assist."
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. Your role is to assist users with their inquiries. Your task here is to redirect or assist the user appropriately."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's move back to: {question}"
+                    }                      
+
+        elif question == "Please upload photos of your driving license Front side":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Enhanced file path validation
+                upload_pattern = re.compile(
+                    r"^uploads\/(?:[\w\s-]+\/)*[\w\s-]+\.(pdf|docx|jpg|png|jpeg)$", re.IGNORECASE
+                )
+
+                if upload_pattern.match(user_message):
+                    # Valid file format
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        return {
+                            "response": f"Thank you for providing the driving license Front side. Now, let's move on to: {next_question}",
+                        }
+                    else:
+                        # Save responses and end the conversation
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses,
+                        }
+                else:
+                    # Invalid file format
+                    return {
+                        "response": "The file format seems incorrect. Please upload a valid document."
+                    }
+
+        elif question == "Please upload photos of your driving license Back side":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Enhanced file path validation
+                upload_pattern = re.compile(
+                    r"^uploads\/(?:[\w\s-]+\/)*[\w\s-]+\.(pdf|docx|jpg|png|jpeg)$", re.IGNORECASE
+                )
+
+                if upload_pattern.match(user_message):
+                    # Valid file format
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        return {
+                            "response": f"Thank you for providing the driving license. Now, let's move on to: {next_question}",
+                        }
+                    else:
+                        # Save responses and end the conversation
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses,
+                        }
+                else:
+                    # Invalid file format
+                    return {
+                        "response": "The file format seems incorrect. Please upload a valid document."
+                    }
+        
+        elif question == "Please upload photos of your vehicle registration (Mulkiya) Front side":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Enhanced file path validation
+                upload_pattern = re.compile(
+                    r"^uploads\/(?:[\w\s-]+\/)*[\w\s-]+\.(pdf|docx|jpg|png|jpeg)$", re.IGNORECASE
+                )
+
+                if upload_pattern.match(user_message):
+                    # Valid file format
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        return {
+                            "response": f"Thank you for providing vehicle registration Front side. Now, let's move on to: {next_question}",
+                        }
+                    else:
+                        # Save responses and end the conversation
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses,
+                        }
+                else:
+                    # Invalid file format
+                    return {
+                        "response": "The file format seems incorrect. Please upload a valid document."
+                    }
+        
+        elif question == "Please upload photos of your vehicle registration (Mulkiya)  Back side":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Enhanced file path validation
+                upload_pattern = re.compile(
+                    r"^uploads\/(?:[\w\s-]+\/)*[\w\s-]+\.(pdf|docx|jpg|png|jpeg)$", re.IGNORECASE
+                )
+
+                if upload_pattern.match(user_message):
+                    # Valid file format
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        return {
+                            "response": f"Thank you for providing the vehicle registration Back side. Now, let's move on to: {next_question}",
+                        }
+                    else:
+                        # Save responses and end the conversation
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses,
+                        }
+                else:
+                    # Invalid file format
+                    return {
+                        "response": "The file format seems incorrect. Please upload a valid document."
+                    }
+        elif question == "Please upload a copy of the police report related to the incident":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Enhanced file path validation
+                upload_pattern = re.compile(
+                    r"^uploads\/(?:[\w\s-]+\/)*[\w\s-]+\.(pdf|docx|jpg|png|jpeg)$", re.IGNORECASE
+                )
+
+                if upload_pattern.match(user_message):
+                    # Valid file format
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        options = ", ".join(next_question["options"])
+                        next_questions = next_question["question"]
+                        return {
+                            "response": f"Thank you for providing the Policy Report. Now, let's move on to: {next_questions}",
+                             "options":options
+                        }
+                            
+                    else:
+                        # Save responses and end the conversation
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses,
+                        }
+                else:
+                    # Invalid file format
+                    return {
+                        "response": "The file format seems incorrect. Please upload a valid document."
+                    }
+                    
+        elif question == "Could you please provide your full name":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Prompt LLM to check if the input is a valid person name
+                check_prompt = f"The user has responded with: '{user_message}'. Is this a valid person's  name? Respond with 'Yes' or 'No'."
+                llm_response = llm.invoke([
+                    SystemMessage(content="You are Insura, an AI assistant specialized in insurance-related tasks. Your task is to determine if the input provided by the user is a valid person's  name. Make sure it is a valid  name for a person."),
+                    HumanMessage(content=check_prompt)
+                ])
+                is_person_name = llm_response.content.strip().lower() == "yes"
+
+                if is_person_name:
+                    # Store the person's name
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        return {
+                            "response": f"Thank you for providing the name. Now, let's move on to: {next_question}"
+                        }
+                    else:
+                        # If all questions are completed, save responses and end conversation
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insura. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses
+                        }
+                else:
+                    # Handle invalid or unrelated input
+                    general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a person's name. Please assist."
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. Your role is to assist users with their inquiries. Your task here is to redirect or assist the user appropriately."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's move back to: {question}"
+                    }
+        elif question == "Please provide us with your job title":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Prompt LLM to check if the input is a valid job title
+                check_prompt = f"The user has responded with: '{user_message}'. Is this a valid job title? Respond with 'Yes' or 'No'."
+                llm_response = llm.invoke([
+                    SystemMessage(content="You are Insura, an AI assistant specialized in insurance-related tasks. Your task is to determine if the input provided by the user is a valid job title. Make sure it is a recognizable and appropriate job title."),
+                    HumanMessage(content=check_prompt)
+                ])
+                is_job_title = llm_response.content.strip().lower() == "yes"
+
+                if is_job_title:
+                    # Store the job title
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        return {
+                            "response": f"Thank you for providing your job title.{next_question}"
+                        }
+                    else:
+                        # If all questions are completed, save responses and end conversation
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insura. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses
+                        }
+                else:
+                    # Handle invalid or unrelated input
+                    general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a valid job title. Please assist."
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. Your role is to assist users with their inquiries. Your task here is to redirect or assist the user appropriately."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's move back to: {question}"
+                    }
+
        # For other free-text questions
+
         evaluation_prompt = f"Is the user's response '{user_message}' correct for the question '{question}'? Answer 'yes' or 'no'."
         evaluation_response = llm.invoke([HumanMessage(content=evaluation_prompt)])
         evaluation = evaluation_response.content.strip().lower()
@@ -1201,6 +1532,9 @@ def process_user_input(user_input: UserInput):
                 }
             else:
                 # All questions answered
+                #save_file = "claim.json" if conversation_state["current_flow"] in ["existing_policy", "claim"] else "user_responses.json"
+
+
                 with open("user_responses.json", "w") as file:
                     json.dump(responses, file, indent=4)
                 return {
