@@ -14,7 +14,7 @@ groq_api_key = os.getenv('GROQ_API_KEY')
 if not groq_api_key:
     raise RuntimeError("GROQ_API_KEY environment variable is not set")
 
-# Initialize LLM and tools
+# Initialize ChatLLM and tools
 llm = ChatGroq(
     model="llama-3.1-70b-versatile",
     temperature=0,
