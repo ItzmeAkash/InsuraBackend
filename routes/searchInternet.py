@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException,APIRouter
 from pydantic import BaseModel
 import os
 from langchain_groq.chat_models import ChatGroq
-from langchain_community.tools import DuckDuckGoSearchRun
+# from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.tools import tool
 from langchain.agents import initialize_agent,load_tools
 import logging
@@ -29,7 +29,7 @@ def chatgroq_tool(prompt: str) -> str:
     """
     return llm.generate(prompt)
 
-search = DuckDuckGoSearchRun()
+# search = DuckDuckGoSearchRun()
 
 tools = load_tools(["google-serper"], llm=llm)
 
