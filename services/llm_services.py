@@ -1,9 +1,11 @@
 from datetime import datetime
-from utils.helper import get_user_name,valid_date_format,valid_emirates_id
+from motor import is_valid_nationality
+from utils.helper import get_user_name, is_valid_marital_status,valid_date_format,valid_emirates_id,is_valid_name
+from utils.question_helper import handle_gender, handle_purchasing_plan_question, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_yes_or_no
 from langchain_groq.chat_models import ChatGroq
 from fastapi import FastAPI, File, UploadFile
 from langchain_core.messages import HumanMessage,SystemMessage
-from models.user_input import UserInput
+from models.model import UserInput
 from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.tools import tool
 from langchain.agents import initialize_agent
@@ -15,11 +17,11 @@ import os
 from dotenv import load_dotenv
 load_dotenv()
 
-groq_api_key = os.getenv('GROQ_API_KEY')
+
 llm = ChatGroq(
-    model="llama-3.1-70b-versatile",
+    model=os.getenv('LLM_MODEL'),
     temperature=0,
-    api_key=groq_api_key,
+    api_key=os.getenv('GROQ_API_KEY'),
     groq_proxy=None
 )
 
@@ -171,39 +173,14 @@ def process_user_input(user_input: UserInput):
                 }
 
         if question=="To whom are you purchasing this plan?":
-            valid_options =[
-         "Employee",
-         "Dependents",
-         "Small Investors",
-         "Domestic Help",
-         "4th Child",
-         "Children above 18 years",
-         "Parents"
-            ]
-            if user_message in valid_options:
-                responses[question]=user_message
-                conversation_state["current_question_index"]+=1
-                
-                if conversation_state["current_question_index"]< len(questions):
-                    next_question = questions[conversation_state["current_question_index"]]
-                    return {
-                     "response": f"Thank you! That was helpful. Now, let's move on to: {next_question}"
-                     }
-                else:
-                    with open("user_responses.json", "w") as file:
-                         json.dump(responses, file, indent=4)
-                    return {
-                     "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                     "final_responses": responses
-                     }
-            else:    
-               general_assistant_prompt = f"user response: {user_message}. Please assist."
-               general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
-               return {
-               "response": f"{general_assistant_response.content.strip()}",
-               "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
-                }
-    
+            return handle_purchasing_plan_question(user_message,conversation_state,questions,responses)
+        
+        elif question=="Let's start with your Medical insurance details. Chosse your Visa issued Emirate?":
+            return handle_visa_issued_emirate_question(user_message,conversation_state,questions,responses)
+        
+        elif question=="What type of plan are you looking for?":
+            return handle_type_plan_question(user_message,conversation_state,questions,responses)
+        
         elif question == "May I have the sponsor's Email Address, please?":
             # Regex pattern for validating email address
             email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
@@ -263,34 +240,9 @@ def process_user_input(user_input: UserInput):
                 return {
                     "response": "Invalid date format. Please provide the date in the format DD/MM/YYYY or MM-DD-YYYY."
                 }
-          
+        
         elif question == "Is accommodation provided to you?":
-           valid_options = ["Yes", "No"]
-           if user_message in valid_options:
-               responses[question] = user_message
-               conversation_state["current_question_index"] += 1
-
-        # Check if there are more questions
-               if conversation_state["current_question_index"] < len(questions):
-                next_question = questions[conversation_state["current_question_index"]]
-                return {
-                "response": f"Thank you for your response. Now, let's move on to: {next_question}"
-                }
-               else:
-                with open("user_responses.json", "w") as file:
-                 json.dump(responses, file, indent=4)
-                return {
-                "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                "final_responses": responses
-                 }
-           else:
-           # Handle invalid responses or unrelated queries
-            general_assistant_prompt = f"user response: {user_message}. Please assist."
-            general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
-            return {
-            "response": f"{general_assistant_response.content.strip()}",
-             "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
-          }
+            return handle_yes_or_no(user_message,conversation_state,questions,responses,question)
             
         elif question == "Could you kindly provide me with the sponsor's Company Name":
             if conversation_state["current_question_index"] == questions.index(question):
@@ -327,57 +279,209 @@ def process_user_input(user_input: UserInput):
                     }
 
         elif question == "Is your car currently insured?":
-            valid_options = ["Yes", "No"]
-            if user_message in valid_options:
-                responses[question] = user_message  # Store the response
+            return handle_yes_or_no(user_message,conversation_state,questions,responses,question)
+        
+        elif question == "May I Know you gender.Please":
+            return handle_gender(user_message,conversation_state,questions,responses,question)
+        
+        elif question == "Could you let me know the sponsor's nationality":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # First check if the input is a valid nationality using the is_valid_nationality function
+                is_nationality = is_valid_nationality(user_message)
 
-                if user_message == "Yes":
-                    # Check if the follow-up question is already in the list
-                    follow_up_question = "Can you please tell me the year your insurance expired?"
-                    if follow_up_question in questions:
-                        # If the follow-up question exists, skip it and proceed
-                        questions.remove(follow_up_question)
-                    
-                    # Proceed to the next predefined question
+                if not is_nationality:
+                    # If not, use the LLM to verify the response
+                    check_prompt = f"The user has responded with: '{user_message}'. Is this a valid nationality? Respond with 'Yes' or 'No'."
+                    llm_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an insurance assistant specializing in nationality verification. Your task is to check if the following response is a valid nationality."),
+                        HumanMessage(content=check_prompt)
+                    ])
+                    is_nationality = llm_response.content.strip().lower() == "yes"
+
+                if is_nationality:
+                    # Store the nationality
+                    responses[question] = user_message
                     conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
                     if conversation_state["current_question_index"] < len(questions):
                         next_question = questions[conversation_state["current_question_index"]]
-                        options = ", ".join(next_question["options"])
-                        next_questions = next_question["question"]
-                        
                         return {
-                            "response": f"Thank you! Now, let's move on to: {next_questions}",
-                            "options":options 
+                            "response": f"Thank you for providing the nationality. Now, let's move on to: {next_question}"
                         }
                     else:
-                        # All predefined questions have been answered
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
                         return {
-                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
                             "final_responses": responses
                         }
-
-                elif user_message == "No":
-                    # Dynamically add the follow-up question if not already present
-                    follow_up_question = "Can you please tell me the year your insurance expired?"
-                    if follow_up_question not in questions:
-                        responses[follow_up_question] = None
-                        # Insert the new question immediately after the current one
-                        questions.insert(conversation_state["current_question_index"] + 1, follow_up_question)
-                      
-                    # Move to the new follow-up question
-                    conversation_state["current_question_index"] += 1
-                    
+                else:
+                    # Handle invalid or unrelated input
+                    general_assistant_prompt = f"The user entered '{user_message}'. Please assist."
+                    general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
                     return {
-                        "response": f"Thank you! Now, let's move on to: {follow_up_question}",
-        
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's move back: {question}"
                     }
-            else:
-                return {
-                    "response": "Invalid response. Please answer with 'Yes' or 'No'."
-                }
 
+        elif question == "May I know your marital status?":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # First check if the input is a valid marital status using the is_valid_marital_status function
+                is_marital_status  = is_valid_marital_status(user_message)
+
+                if not is_marital_status:
+                    # If not, use the LLM to verify the response
+                    check_prompt = f"The user has responded with: '{user_message}'. Is this a valid marital status? Respond with 'Yes' or 'No'."
+                    llm_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an insurance assistant specializing in marital status verification. Your task is to check if the following response is a valid marial status."),
+                        HumanMessage(content=check_prompt)
+                    ])
+                    is_marital_status = llm_response.content.strip().lower() == "yes"
+
+                if is_marital_status:
+                    # Store the nationality
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        return {
+                            "response": f"Thank you for providing the marital status. Now, let's move on to: {next_question}"
+                        }
+                    else:
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                            "final_responses": responses
+                        }
+                else:
+                    # Handle invalid or unrelated input
+                    general_assistant_prompt = f"The user entered '{user_message}'. Please assist."
+                    general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's move back: {question}"
+                    }
+        
+        elif question == "Tell me you Height in Cm":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Validate user input using regex (only numerical values)
+                if not re.match(r'^\d+$', user_message):
+                    height_assistant_prompt = (
+                        f"The user entered '{user_message}', which does not appear to be a valid height in cm. "
+                        "Please assist them in providing a valid height."
+                    )
+                    height_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. "
+                                            "Your role is to assist users with their inquiries and guide them appropriately."),
+                        HumanMessage(content=height_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{height_assistant_response.content.strip()}",
+                        "question": question
+                    }
+                
+                # Convert the height to an integer and check for a valid range
+                try:
+                    height = int(user_message)
+                    if 50 <= height <= 300:  # Assuming a realistic height range in cm
+                        # Store the height
+                        responses[question] = user_message
+                        conversation_state["current_question_index"] += 1
+
+                        if conversation_state["current_question_index"] < len(questions):
+                            next_question = questions[conversation_state["current_question_index"]]
+                            return {
+                                "response": f"Thank you for providing your height. Now, let's move on to: {next_question}"
+                            }
+                        else:
+                            # All questions completed
+                            with open("user_responses.json", "w") as file:
+                                json.dump(responses, file, indent=4)
+                            return {
+                                "response": "Thank you for using Insura. Your request has been processed. Have a great day!",
+                                "final_responses": responses
+                            }
+                    else:
+                        return {
+                            "response": "The height you entered seems unrealistic. Please enter your height in cm (e.g., 170).",
+                            "question": question
+                        }
+                except ValueError:
+                    general_assistant_prompt = (
+                        f"The user entered '{user_message}', which is not a valid numerical value for height. "
+                        "Please assist them in providing a valid height in cm."
+                    )
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. "
+                                            "Your role is to assist users with their inquiries and guide them appropriately."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": question
+                    }
+        elif question == "Tell me you Weight in Kg":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Validate user input using regex (only numerical values)
+                if not re.match(r'^\d+$', user_message):
+                    weight_assistant_prompt = (
+                        f"The user entered '{user_message}', which does not appear to be a valid weight in kg. "
+                        "Please assist them in providing a valid weight."
+                    )
+                    weight_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. "
+                                            "Your role is to assist users with their inquiries and guide them appropriately."),
+                        HumanMessage(content=weight_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{weight_assistant_response.content.strip()}",
+                        "question": question
+                    }
+                
+                # Convert the weight to an integer and check for a valid range
+                try:
+                    weight = int(user_message)
+                    if 20 <= weight <= 300:  # Assuming a realistic weight range in kg
+                        # Store the weight
+                        responses[question] = user_message
+                        conversation_state["current_question_index"] += 1
+
+                        if conversation_state["current_question_index"] < len(questions):
+                            next_question = questions[conversation_state["current_question_index"]]
+                            return {
+                                "response": f"Thank you for providing your weight. Now, let's move on to: {next_question}"
+                            }
+                        else:
+                            # All questions completed
+                            with open("user_responses.json", "w") as file:
+                                json.dump(responses, file, indent=4)
+                            return {
+                                "response": "Thank you for using Insura. Your request has been processed. Have a great day!",
+                                "final_responses": responses
+                            }
+                    else:
+                        return {
+                            "response": "The weight you entered seems unrealistic. Please enter your weight in kg (e.g., 70).",
+                            "question": question
+                        }
+                except ValueError:
+                    general_assistant_prompt = (
+                        f"The user entered '{user_message}', which is not a valid numerical value for weight. "
+                        "Please assist them in providing a valid weight in kg."
+                    )
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. "
+                                            "Your role is to assist users with their inquiries and guide them appropriately."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": question
+                    }                    
         elif question == "Can you please tell me the year your insurance expired?":
             # Store the user-provided year
             if user_message.isdigit() and len(user_message) == 4:  # Ensure valid year format
@@ -413,8 +517,11 @@ def process_user_input(user_input: UserInput):
         elif question == "What company does the sponsor work for?":
             if conversation_state["current_question_index"] == questions.index(question):
                 # Check if the input is a company name using LLM
-                check_prompt = f"The user has responded with: '{user_message}'. Is this a valid company name? Respond with 'Yes' or 'No'."
-                llm_response = llm.invoke([SystemMessage(content=f"You are a friendly assistant working in Isuran's company department. Your primary task is to verify the user's input, which could be a company name. The input might include examples such as 'Fallout Private Limited' or 'Fallout Technologies'. Your role is to validate and identify whether the given input is a valid company name or needs clarification"),HumanMessage(content=check_prompt)])
+                check_prompt = f"This is the company name: '{user_message}'. Please check if that name could be a company name and respond with 'Yes' or 'No'"
+                llm_response = llm.invoke([
+                    SystemMessage(content="You are a friendly assistant working in Isuran's company department. Your primary task is to verify the user provided input could be a company name. The input might include examples such as 'Fallout Private Limited' or 'Fallout Technologies'. Your role is to validate and identify whether the given input is a valid company name "),
+                    HumanMessage(content=check_prompt)
+                ])
                 is_company_name = llm_response.content.strip().lower() == "yes"
 
                 if is_company_name:
@@ -438,10 +545,13 @@ def process_user_input(user_input: UserInput):
                 else:
                     # Handle invalid or unrelated input
                     general_assistant_prompt = f"User response: {user_message}. Please assist."
-                    general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly AI assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, a friendly AI assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
                     return {
                         "response": f"{general_assistant_response.content.strip()}",
-                        "question":f"Let's Move back to {question}"
+                        "question": f"Let's move back to: {question}"
                     }
 
         elif question == "Have you been vaccinated for Covid-19?":
@@ -586,87 +696,51 @@ def process_user_input(user_input: UserInput):
                     "response": "Invalid response. Please answer with 'Yes' or 'No'."
                 }
 
-        elif question == "Now, let’s move to the sponsor details. Please provide the Sponsor Name?":
-            if conversation_state["current_question_index"] == questions.index(question):
-                # Prompt LLM to check if the input is a valid person name
-                check_prompt = f"The user has responded with: '{user_message}'. Is this a valid person's name? Respond with 'Yes' or 'No'."
-                llm_response = llm.invoke([
-                    SystemMessage(content="You are Insura, an AI assistant specialized in insurance-related tasks. Your task is to determine if the input provided by the user is a valid person's name.Make sure it a valide name for a person"),
-                    HumanMessage(content=check_prompt)
-                ])
-                is_person_name = llm_response.content.strip().lower() == "yes"
+        elif question in [
+            "Now, let’s move to the sponsor details. Please provide the Sponsor Name?",
+            "Next, we need the details of the member for whom the policy is being purchased. Please provide Name"
+        ]:
+            return handle_validate_name(question, user_message, conversation_state, questions, responses, is_valid_name)
+        
+            # if conversation_state["current_question_index"] == questions.index(question):
+            #     # Prompt LLM to check if the input is a valid person name
+            #     check_prompt = f"The user has responded with: '{user_message}'. Is this a valid person's name? Respond with 'Yes' or 'No'."
+            #     llm_response = llm.invoke([
+            #         SystemMessage(content="You are Insura, an AI assistant specialized in insurance-related tasks. Your task is to determine if the input provided by the user is a valid person's name.Make sure it a valide name for a person"),
+            #         HumanMessage(content=check_prompt)
+            #     ])
+            #     is_person_name = llm_response.content.strip().lower() == "yes"
 
-                if is_person_name:
-                    # Store the person's name
-                    responses[question] = user_message
-                    conversation_state["current_question_index"] += 1
+            #     if is_person_name:
+            #         # Store the person's name
+            #         responses[question] = user_message
+            #         conversation_state["current_question_index"] += 1
 
-                    # Check if there are more questions
-                    if conversation_state["current_question_index"] < len(questions):
-                        next_question = questions[conversation_state["current_question_index"]]
-                        return {
-                            "response": f"Thank you for providing the sponsor's name. Now, let's move on to: {next_question}"
-                        }
-                    else:
-                        # If all questions are completed, save responses and end conversation
-                        with open("user_responses.json", "w") as file:
-                            json.dump(responses, file, indent=4)
-                        return {
-                            "response": "Thank you for using Insura. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
-                            "final_responses": responses
-                        }
-                else:
-                    # Handle invalid or unrelated input
-                    general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a person's name. Please assist."
-                    general_assistant_response = llm.invoke([
-                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. Your role is to assist users with their inquiries. Your task here is to redirect or assist the user appropriately."),
-                        HumanMessage(content=general_assistant_prompt)
-                    ])
-                    return {
-                        "response": f"{general_assistant_response.content.strip()}",
-                        "question": f"Let's move back to: {question}"
-                    }
-
-        elif question == "Next, we need the details of the member for whom the policy is being purchased. Please provide Name":
-            if conversation_state["current_question_index"] == questions.index(question):
-                # Prompt LLM to check if the input is a valid person name
-                check_prompt = f"The user has responded with: '{user_message}'. Is this a valid person's name? Respond with 'Yes' or 'No'."
-                llm_response = llm.invoke([
-                    SystemMessage(content="You are Insura, an AI assistant specialized in insurance-related tasks. Your task is to determine if the input provided by the user is a valid person's name.Make sure it a valide name for a person"),
-                    HumanMessage(content=check_prompt)
-                ])
-                is_person_name = llm_response.content.strip().lower() == "yes"
-
-                if is_person_name:
-                    # Store the person's name
-                    responses[question] = user_message
-                    conversation_state["current_question_index"] += 1
-
-                    # Check if there are more questions
-                    if conversation_state["current_question_index"] < len(questions):
-                        next_question = questions[conversation_state["current_question_index"]]
-                        return {
-                            "response": f"Thank you for providing the sponsor's name. Now, let's move on to: {next_question}"
-                        }
-                    else:
-                        # If all questions are completed, save responses and end conversation
-                        with open("user_responses.json", "w") as file:
-                            json.dump(responses, file, indent=4)
-                        return {
-                            "response": "Thank you for using Insura. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
-                            "final_responses": responses
-                        }
-                else:
-                    # Handle invalid or unrelated input
-                    general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a person's name. Please assist."
-                    general_assistant_response = llm.invoke([
-                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. Your role is to assist users with their inquiries. Your task here is to redirect or assist the user appropriately."),
-                        HumanMessage(content=general_assistant_prompt)
-                    ])
-                    return {
-                        "response": f"{general_assistant_response.content.strip()}",
-                        "question": f"Let's move back to: {question}"
-                    }
+            #         # Check if there are more questions
+            #         if conversation_state["current_question_index"] < len(questions):
+            #             next_question = questions[conversation_state["current_question_index"]]
+            #             return {
+            #                 "response": f"Thank you for providing the sponsor's name. Now, let's move on to: {next_question}"
+            #             }
+            #         else:
+            #             # If all questions are completed, save responses and end conversation
+            #             with open("user_responses.json", "w") as file:
+            #                 json.dump(responses, file, indent=4)
+            #             return {
+            #                 "response": "Thank you for using Insura. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+            #                 "final_responses": responses
+            #             }
+            #     else:
+            #         # Handle invalid or unrelated input
+            #         general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a person's name. Please assist."
+            #         general_assistant_response = llm.invoke([
+            #             SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. Your role is to assist users with their inquiries. Your task here is to redirect or assist the user appropriately."),
+            #             HumanMessage(content=general_assistant_prompt)
+            #         ])
+            #         return {
+            #             "response": f"{general_assistant_response.content.strip()}",
+            #             "question": f"Let's move back to: {question}"
+            #         }
 
         elif question == "Which insurance company is your current policy with?":
             if conversation_state["current_question_index"] == questions.index(question):
@@ -890,70 +964,10 @@ def process_user_input(user_input: UserInput):
                 }
        
         elif question == "Do you have a vehicle test passing certificate?":
-           valid_options = ["Yes", "No"]
-           if user_message in valid_options:
-               responses[question] = user_message
-               conversation_state["current_question_index"] += 1
-
-        # Check if there are more questions
-               if conversation_state["current_question_index"] < len(questions):
-                next_question = questions[conversation_state["current_question_index"]]
-                options = ", ".join(next_question["options"])
-                next_questions = next_question["question"]
-                        
-                return {
-                            "response": f"Thank you for your response. Now, let's move on to: {next_questions}",
-                            "options":options 
-                        }
-     
-               else:
-                with open("user_responses.json", "w") as file:
-                 json.dump(responses, file, indent=4)
-                return {
-                "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                "final_responses": responses
-                 }
-           else:
-           # Handle invalid responses or unrelated queries
-            general_assistant_prompt = f"user response: {user_message}. Please assist."
-            general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
-            return {
-            "response": f"{general_assistant_response.content.strip()}",
-             "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
-          }
+            return handle_yes_or_no((user_message,conversation_state,questions,responses,question))
 
         elif question == "Does your current policy have comprehensive cover?":
-           valid_options = ["Yes", "No"]
-           if user_message in valid_options:
-               responses[question] = user_message
-               conversation_state["current_question_index"] += 1
-
-        # Check if there are more questions
-               if conversation_state["current_question_index"] < len(questions):
-                next_question = questions[conversation_state["current_question_index"]]
-                options = ", ".join(next_question["options"])
-                next_questions = next_question["question"]
-                        
-                return {
-                            "response": f"Thank you for your response. Now, let's move on to: {next_questions}",
-                            "options":options 
-                        }
-     
-               else:
-                with open("user_responses.json", "w") as file:
-                 json.dump(responses, file, indent=4)
-                return {
-                "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                "final_responses": responses
-                 }
-           else:
-           # Handle invalid responses or unrelated queries
-            general_assistant_prompt = f"user response: {user_message}. Please assist."
-            general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
-            return {
-            "response": f"{general_assistant_response.content.strip()}",
-             "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
-          }
+            return handle_yes_or_no((user_message,conversation_state,questions,responses,question))
   
         elif question == "Does your policy include agency repair?":
            valid_options = ["Yes","No"]
@@ -1386,6 +1400,7 @@ def process_user_input(user_input: UserInput):
                     return {
                         "response": "The file format seems incorrect. Please upload a valid document."
                     }
+        
         elif question == "Please upload a copy of the police report related to the incident":
             if conversation_state["current_question_index"] == questions.index(question):
                 # Enhanced file path validation
@@ -1462,6 +1477,7 @@ def process_user_input(user_input: UserInput):
                         "response": f"{general_assistant_response.content.strip()}",
                         "question": f"Let's move back to: {question}"
                     }
+        
         elif question == "Please provide us with your job title":
             if conversation_state["current_question_index"] == questions.index(question):
                 # Prompt LLM to check if the input is a valid job title
@@ -1502,6 +1518,94 @@ def process_user_input(user_input: UserInput):
                         "response": f"{general_assistant_response.content.strip()}",
                         "question": f"Let's move back to: {question}"
                     }
+        
+        elif question == "Could you please tell us your monthly salary in AED?":
+            if conversation_state["current_question_index"] == questions.index(question):
+                try:
+                    # Check if the input is a valid numeric value
+                    salary = float(user_message)  # Attempt to convert the input to a float
+                    if salary > 0:  # Ensure it's a positive number
+                        # Store the salary
+                        responses[question] = salary
+                        conversation_state["current_question_index"] += 1
+
+                        # Check if there are more questions
+                        if conversation_state["current_question_index"] < len(questions):
+                            next_question = questions[conversation_state["current_question_index"]]
+                            options = ", ".join(next_question["options"])
+                            next_questions = next_question["question"]
+                                
+                            
+                            return {
+                                "response": f"Thank you! Now, let's move on to: {next_questions}",
+                                "options":options
+
+                            }
+                        else:
+                            # If all questions are completed, save responses and end conversation
+                            with open("user_responses.json", "w") as file:
+                                json.dump(responses, file, indent=4)
+                            return {
+                                "response": "Thank you for using Insura. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                                "final_responses": responses
+                            }
+                    else:
+                        # Handle invalid input for non-positive values
+                        return {
+                            "response": "The salary must be a positive number. Could you please re-enter your monthly salary in AED?",
+                            "question": question
+                        }
+                except ValueError:
+                    # If invalid input, use the general assistant
+                    general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a valid monetary amount. Please assist."
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. Your role is to assist users with their inquiries. Your task here is to redirect or assist the user appropriately."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's move back to: {question}"
+                    }
+                    
+        elif question=="Tell me your Emirate":
+            valid_options =[
+         "Abudhabi",
+              "Ajman",
+              "Dubai",
+              "Fujairah",
+              "Ras Al Khaimah",
+              "Sharjah",
+              "Umm Al Quwain"
+            ]
+            if user_message in valid_options:
+                responses[question]=user_message
+                conversation_state["current_question_index"]+=1
+                
+                if conversation_state["current_question_index"]< len(questions):
+                    next_question = questions[conversation_state["current_question_index"]]
+
+                        
+                    
+                    return {
+                         "response": f"Thank you! Now, let's move on to: {next_question}",
+                      
+
+                    }
+                else:
+                    with open("user_responses.json", "w") as file:
+                         json.dump(responses, file, indent=4)
+                    return {
+                     "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                     "final_responses": responses
+                     }
+            else:    
+               general_assistant_prompt = f"user response: {user_message}. Please assist."
+               general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+               return {
+               "response": f"{general_assistant_response.content.strip()}",
+               "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
+                } 
+        
 
        # For other free-text questions
 

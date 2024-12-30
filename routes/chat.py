@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from models.user_input import UserInput
+from models.model import UserInput
 from services.llm_services import process_user_input
 
 router = APIRouter()

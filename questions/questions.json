@@ -63,8 +63,20 @@
       "Please provide us with your job title",
       "Now, let’s move to the sponsor details. Please provide the Sponsor Name?",
       "Could you share your PO Box number, please?",
-      "Tell me your Emirate",
-      "Could you let me know the sponsor's nationality?",
+      {"question":"Tell me your Emirate",
+      "options":[
+
+              "Abudhabi",
+              "Ajman",
+              "Dubai",
+              "Fujairah",
+              "Ras Al Khaimah",
+              "Sharjah",
+              "Umm Al Quwain"
+          
+      ]
+      },
+      "Could you let me know the sponsor's nationality",
       "May I have the sponsor's mobile number, please?",
       "May I have the sponsor's Email Address, please?",
       "What company does the sponsor work for?",

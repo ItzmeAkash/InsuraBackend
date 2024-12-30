@@ -3,7 +3,7 @@ from utils.helper import get_user_name, valid_date_format, valid_emirates_id
 from langchain_groq.chat_models import ChatGroq
 from fastapi import FastAPI, File, UploadFile
 from langchain_core.messages import HumanMessage, SystemMessage
-from models.user_input import UserInput
+from models.model import UserInput
 from random import choice
 import requests
 import json
