@@ -297,13 +297,17 @@ def handle_policy_question(user_message,conversation_state,questions,responses,q
 
                 if conversation_state["current_question_index"] < len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
-                    options = ", ".join(next_question["options"])
-                    next_questions = next_question["question"]
-                    
-                    return {
-                        "response": f"Thank you for your response. Now, let's move on to: {next_questions}",
-                        "options":options 
-                    }
+                    if "options" in next_question:
+                        options = ", ".join(next_question["options"])
+                        next_questions = next_question["question"]
+                        return {
+                            "response": f"Thank you! Now, let's move on to: {next_questions}",
+                            "options": options
+                        }
+                    else:
+                        return {
+                            "response": f"Thank you for providing the company name. Now, let's move on to: {next_question}"
+                        }
                 else:
                     # All questions completed
                     with open("user_responses.json", "w") as file:
@@ -538,3 +542,6 @@ def handle_nationality_question(user_message,question, conversation_state, quest
                         "response": f"{general_assistant_response.content.strip()}",
                         "question": f"Let's move back: {question}"
                     }
+
+
+

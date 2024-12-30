@@ -1,7 +1,7 @@
 from datetime import datetime
 from utils.helper import is_valid_nationality
 from utils.helper import get_user_name, is_valid_marital_status,valid_date_format,valid_emirates_id,is_valid_name
-from utils.question_helper import handle_company_name_question, handle_emirate_question, handle_gender, handle_job_title_question, handle_nationality_question, handle_policy_question, handle_purchasing_plan_question, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_yes_or_no
+from utils.question_helper import handle_company_name_question, handle_emirate_question, handle_gender, handle_job_title_question, handle_policy_question, handle_purchasing_plan_question, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_yes_or_no
 from langchain_groq.chat_models import ChatGroq
 from fastapi import FastAPI, File, UploadFile
 from langchain_core.messages import HumanMessage,SystemMessage
@@ -743,7 +743,8 @@ def process_user_input(user_input: UserInput):
             "Now, let’s move to the sponsor details. Please provide the Sponsor Name?",
             "Next, we need the details of the member for whom the policy is being purchased. Please provide Name",
             "Please provide the member's details.Please tell me the Name",
-            "Next, Please provide the member's details.Please tell me the Name"
+            "Next, Please provide the member's details.Please tell me the Name",
+            "Could you please provide your full name"
         ]:
             return handle_validate_name(question, user_message, conversation_state, questions, responses, is_valid_name)
         
@@ -1579,10 +1580,69 @@ def process_user_input(user_input: UserInput):
                     
         elif question in [
             "Tell me your Emirate",
-            "Tell me your Emirate sponsor located in?"
+            "Tell me your Emirate sponsor located in?",
+            "In which emirate would you prefer your vehicle to be repaired?"
         ]:
             return handle_emirate_question(question, user_message, conversation_state, questions, responses)
         
+        elif question =="Which area you prefer for the vehicle repair? Please type the name of the area":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Fetch the emirate from the previous response
+                emirate = responses.get("In which emirate would you prefer your vehicle to be repaired?", "").strip().lower()
+
+                # Prompt LLM for additional validation
+                check_prompt = (
+                    f"The user has responded with: '{user_message}'. Determine if this is a valid area within the emirate '{emirate}'. "
+                    "Respond only with 'Yes' or 'No'."
+                )
+                llm_response = llm.invoke([
+                    SystemMessage(content=f"You are Insura, an AI assistant specialized in identifying the area based on the {emirate}. "
+                                            "Your task is to verify if the provided input is a valid area within the specified emirate."),
+                    HumanMessage(content=check_prompt)
+                ])
+                is_valid_area = llm_response.content.strip().lower() == "yes"
+
+                if is_valid_area:
+                    # Store the area
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        if "options" in next_question:
+                            options = ", ".join(next_question["options"])
+                            next_questions = next_question["question"]
+                            return {
+                                "response": f"Thank you! Now, let's move on to: {next_questions}",
+                                "options": options
+                            }
+                        else:
+                            return {
+                                "response": f"Thank you for providing the area. Now, let's move on to: {next_question['question']}"
+                            }
+                    else:
+                        # All questions completed
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insura. Your request has been processed. Have a great day!",
+                            "final_responses": responses
+                        }
+                else:
+                    # Use general assistant for invalid LLM validation
+                    general_assistant_prompt = (
+                        f"The user entered '{user_message}', which was not validated as a valid area within the emirate '{emirate}' by Insura. "
+                        "Please assist them in correcting their input."
+                    )
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. "
+                                                "Your role is to assist users with their inquiries and guide them appropriately."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let’s try again: {question}\n"
+                    }
 
        # For other free-text questions
 
