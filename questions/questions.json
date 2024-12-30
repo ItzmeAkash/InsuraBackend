@@ -51,7 +51,7 @@
             "Parents"
           ]
       },
-      "Could you please tell us your monthly salary in AED?",
+      "Could you please tell me your monthly salary (in AED)?",
       {
           "question": "Is accommodation provided to you?",
           "options":[
@@ -76,11 +76,11 @@
           
       ]
       },
-      "Could you let me know the sponsor's nationality",
+      "Could you let me know the sponsor's nationality?",
       "May I have the sponsor's mobile number, please?",
       "May I have the sponsor's Email Address, please?",
       "What company does the sponsor work for?",
-      "Tell me Sponsor's  Emirate ID",
+      "Could you provide the sponsor's Emirates ID?",
       "Tell me Sponsor's  VAT Number",
       {"question":"Could you kindly provide me with the sponsor's Source of Income",
        
@@ -150,15 +150,29 @@
                  "No"]
          },
          "Please provide us with the member job title.",
-         "Now, let’s move to the sponsor details. Please provide the Sponsor's Name?",
+         "Now, let’s move to the sponsor details. Please provide the Sponsor Name?",
          "Could you share your PO Box number, please?",
-         "Which emirate is your sponsor located in?",
+         {
+          "question":"Tell me your Emirate sponsor located in?",
+          "options":[
+
+            "Abudhabi",
+            "Ajman",
+            "Dubai",
+            "Fujairah",
+            "Ras Al Khaimah",
+            "Sharjah",
+            "Umm Al Quwain"
+        
+    ]
+
+         },
          "Could you let me know the sponsor's nationality?",
          "May I have the sponsor's mobile number, please?",
          "May I have the sponsor's Email Address, please?",
          "What company does the sponsor work for?",
          "Could you provide the sponsor's Emirates ID?",
-         "What is the VAT number of the sponsor/company?",
+         "Tell me Sponsor's  VAT Number",
          {"question":"Could you kindly provide me with the sponsor's Source of Income",
           
          "options":[

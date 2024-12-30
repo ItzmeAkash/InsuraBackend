@@ -12,6 +12,8 @@ def valid_date_format(date_string, date_format="%d/%m/%Y"):
     :param date_format: The expected date format (default is DD/MM/YYYY).
     :return: True if valid, False otherwise.
     """
+    if not isinstance(date_string, str):  # Ensure the input is a string
+        return False
     try:
         datetime.strptime(date_string, date_format)
         return True
@@ -141,3 +143,5 @@ def is_valid_marital_status(user_input):
     
     return False
 
+
+print(is_valid_nationality("Indian"))
