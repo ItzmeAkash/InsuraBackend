@@ -365,6 +365,54 @@ def process_user_input(user_input: UserInput):
                             "question": f"Let's try agin {question}"
                         }
 
+        elif question == "Now, let's gather some details about your bike. Let me know the make of the bike.":
+            if conversation_state["current_question_index"] == questions.index(question):
+                    # Prompt LLM for additional validation
+                    check_prompt = (
+                        f"The user has responded with: '{user_message}'. Determine if this is a valid bike make name. "
+                        "Respond only with 'Yes' or 'No'."
+                    )
+                    llm_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant specialized in insurance-related tasks. "
+                                            "Your task is to act as a bike maker agency. You can handle lots of bike makes, so your job is to check if the given name is a bike maker."),
+                        HumanMessage(content=check_prompt)
+                    ])
+                    is_valid_bike_make = llm_response.content.strip().lower() == "yes"
+
+                    if is_valid_bike_make:
+                        # Store the name
+                        responses[question] = user_message
+                        conversation_state["current_question_index"] += 1
+
+                        if conversation_state["current_question_index"] < len(questions):
+                            next_question = questions[conversation_state["current_question_index"]]
+                            return {
+                                "response": f"Thank you for providing the bike make. Now, let's move on to: {next_question}"
+                            }
+                        else:
+                            # All questions completed
+                            with open("user_responses.json", "w") as file:
+                                json.dump(responses, file, indent=4)
+                            return {
+                                "response": "Thank you for using Insura. Your request has been processed. Have a great day!",
+                                "final_responses": responses
+                            }
+                    else:
+                        # Use general assistant for invalid LLM validation
+                        general_assistant_prompt = (
+                            f"The user entered '{user_message}', which was not validated as a bike make by Insura. "
+                            "Please assist them in correcting their input."
+                        )
+                        general_assistant_response = llm.invoke([
+                            SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. "
+                                                "Your role is to assist users with their inquiries and guide them appropriately."),
+                            HumanMessage(content=general_assistant_prompt)
+                        ])
+                        return {
+                            "response": general_assistant_response.content.strip(),
+                            "question": f"Let's try agin {question}"
+                        }
+
         elif question == "May I know the model number of your car, please?":
             if conversation_state["current_question_index"] == questions.index(question):
                 # Prompt LLM for additional validation
@@ -412,7 +460,55 @@ def process_user_input(user_input: UserInput):
                         "response": general_assistant_response.content.strip(),
                         "question": f"Let's try again: {question}"
                     }            
-        
+
+        elif question == "Could you please tell me the model number of your bike":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Prompt LLM for additional validation
+                check_prompt = (
+                    f"The user has responded with: '{user_message}'. Determine if this is a valid bike model number. "
+                    "Respond only with 'Yes' or 'No'."
+                )
+                llm_response = llm.invoke([
+                    SystemMessage(content="You are Insura, an AI assistant specialized in insurance-related tasks. "
+                                        "Your task is to act as a bike maker agency. You can handle lots of car models, so your job is to check if the given name is a bike model."),
+                    HumanMessage(content=check_prompt)
+                ])
+                is_valid_bike_model = llm_response.content.strip().lower() == "yes"
+
+                if is_valid_bike_model:
+                    # Store the model number
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        return {
+                            "response": f"Thank you for providing the bike model number. Now, let's move on to: {next_question}"
+                        }
+                    else:
+                        # All questions completed
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insura. Your request has been processed. Have a great day!",
+                            "final_responses": responses
+                        }
+                else:
+                    # Use general assistant for invalid LLM validation
+                    general_assistant_prompt = (
+                        f"The user entered '{user_message}', which was not validated as a bike model number by Insura. "
+                        "Please assist them in correcting their input."
+                    )
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. "
+                                            "Your role is to assist users with their inquiries and guide them appropriately."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": general_assistant_response.content.strip(),
+                        "question": f"Let's try again: {question}"
+                    }            
+               
         elif question == "May I know the variant of your car, please?":
             if conversation_state["current_question_index"] == questions.index(question):
                 # Prompt LLM for additional validation
@@ -460,7 +556,55 @@ def process_user_input(user_input: UserInput):
                         "response": general_assistant_response.content.strip(),
                         "question": f"Let's try again: {question}"
                     }
-        
+
+        elif question == "Could you please tell me the Variant of your bike":
+            if conversation_state["current_question_index"] == questions.index(question):
+                # Prompt LLM for additional validation
+                check_prompt = (
+                    f"The user has responded with: '{user_message}'. Determine if this is a valid bike variant. "
+                    "Respond only with 'Yes' or 'No'."
+                )
+                llm_response = llm.invoke([
+                    SystemMessage(content="You are Insura, an AI assistant specialized in insurance-related tasks. "
+                                        "Your task is to act as a bike maker agency. You can handle lots of bike variants, so your job is to check if the given name is a bike variant."),
+                    HumanMessage(content=check_prompt)
+                ])
+                is_valid_bike_variant = llm_response.content.strip().lower() == "yes"
+
+                if is_valid_bike_variant:
+                    # Store the variant
+                    responses[question] = user_message
+                    conversation_state["current_question_index"] += 1
+
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        return {
+                            "response": f"Thank you for providing the bike variant. Now, let's move on to: {next_question}"
+                        }
+                    else:
+                        # All questions completed
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insura. Your request has been processed. Have a great day!",
+                            "final_responses": responses
+                        }
+                else:
+                    # Use general assistant for invalid LLM validation
+                    general_assistant_prompt = (
+                        f"The user entered '{user_message}', which was not validated as a bike variant by Insura. "
+                        "Please assist them in correcting their input."
+                    )
+                    general_assistant_response = llm.invoke([
+                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. "
+                                            "Your role is to assist users with their inquiries and guide them appropriately."),
+                        HumanMessage(content=general_assistant_prompt)
+                    ])
+                    return {
+                        "response": general_assistant_response.content.strip(),
+                        "question": f"Let's try again: {question}"
+                    }
+                
         elif question in ["Could you let me know the sponsor's nationality?","Could you let me know your nationality?"]:
             if conversation_state["current_question_index"] == questions.index(question):
                 # First check if the input is a valid nationality using the is_valid_nationality function
