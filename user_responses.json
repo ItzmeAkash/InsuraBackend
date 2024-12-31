@@ -1,12 +1,22 @@
 {
-    "What would you like to do today?": "Claim a Motor Insurance",
-    "Could you please provide your full name": "akash",
-    "Please enter your policy number": "POLICY456789",
-    "Please upload photos of your driving license Front side": "uploads/Akash Relieving letter.pdf",
-    "Please upload photos of your driving license Back side": "uploads/Akash August .pdf",
-    "Please upload photos of your vehicle registration (Mulkiya) Front side": "uploads/Akash October.pdf",
-    "Please upload photos of your vehicle registration (Mulkiya)  Back side": "uploads/Akash Relieving letter.pdf",
-    "Please upload a copy of the police report related to the incident": "uploads/Akash Experience letter.pdf",
-    "In which emirate would you prefer your vehicle to be repaired?": "Ras Al Khaimah",
-    "Which area you prefer for the vehicle repair? Please type the name of the area": "Al Jazirah Al Hamra"
+    "What would you like to do today?": "Purchase a Car Insurance",
+    "Let's start with your motor insurance details. Select the city of registration": "Sharjah",
+    "Let me know the make of the car": "bmw",
+    "Could you please let me know the year your car was made?": "2012",
+    "May I know the model number of your car, please?": "bmw x1",
+    "May I know the variant of your car, please?": "bmw x1",
+    "Could you please provide the registration details? When was your car first registered?": "2016",
+    "Could you please provide the car owner's date of birth?": "21/10/1999",
+    "How many years of driving experience do you have in the UAE?": "1-2 years",
+    "Could you let me know your nationality?": "Indian",
+    "Is your car currently insured?": "Yes",
+    "Is accommodation provided to you?": "Yes",
+    "Do you have a vehicle test passing certificate?": "Yes",
+    "Does your current policy have comprehensive cover?": "Yes",
+    "Does your policy include agency repair?": "Yes",
+    "Do you have a No Claim certificate?": "2 Years",
+    "Could you kindly share your contact details with me? To start, may I know your name, please?": "Akash",
+    "May i know your Email address": "akash@gmail.com",
+    "May i know your  mobile number, please?": "+919567551494"
+
 }

@@ -137,8 +137,16 @@ def handle_yes_or_no(user_message,conversation_state,questions,responses,questio
         
         if conversation_state["current_question_index"] < len(questions):
             next_question = questions[conversation_state["current_question_index"]]
-            return {
-                "response": f"Thank you for your response. Now, let's move on to: {next_question}"
+            if "options" in next_question:
+                options = ", ".join(next_question["options"])
+                next_questions = next_question["question"]
+                return {
+                    "response": f"Thank you! Now, let's move on to: {next_questions}",
+                    "options": options
+                }
+            else:
+                return {
+                    "response": f"Thank you for providing the company name. Now, let's move on to: {next_question}"
                 }
         else:
             with open("user_responses.json", "w") as file:

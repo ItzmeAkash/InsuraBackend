@@ -230,7 +230,7 @@
               "Umm Al Quwain"
           ]
       },
-      "Let me know the make of the car.",
+      "Let me know the make of the car",
       "Could you please let me know the year your car was made?",
       "May I know the model number of your car, please?",
       "May I know the variant of your car, please?",
@@ -276,7 +276,7 @@
             },
           "Could you kindly share your contact details with me? To start, may I know your name, please?",
           "May i know your Email address",
-          "May i know your Phone number"
+          "May i know your  mobile number, please?"
             
         
   ]
@@ -343,7 +343,7 @@
         },
       "Could you kindly share your contact details with me? To start, may I know your name, please?",
       "May i know your Email address",
-      "May i know your Phone number"
+      "May i know your mobile number, please?"
         
       
       
