@@ -1,8 +1,15 @@
 from datetime import datetime
+from pickle import NONE
 import re
+from urllib import response
+from fuzzywuzzy import process, fuzz
+import requests
+from sqlalchemy import null
 def get_user_name(user_id: str) -> str:
 
     return f"{user_id}"  
+
+
 
 
 def valid_date_format(date_string, date_format="%d/%m/%Y"):
@@ -19,7 +26,18 @@ def valid_date_format(date_string, date_format="%d/%m/%Y"):
         return True
     except ValueError:
         return False
-        
+def valid_adivisor_code(code):
+    """
+    Validates if the input is a 4-digit number.
+    
+    Args:
+        emirates_id (str): The input to validate.
+    
+    Returns:
+        bool: True if the input is a 4-digit number, False otherwise.
+    """
+    return code.isdigit() and len(code) == 4
+       
 def valid_emirates_id(emirates_id):
     # Pattern: Starts with 784, followed by a birth year (4 digits), 7 digits, and ends with 1 digit
     pattern = r"784-\d{4}-\d{7}-\d"
@@ -143,5 +161,152 @@ def is_valid_marital_status(user_input):
     
     return False
 
+valid_countries = [
+    "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", 
+    "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", 
+    "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", 
+    "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", 
+    "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", 
+    "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", 
+    "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", 
+    "China", "Colombia", "Comoros", "Congo (Democratic Republic)", 
+    "Congo (Republic)", "Costa Rica", "Croatia", "Cuba", "Cyprus", 
+    "Czech Republic", "Denmark", "Djibouti", "Dominica", "Dominican Republic", 
+    "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", 
+    "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", 
+    "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", 
+    "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", 
+    "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", 
+    "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", 
+    "Jordan", "Kazakhstan", "Kenya", "Kiribati", "North Korea", 
+    "South Korea", "Kosovo", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", 
+    "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", 
+    "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", 
+    "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", 
+    "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", 
+    "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", 
+    "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", 
+    "Niger", "Nigeria", "North Macedonia", "Norway", "Oman", "Pakistan", 
+    "Palau", "Palestine", "Panama", "Papua New Guinea", "Paraguay", "Peru", 
+    "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", 
+    "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", 
+    "Saint Vincent and the Grenadines", "Samoa", "San Marino", 
+    "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", 
+    "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", 
+    "Solomon Islands", "Somalia", "South Africa", "South Sudan", "Spain", 
+    "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", 
+    "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Togo", 
+    "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", 
+    "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "UAE", 
+    "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", 
+    "Vatican City", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
+]
 
-print(is_valid_nationality("Indian"))
+def is_valid_country(user_input):
+    """
+    Validates whether the provided user input is a recognized country,
+    including fuzzy matching for similar words.
+
+    Args:
+        user_input (str): The user's input to validate.
+
+    Returns:
+        bool: True if the input is a valid or similar country, False otherwise.
+    """
+    # Convert user input to title case
+    user_input = user_input.strip().title()
+    
+    # Exact match
+    if user_input in valid_countries:
+        return True
+    
+    # Fuzzy match with a threshold
+    matches = process.extractOne(user_input, valid_countries, scorer=fuzz.ratio)
+    if matches and matches[1] >= 85:  # You can adjust the threshold as needed
+        return True
+    
+    return False
+
+import requests
+
+def fetching_medical_detail(responses_dict):
+    def convert_date_format(date_str):
+        try:
+            return datetime.strptime(date_str, "%d/%m/%Y").strftime("%Y-%m-%d")
+        except ValueError:
+            return date_str  # Return the original string if the format is incorrect
+
+    policy_type_question = responses_dict.get("What would you like to do today?", "").lower()
+    plan_question = responses_dict.get("What type of plan are you looking for?", "").capitalize()
+    covid_dose_question = responses_dict.get("Have you been vaccinated for Covid-19?", "").capitalize()
+    gender_question = responses_dict.get("May I Know member's gender.Please?", "").capitalize()
+    marital_status_member_question = responses_dict.get("May I know your marital status?", "").capitalize()
+
+    if policy_type_question == "purchase a new policy":
+        policy_type = "New"
+        visa_date = convert_date_format(responses_dict.get("Please enter your Entry Date or Visa Change Status Date?", ""))
+        expiry_date = ""
+        insurance_company = ""
+    else:
+        policy_type = "Renewal"
+        visa_date = ""
+        expiry_date = convert_date_format(responses_dict.get("Please enter your Entry Date or Visa Change Status Date?", ""))
+        insurance_company = responses_dict.get("Which insurance company is your current policy with?", "")
+    payload = {
+        "visa_issued_emirates": responses_dict.get("Let's start with your Medical insurance details. Chosse your Visa issued Emirate?", "").capitalize(),
+        "policy_type": policy_type,
+        "visa_date": visa_date,
+        "expiry_date": expiry_date,
+        "insurance_company": insurance_company,
+        "plan": plan_question,
+        "basic_plan": responses_dict.get("To whom are you purchasing this plan?", ""),
+        "sponsor": responses_dict.get("Could you let me know the sponsor's type?", "").capitalize(),
+        "monthly_salary": responses_dict.get("Could you please tell me your monthly salary (in AED)?", ""),
+        "accomodation": responses_dict.get("Is accommodation provided to you?", "").capitalize(),
+        "job_title": responses_dict.get("Please provide us with your job title", "").capitalize(),
+        "sponsor_type": responses_dict.get("Could you let me know the sponsor's type?", "").capitalize(),
+        "sponsor_name": responses_dict.get("Now, let’s move to the sponsor details. Please provide the Sponsor Name?", "").capitalize(),
+        "sponsor_gender": responses_dict.get("May I Know sponsor's gender.Please", "").capitalize(),
+        "sponsor_marital_status": responses_dict.get("May I know sponsor's marital status?", "").capitalize(),
+        "sponsor_po": responses_dict.get("Could you share your PO Box number, please?", "").capitalize(),
+        "sponsor_emirate": responses_dict.get("Tell me your Emirate sponsor located in?", "").capitalize(),
+        "sponsor_nationality": responses_dict.get("Could you let me know the sponsor's nationality?", "").capitalize(),
+        "sponsor_country": responses_dict.get("May I have the sponsor's Country, please?", "").capitalize(),
+        "sponsor_mobile": responses_dict.get("May I have the sponsor's mobile number, please?", "").capitalize(),
+        "sponsor_email": responses_dict.get("May I have the sponsor's Email Address, please?", "").lower(),
+        "sponsor_company": responses_dict.get("What company does the sponsor work for?", "").capitalize(),
+        "sponsor_emirates_id": responses_dict.get("Could you provide the sponsor's Emirates ID?", ""),
+        "sponsor_vat": responses_dict.get("Tell me Sponsor's  VAT Number", ""),
+        "sponsor_income_source": responses_dict.get("Could you kindly provide me with the sponsor's Source of Income", ""),
+        "members":[
+            {
+        "name": responses_dict.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name", "").capitalize(),
+        "dob": convert_date_format(responses_dict.get("Date of Birth (DOB)", "")),
+        "gender": gender_question,
+        "marital_status": marital_status_member_question,
+        "height": responses_dict.get("Tell me you Height in Cm", ""),
+        "weight": responses_dict.get("Tell me you Weight in Kg", ""),
+        "relation": responses_dict.get("Tell your relationship with the Sponsor", "").capitalize(),
+        "covid_dose": covid_dose_question,
+        "first_dose": convert_date_format(responses_dict.get("Can you please tell me the date of your first dose?", "")) if covid_dose_question == "yes" else "",
+        "second_dose": convert_date_format(responses_dict.get("Can you please tell me the date of your second dose?", "")) if covid_dose_question == "yes" else "",
+        "chronic_condition": responses_dict.get("Are you suffering from any pre-existing or chronic conditions?", "").capitalize(),
+        "chronic_note": responses_dict.get("Please provide us with the details of your Chronic Conditions Medical Report","").capitalize(),
+        "pregnant": responses_dict.get("May I kindly ask if you are currently pregnant?", "").capitalize() if gender_question == "female" and marital_status_member_question == "married" else "no",
+        "pregnant_note": "",
+        "pregnant_referral": "",
+        "pregnant_planning": responses_dict.get("Have you recently been preparing or planning for pregnancy?", "").capitalize() if gender_question == "female" and marital_status_member_question == "married" else "no",
+        "menstrual_date": convert_date_format(responses_dict.get("Could you please share the date of your last menstrual period?", "")) if gender_question == "female" and marital_status_member_question == "married" else ""
+    
+            }
+        ]
+    
+    }
+
+    api = "https://www.insuranceclub.ae/Api/medical_insert"
+
+    res = requests.post(api, json=payload)
+    id = res.json()["id"]
+    print(payload)
+    return id
+
