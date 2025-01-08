@@ -1,4 +1,5 @@
 from datetime import datetime
+from pickle import NONE
 import re
 from urllib import response
 from fuzzywuzzy import process, fuzz
@@ -23,7 +24,18 @@ def valid_date_format(date_string, date_format="%d/%m/%Y"):
         return True
     except ValueError:
         return False
-        
+def valid_adivisor_code(code):
+    """
+    Validates if the input is a 4-digit number.
+    
+    Args:
+        emirates_id (str): The input to validate.
+    
+    Returns:
+        bool: True if the input is a 4-digit number, False otherwise.
+    """
+    return code.isdigit() and len(code) == 4
+       
 def valid_emirates_id(emirates_id):
     # Pattern: Starts with 784, followed by a birth year (4 digits), 7 digits, and ends with 1 digit
     pattern = r"784-\d{4}-\d{7}-\d"
@@ -216,23 +228,34 @@ def is_valid_country(user_input):
 import requests
 
 def fetching_medical_detail(responses_dict):
+    def convert_date_format(date_str):
+        try:
+            return datetime.strptime(date_str, "%d/%m/%Y").strftime("%Y-%m-%d")
+        except ValueError:
+            return date_str  # Return the original string if the format is incorrect
+
     policy_type_question = responses_dict.get("What would you like to do today?", "").lower()
     plan_question = responses_dict.get("What type of plan are you looking for?", "").lower()
     covid_dose_question = responses_dict.get("Have you been vaccinated for Covid-19?", "").lower()
     gender_question = responses_dict.get("May I Know member's gender.Please?", "").lower()
     marital_status_member_question = responses_dict.get("May I know your marital status?", "").lower()
-    
+
     if policy_type_question == "purchase a new policy":
         policy_type = "new"
+        visa_date = convert_date_format(responses_dict.get("Please enter your Entry Date or Visa Change Status Date?", ""))
+        expiry_date = ""
+        insurance_company = ""
     else:
         policy_type = "renewal"
-    
+        visa_date = ""
+        expiry_date = convert_date_format(responses_dict.get("Please enter your Entry Date or Visa Change Status Date?", ""))
+        insurance_company = responses_dict.get("Which insurance company is your current policy with?", "")
     payload = {
         "visa_issued_emirates": responses_dict.get("Let's start with your Medical insurance details. Chosse your Visa issued Emirate?", "").lower(),
         "policy_type": policy_type,
-        "visa_date": responses_dict.get("Please enter your Entry Date or Visa Change Status Date.", ""),
-        "expiry_date": responses_dict.get("Please enter your Entry Date or Visa Change Status Date.", ""),
-        "insurance_company": responses_dict.get("insurance_company", ""),
+        "visa_date": visa_date,
+        "expiry_date": expiry_date,
+        "insurance_company": insurance_company,
         "plan": plan_question,
         "basic_plan": responses_dict.get("To whom are you purchasing this plan?", ""),
         "sponsor": responses_dict.get("Could you let me know the sponsor's type?", "").lower(),
@@ -254,69 +277,68 @@ def fetching_medical_detail(responses_dict):
         "sponsor_vat": responses_dict.get("Tell me Sponsor's  VAT Number", ""),
         "sponsor_income_source": responses_dict.get("Could you kindly provide me with the sponsor's Source of Income", ""),
         "name": responses_dict.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name", "").lower(),
-        "dob": responses_dict.get("Date of Birth (DOB)", ""),
+        "dob": convert_date_format(responses_dict.get("Date of Birth (DOB)", "")),
         "gender": gender_question,
         "marital_status": marital_status_member_question,
         "height": responses_dict.get("Tell me you Height in Cm", ""),
         "weight": responses_dict.get("Tell me you Weight in Kg", ""),
         "relation": responses_dict.get("Tell your relationship with the Sponsor", "").lower(),
         "covid_dose": covid_dose_question,
-        "first_dose": responses_dict.get("Can you please tell me the date of your first dose?", "") if covid_dose_question == "yes" else None,
-        "second_dose": responses_dict.get("Can you please tell me the date of your second dose?", "") if covid_dose_question == "yes" else None,
+        "first_dose": convert_date_format(responses_dict.get("Can you please tell me the date of your first dose?", "")) if covid_dose_question == "yes" else "",
+        "second_dose": convert_date_format(responses_dict.get("Can you please tell me the date of your second dose?", "")) if covid_dose_question == "yes" else "",
         "chronic_condition": responses_dict.get("Are you suffering from any pre-existing or chronic conditions?", "").lower(),
-        "chronic_note": None,
+        "chronic_note": responses_dict.get("Please provide us with the details of your Chronic Conditions Medical Report","").lower(),
         "pregnant": responses_dict.get("May I kindly ask if you are currently pregnant?", "").lower() if gender_question == "female" and marital_status_member_question == "married" else "no",
-        "pregnant_note": None,
-        "pregnant_referral": None,
+        "pregnant_note": "",
+        "pregnant_referral": "",
         "pregnant_planning": responses_dict.get("Have you recently been preparing or planning for pregnancy?", "").lower() if gender_question == "female" and marital_status_member_question == "married" else "no",
-        "menstrual_date": responses_dict.get("Could you please share the date of your last menstrual period?", "").lower() if gender_question == "female" and marital_status_member_question == "married" else None
+        "menstrual_date": convert_date_format(responses_dict.get("Could you please share the date of your last menstrual period?", "")) if gender_question == "female" and marital_status_member_question == "married" else ""
     }
 
     api = "https://www.insuranceclub.ae/Api/medical_insert"
-    
+
     res = requests.post(api, json=payload)
-    
+    id = res.json()["id"]
     print(payload)
-    return res
+    return id
 
 responses = {
     "What would you like to do today?": "Purchase a new policy",
-    "Let's start with your Medical insurance details. Chosse your Visa issued Emirate?": "Ras Al Khaimah",
+    "Let's start with your Medical insurance details. Chosse your Visa issued Emirate?": "Fujairah",
     "question": "Sharjah",
     "Please enter your Entry Date or Visa Change Status Date?": "21/10/2025",
-    "What type of plan are you looking for?": "Enhanced Plan",
-    "To whom are you purchasing this plan?": "Children above 18 years",
+    "What type of plan are you looking for?": "Basic Plan",
+    "To whom are you purchasing this plan?": "4th Child",
     "Could you please tell me your monthly salary (in AED)?": 20000.0,
     "Is accommodation provided to you?": "Yes",
     "Please provide us with your job title": "software engineer",
-    "Now, let\u2019s move to the sponsor details. Please provide the Sponsor Name?": "Jeffin",
-    "Could you share your PO Box number, please?": "POB5678926",
+    "Now, let\u2019s move to the sponsor details. Please provide the Sponsor Name?": "Jeffin1",
+    "Could you share your PO Box number, please?": "POB1567828",
     "Tell me your Emirate sponsor located in?": "Sharjah",
     "Could you let me know the sponsor's nationality?": "Indian",
     "May I have the sponsor's Country, please?": "India",
     "May I have the sponsor's mobile number, please?": "+919567551494",
     "Could you let me know the sponsor's type?": "Employee",
-    "May I have the sponsor's Email Address, please?": "akash@gmail.co",
-    "What company does the sponsor work for?": "Giza Systems",
+    "May I have the sponsor's Email Address, please?": "akash1@gmail.com",
+    "What company does the sponsor work for?": "Giza systems",
     "Could you provide the sponsor's Emirates ID?": "784-1990-1234567-0",
-    "Tell me Sponsor's  VAT Number": "VAT456781267",
+    "Tell me Sponsor's  VAT Number": "VAT4567812",
     "Could you kindly provide me with the sponsor's Source of Income": "Salary",
     "May I Know sponsor's gender.Please": "Male",
-    "May I know sponsor's marital status?": "Single",
-    "Next, we need the details of the member for whom the policy is being purchased. Please provide Name": "Jeffin",
+    "May I know sponsor's marital status?": "Married",
+    "Next, we need the details of the member for whom the policy is being purchased. Please provide Name": "Jeffin1",
     "Date of Birth (DOB)": "21/10/1999",
-    "May I Know member's gender.Please?": "Female",
+    "May I Know member's gender.Please?": "Male",
     "May I know your marital status?": "Married",
-    "May I kindly ask if you are currently pregnant?": "Yes",
-    "Have you recently been preparing or planning for pregnancy?": "Yes",
-    "Could you please share the date of your last menstrual period?": "21/10/1999",
     "Tell me you Height in Cm": "175",
     "Tell me you Weight in Kg": "78",
-    "Tell your relationship with the Sponsor": "Wife",
-    "Have you been vaccinated for Covid-19?": "Yes",
-    "Can you please tell me the date of your first dose?": "21/10/2024",
-    "Can you please tell me the date of your second dose?": "22/10/2025",
-    "Are you suffering from any pre-existing or chronic conditions?": "No"
+    "Tell your relationship with the Sponsor": "wife",
+    "Have you been vaccinated for Covid-19?": "No",
+    "Are you suffering from any pre-existing or chronic conditions?": "No",
+    "Do you have an Insurance Advisor code?": "Yes",
+    "Please enter your Insurance Advisor code for assigning your enquiry for further assistance": "1234"
 }
+
+
 
 print(fetching_medical_detail(responses))

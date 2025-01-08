@@ -1,7 +1,7 @@
 from datetime import datetime
-from utils.helper import is_valid_country, is_valid_nationality
+from utils.helper import fetching_medical_detail, is_valid_country, is_valid_nationality, valid_adivisor_code
 from utils.helper import get_user_name, is_valid_marital_status,valid_date_format,valid_emirates_id,is_valid_name
-from utils.question_helper import handle_company_name_question, handle_country_question, handle_date_question, handle_emirate_question, handle_gender, handle_job_title_question, handle_marital_status, handle_policy_question, handle_pregant, handle_purchasing_plan_question, handle_sposor_type, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_what_would_you_do_today_question, handle_yes_or_no
+from utils.question_helper import handle_adiviosr_code, handle_company_name_question, handle_country_question, handle_date_question, handle_emirate_question, handle_gender, handle_job_title_question, handle_marital_status, handle_policy_question, handle_pregant, handle_purchasing_plan_question, handle_sposor_type, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_what_would_you_do_today_question, handle_yes_or_no
 from langchain_groq.chat_models import ChatGroq
 from fastapi import FastAPI, File, UploadFile
 from langchain_core.messages import HumanMessage,SystemMessage
@@ -1493,7 +1493,56 @@ def process_user_input(user_input: UserInput):
             "response": f"{general_assistant_response.content.strip()}",
              "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
           }
+        
+        elif question == "Please enter your Insurance Advisor code for assigning your enquiry for further assistance":
+            if valid_adivisor_code(user_message):
+                responses[question] = user_message
+                conversation_state["current_question_index"] += 1
 
+                # Move to the next question or finalize responses
+                if conversation_state["current_question_index"] < len(questions):
+                    next_question = questions[conversation_state["current_question_index"]]
+                    return {
+                        "response": f"Thank you! Now, let's move on to: {next_question}"
+                    }
+                else:
+                    try:
+                        if responses.get("Do you have an Insurance Advisor code?") == "Yes":
+                            medical_deatil_response = fetching_medical_detail(responses)
+                            print(medical_deatil_response)
+                            return {
+                                "response": f"Thank you for sharing the details We will inform (Agent Name) to assist you further with your enquiry. Please find the link below to view your quotation:https://insuranceclub.ae/customer_plan/{medical_deatil_response}",
+                            }
+                    except Exception as e:
+                        return {
+                            "response": f"An error occurred while fetching medical details: {str(e)}"
+                        }
+
+                    try:
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Since you don't have an agent code, we will arrange a callback from the next available agent to assist you further. Thank you!",
+                            "final_responses": responses
+                        }
+                    except Exception as e:
+                        return {
+                            "response": f"An error occurred while saving your responses: {str(e)}"
+                        }
+            else:
+                # Handle invalid advisor code or unrelated query
+                # Here the `llm.invoke` and `HumanMessage` are placeholders, replace them with actual logic
+                general_assistant_prompt = f"user response: {user_message}. Please assist."
+                general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+
+                return {
+                    "response": (
+                        f"{general_assistant_response.content.strip()} \n\n"
+                    ),
+                    "example": "The Advisor code should be a 4-digit numeric value. Please enter a valid code",
+                    "question": f"Let’s try again: {question}"
+                }
+        
         elif question == "Could you please tell me the year your bike was made?":
             if conversation_state["current_question_index"] == questions.index(question):
                 # Check if the input is a valid year
@@ -1703,42 +1752,65 @@ def process_user_input(user_input: UserInput):
         
                     }
             else:
-                return {
-                    "response": "Invalid response. Please answer with 'Yes' or 'No'."
-                }
+                pass
 
         elif question == "Please provide us with the details of your Chronic Conditions Medical Report":
+            # if conversation_state["current_question_index"] == questions.index(question):
+            #     # Enhanced file path validation
+            #     upload_pattern = re.compile(
+            #         r"^uploads\/(?:[\w\s-]+\/)*[\w\s-]+\.(pdf|docx|jpg|png|jpeg)$", re.IGNORECASE
+            #     )
+
+            #     if upload_pattern.match(user_message):
+            #         # Valid file format
+            #         responses[question] = user_message
+            #         conversation_state["current_question_index"] += 1
+
+            #         # Check if there are more questions
+            #         if conversation_state["current_question_index"] < len(questions):
+            #             next_question = questions[conversation_state["current_question_index"]]
+            #             return {
+            #                 "response": f"Thank you for providing the document. Now, let's move on to: {next_question}",
+            #             }
+            #         else:
+            #             # Save responses and end the conversation
+            #             with open("user_responses.json", "w") as file:
+            #                 json.dump(responses, file, indent=4)
+            #             return {
+            #                 "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+            #                 "final_responses": responses,
+            #             }
+            #     else:
+            #         # Invalid file format
+            #         return {
+            #            "response": "The file format seems incorrect. Please upload a valid document."
+            #         }
+        
             if conversation_state["current_question_index"] == questions.index(question):
-                # Enhanced file path validation
-                upload_pattern = re.compile(
-                    r"^uploads\/(?:[\w\s-]+\/)*[\w\s-]+\.(pdf|docx|jpg|png|jpeg)$", re.IGNORECASE
-                )
+                # Store user message as is without validation
+                responses[question] = user_message
+                conversation_state["current_question_index"] += 1
 
-                if upload_pattern.match(user_message):
-                    # Valid file format
-                    responses[question] = user_message
-                    conversation_state["current_question_index"] += 1
-
-                    # Check if there are more questions
-                    if conversation_state["current_question_index"] < len(questions):
-                        next_question = questions[conversation_state["current_question_index"]]
-                        return {
-                            "response": f"Thank you for providing the document. Now, let's move on to: {next_question}",
-                        }
-                    else:
-                        # Save responses and end the conversation
-                        with open("user_responses.json", "w") as file:
-                            json.dump(responses, file, indent=4)
-                        return {
-                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
-                            "final_responses": responses,
-                        }
-                else:
-                    # Invalid file format
+                # Check if there are more questions
+                if conversation_state["current_question_index"] < len(questions):
+                    next_question = questions[conversation_state["current_question_index"]]
                     return {
-                       "response": "The file format seems incorrect. Please upload a valid document."
+                        "response": f"Thank you for providing the information. Now, let's move on to: {next_question}",
                     }
-
+                else:
+                    # Save responses and end the conversation
+                    with open("user_responses.json", "w") as file:
+                        json.dump(responses, file, indent=4)
+                    return {
+                        "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                        "final_responses": responses,
+                    }
+            else:
+            # Handle other questions or general assistance 
+                pass
+    
+        elif question == "Do you have an Insurance Advisor code?":
+            return handle_adiviosr_code(question, user_message, responses, conversation_state, questions)
         elif question == "Tell your relationship with the Sponsor":
             if conversation_state["current_question_index"] == questions.index(question):
                 # Validate the relationship
@@ -2134,7 +2206,8 @@ def process_user_input(user_input: UserInput):
                         "response": f"{general_assistant_response.content.strip()}",
                         "question": f"Let’s try again: {question}\n"
                     }
-
+        elif question == "Date of Birth (DOB)":
+            return handle_date_question(question, user_message, responses, conversation_state, questions)
        # For other free-text questions
 
         evaluation_prompt = f"Is the user's response '{user_message}' correct for the question '{question}'? Answer 'yes' or 'no'."

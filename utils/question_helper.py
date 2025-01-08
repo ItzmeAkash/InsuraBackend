@@ -4,7 +4,7 @@ import os
 from langchain_groq.chat_models import ChatGroq
 import re
 from datetime import datetime
-from utils.helper import is_valid_country, is_valid_nationality
+from utils.helper import fetching_medical_detail, is_valid_country, is_valid_nationality
 from utils.helper import valid_date_format
 
 llm = ChatGroq(
@@ -215,6 +215,9 @@ def handle_validate_name(question, user_message, conversation_state, questions, 
     - dict: Contains the response message and optionally the next question or final responses.
     """
     if conversation_state["current_question_index"] == questions.index(question):
+        # Convert user input to title case
+        user_message = user_message.strip().title()
+
         # Validate user input using regex
         if not is_valid_name(user_message):
             general_assistant_prompt = (
@@ -276,7 +279,6 @@ def handle_validate_name(question, user_message, conversation_state, questions, 
                 "response": f"{general_assistant_response.content.strip()}",
                 "question": question
             }
-
 
 def handle_gender(user_message,conversation_state,questions,responses,question):
     valid_options = [ "Male","Female"]
@@ -1006,4 +1008,67 @@ def  handle_date_question(question, user_message, responses, conversation_state,
         }
         
         
-    
+def handle_adiviosr_code(question, user_message, responses, conversation_state, questions):
+            valid_options = ["Yes","No"]
+            first_question = "Please enter your Insurance Advisor code for assigning your enquiry for further assistance"
+            if user_message in valid_options:
+                responses[question] = user_message  # Store the response
+
+                if user_message == "Yes":
+                    # Dynamically add follow-up questions
+                    # Insert follow-up questions into the list if not already present
+                    if first_question not in questions:
+                        responses[first_question] = None
+                        questions.insert(conversation_state["current_question_index"] + 1, first_question)
+
+                    # Move to the next question
+                    conversation_state["current_question_index"] += 1
+                    next_question = questions[conversation_state["current_question_index"]]
+                    return {
+                        "response": f"Thank you! Now, let's move on to: {next_question}"
+                    }
+                elif user_message == "No":
+                    # Remove the questions about first and second doses if they exist
+
+                    if first_question in questions:
+                        questions.remove(first_question)
+
+
+                    # Proceed to the next predefined question
+                    conversation_state["current_question_index"] += 1
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        options = ", ".join(next_question["options"])
+                        next_questions = next_question["question"]
+                        
+                        return {
+                            "response": f"Thank you for your response. Now, let's move on to: {next_questions}",
+                            "options":options 
+                        }
+                    else:
+                        # All predefined questions have been answered
+                        if responses.get("Do you have an Insurance Advisor code?")=="Yes":
+                            medical_deatil_response = fetching_medical_detail(responses)
+                            return {
+                                "response":f"Thank you for sharing the details We will inform (Agent Name) to assist you further with your enquiry.Please find the link below to view your quotation: {medical_deatil_response}",
+                            }
+                            
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Since you don't have an agent code, we will arrange a callback from the next available agent to assist you further Thank you!",
+                            "final_responses": responses
+                        }
+            else:
+                
+                general_assistant_prompt = f"user response: {user_message}. Please assist."
+                general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+                
+
+                return {
+                    "response": (
+                        f"{general_assistant_response.content.strip()} \n\n"
+                        
+                    ),
+                    "question": f"Let’s try again: {question}"
+                }
