@@ -119,7 +119,18 @@
       "options":["Single", "Married"]},
       "Tell me you Height in Cm",
       "Tell me you Weight in Kg",
-      "Tell your relationship with the Sponsor",
+      {
+        "question":"Tell your relationship with the Sponsor",
+        "options":[
+          "Investor",
+          "Employee",
+          "Spouse",
+          "Child",
+          "4th Child",
+          "Parent",
+          "Domestic"
+        ]
+      },
 
       {"question":"Have you been vaccinated for Covid-19?",
        "options":[

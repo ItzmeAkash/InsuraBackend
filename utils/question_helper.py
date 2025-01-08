@@ -226,7 +226,7 @@ def handle_validate_name(question, user_message, conversation_state, questions, 
             )
             general_assistant_response = llm.invoke([
                 SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. "
-                                          "Your role is to assist users with their inquiries and guide them appropriately."),
+                                      "Your role is to assist users with their inquiries and guide them appropriately."),
                 HumanMessage(content=general_assistant_prompt)
             ])
             return {
@@ -241,7 +241,7 @@ def handle_validate_name(question, user_message, conversation_state, questions, 
         )
         llm_response = llm.invoke([
             SystemMessage(content="You are Insura, an AI assistant specialized in insurance-related tasks. "
-                                      "Your task is to verify if the provided input is a valid person's name."),
+                                  "Your task is to verify if the provided input is a valid person's name."),
             HumanMessage(content=check_prompt)
         ])
         is_person_name = llm_response.content.strip().lower() == "yes"
@@ -272,14 +272,13 @@ def handle_validate_name(question, user_message, conversation_state, questions, 
             )
             general_assistant_response = llm.invoke([
                 SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. "
-                                          "Your role is to assist users with their inquiries and guide them appropriately."),
+                                      "Your role is to assist users with their inquiries and guide them appropriately."),
                 HumanMessage(content=general_assistant_prompt)
             ])
             return {
                 "response": f"{general_assistant_response.content.strip()}",
                 "question": question
             }
-
 def handle_gender(user_message,conversation_state,questions,responses,question):
     valid_options = [ "Male","Female"]
     if user_message in valid_options:

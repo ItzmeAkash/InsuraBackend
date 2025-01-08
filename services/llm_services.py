@@ -939,9 +939,17 @@ def process_user_input(user_input: UserInput):
 
                         if conversation_state["current_question_index"] < len(questions):
                             next_question = questions[conversation_state["current_question_index"]]
-                            return {
-                                "response": f"Thank you for providing your weight. Now, let's move on to: {next_question}"
-                            }
+                            if 'options' in next_question:
+                               options = ", ".join(next_question["options"])
+                               next_questions = next_question["question"]
+                               return {
+                              "response": f"Thank you! Now, let's move on to: {next_questions}",
+                              "options": options
+                             }
+                            else:
+                              return {
+                               "response": f"Thank you for providing your weight. Now, let's move on to: {next_question}"
+                      }  
                         else:
                             # All questions completed
                             with open("user_responses.json", "w") as file:
@@ -1812,39 +1820,61 @@ def process_user_input(user_input: UserInput):
         elif question == "Do you have an Insurance Advisor code?":
             return handle_adiviosr_code(question, user_message, responses, conversation_state, questions)
         elif question == "Tell your relationship with the Sponsor":
-            if conversation_state["current_question_index"] == questions.index(question):
-                # Validate the relationship
-                relationship_prompt = f"The user responded with: '{user_message}'. Is this a valid relationship descriptor (e.g., spouse, parent, guardian)? Respond with 'Yes' or 'No'."
-                llm_response = llm.invoke([
-                    SystemMessage(content="You are Insura, an AI assistant specialized in insurance-related tasks. Your task is to determine if the input provided by the user is a valid relationship descriptor."),
-                    HumanMessage(content=relationship_prompt)
-                ])
-                is_valid_relationship = llm_response.content.strip().lower() == "yes"
-
-                if is_valid_relationship:
-                    # Store the relationship
+                valid_options = [
+                    "Investor",
+                    "Employee",
+                    "Spouse",
+                    "Child",
+                    "4th Child",
+                    "Parent",
+                    "Domestic"
+                ]   
+                
+                if user_message in valid_options:
+                    #Update the Response 
                     responses[question] = user_message
-                    conversation_state["current_question_index"] += 1
-                    next_question = questions[conversation_state["current_question_index"]]
-                    options = ", ".join(next_question["options"])
-                    next_questions = next_question["question"]
-    
-                    return {
-                        "response": f"Thank you for providing your relationship with the sponsor. Now, let's move on to: {next_questions}",
-                        "options":options 
-                    }
-                else:
-                    # Handle invalid input
-                    general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a valid relationship descriptor. Please assist."
-                    general_assistant_response = llm.invoke([
-                        SystemMessage(content="You are Insura, an AI assistant created by CloudSubset. Your role is to assist users with their inquiries. Your task here is to redirect or assist the user appropriately."),
-                        HumanMessage(content=general_assistant_prompt)
-                    ])
-                    return {
-                        "response": f"{general_assistant_response.content.strip()}",
-                        "question": f"Let's move back to: {question}"
-                    }                      
+                    conversation_state["current_question_index"]+=1
+                    
+                    if conversation_state["current_question_index"]< len(questions):
+                         next_question = questions[conversation_state["current_question_index"]]
+                        
+                         if 'options' in next_question:
+                            options = ", ".join(next_question["options"])
+                            next_questions = next_question["question"]
+                            return {
+                                "response": f"Thank you! Now, let's move on to: {next_questions}",
+                                "options": options
+                                }
+                         else:
+                           return {
+                               "response": f"Thank you for providing the plan. Now, let's move on to: {next_question}"
+                             }   
+                        
+                    else:
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                            "final_responses": responses
+                        }
+                else:    
+                            general_assistant_prompt = f"The user entered '{user_message}', . Please assist."
+                            general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+                            next_question = questions[conversation_state["current_question_index"]]
+                            if "options" in next_question:
+                                options = ", ".join(next_question["options"])
+                                return {
+                                    "response": f"{general_assistant_response.content.strip()}",
+                                    "question": f"Let's Move Back {question}",
+                                    "options": options
+                                }
 
+
+                            else:
+                                    return {
+                                    "response": f"{general_assistant_response.content.strip()}",
+                                    "question": f"Let's Move Back {question}",
+                        }      
         elif question == "Please upload photos of your driving license Front side":
             if conversation_state["current_question_index"] == questions.index(question):
                 # Enhanced file path validation

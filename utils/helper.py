@@ -10,6 +10,8 @@ def get_user_name(user_id: str) -> str:
     return f"{user_id}"  
 
 
+
+
 def valid_date_format(date_string, date_format="%d/%m/%Y"):
     """
     Validates if a given string is a valid date in the specified format.
@@ -235,64 +237,70 @@ def fetching_medical_detail(responses_dict):
             return date_str  # Return the original string if the format is incorrect
 
     policy_type_question = responses_dict.get("What would you like to do today?", "").lower()
-    plan_question = responses_dict.get("What type of plan are you looking for?", "").lower()
-    covid_dose_question = responses_dict.get("Have you been vaccinated for Covid-19?", "").lower()
-    gender_question = responses_dict.get("May I Know member's gender.Please?", "").lower()
-    marital_status_member_question = responses_dict.get("May I know your marital status?", "").lower()
+    plan_question = responses_dict.get("What type of plan are you looking for?", "").capitalize()
+    covid_dose_question = responses_dict.get("Have you been vaccinated for Covid-19?", "").capitalize()
+    gender_question = responses_dict.get("May I Know member's gender.Please?", "").capitalize()
+    marital_status_member_question = responses_dict.get("May I know your marital status?", "").capitalize()
 
     if policy_type_question == "purchase a new policy":
-        policy_type = "new"
+        policy_type = "New"
         visa_date = convert_date_format(responses_dict.get("Please enter your Entry Date or Visa Change Status Date?", ""))
         expiry_date = ""
         insurance_company = ""
     else:
-        policy_type = "renewal"
+        policy_type = "Renewal"
         visa_date = ""
         expiry_date = convert_date_format(responses_dict.get("Please enter your Entry Date or Visa Change Status Date?", ""))
         insurance_company = responses_dict.get("Which insurance company is your current policy with?", "")
     payload = {
-        "visa_issued_emirates": responses_dict.get("Let's start with your Medical insurance details. Chosse your Visa issued Emirate?", "").lower(),
+        "visa_issued_emirates": responses_dict.get("Let's start with your Medical insurance details. Chosse your Visa issued Emirate?", "").capitalize(),
         "policy_type": policy_type,
         "visa_date": visa_date,
         "expiry_date": expiry_date,
         "insurance_company": insurance_company,
         "plan": plan_question,
         "basic_plan": responses_dict.get("To whom are you purchasing this plan?", ""),
-        "sponsor": responses_dict.get("Could you let me know the sponsor's type?", "").lower(),
+        "sponsor": responses_dict.get("Could you let me know the sponsor's type?", "").capitalize(),
         "monthly_salary": responses_dict.get("Could you please tell me your monthly salary (in AED)?", ""),
-        "accomodation": responses_dict.get("Is accommodation provided to you?", "").lower(),
-        "job_title": responses_dict.get("Please provide us with your job title", "").lower(),
-        "sponsor_type": responses_dict.get("Could you let me know the sponsor's type?", "").lower(),
-        "sponsor_name": responses_dict.get("Now, let’s move to the sponsor details. Please provide the Sponsor Name?", "").lower(),
-        "sponsor_gender": responses_dict.get("May I Know sponsor's gender.Please", "").lower(),
-        "sponsor_marital_status": responses_dict.get("May I know sponsor's marital status?", "").lower(),
-        "sponsor_po": responses_dict.get("Could you share your PO Box number, please?", "").lower(),
-        "sponsor_emirate": responses_dict.get("Tell me your Emirate sponsor located in?", "").lower(),
-        "sponsor_nationality": responses_dict.get("Could you let me know the sponsor's nationality?", "").lower(),
-        "sponsor_country": responses_dict.get("May I have the sponsor's Country, please?", "").lower(),
-        "sponsor_mobile": responses_dict.get("May I have the sponsor's mobile number, please?", "").lower(),
+        "accomodation": responses_dict.get("Is accommodation provided to you?", "").capitalize(),
+        "job_title": responses_dict.get("Please provide us with your job title", "").capitalize(),
+        "sponsor_type": responses_dict.get("Could you let me know the sponsor's type?", "").capitalize(),
+        "sponsor_name": responses_dict.get("Now, let’s move to the sponsor details. Please provide the Sponsor Name?", "").capitalize(),
+        "sponsor_gender": responses_dict.get("May I Know sponsor's gender.Please", "").capitalize(),
+        "sponsor_marital_status": responses_dict.get("May I know sponsor's marital status?", "").capitalize(),
+        "sponsor_po": responses_dict.get("Could you share your PO Box number, please?", "").capitalize(),
+        "sponsor_emirate": responses_dict.get("Tell me your Emirate sponsor located in?", "").capitalize(),
+        "sponsor_nationality": responses_dict.get("Could you let me know the sponsor's nationality?", "").capitalize(),
+        "sponsor_country": responses_dict.get("May I have the sponsor's Country, please?", "").capitalize(),
+        "sponsor_mobile": responses_dict.get("May I have the sponsor's mobile number, please?", "").capitalize(),
         "sponsor_email": responses_dict.get("May I have the sponsor's Email Address, please?", "").lower(),
-        "sponsor_company": responses_dict.get("What company does the sponsor work for?", "").lower(),
+        "sponsor_company": responses_dict.get("What company does the sponsor work for?", "").capitalize(),
         "sponsor_emirates_id": responses_dict.get("Could you provide the sponsor's Emirates ID?", ""),
         "sponsor_vat": responses_dict.get("Tell me Sponsor's  VAT Number", ""),
         "sponsor_income_source": responses_dict.get("Could you kindly provide me with the sponsor's Source of Income", ""),
-        "name": responses_dict.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name", "").lower(),
+        "members":[
+            {
+        "name": responses_dict.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name", "").capitalize(),
         "dob": convert_date_format(responses_dict.get("Date of Birth (DOB)", "")),
         "gender": gender_question,
         "marital_status": marital_status_member_question,
         "height": responses_dict.get("Tell me you Height in Cm", ""),
         "weight": responses_dict.get("Tell me you Weight in Kg", ""),
-        "relation": responses_dict.get("Tell your relationship with the Sponsor", "").lower(),
+        "relation": responses_dict.get("Tell your relationship with the Sponsor", "").capitalize(),
         "covid_dose": covid_dose_question,
         "first_dose": convert_date_format(responses_dict.get("Can you please tell me the date of your first dose?", "")) if covid_dose_question == "yes" else "",
         "second_dose": convert_date_format(responses_dict.get("Can you please tell me the date of your second dose?", "")) if covid_dose_question == "yes" else "",
-        "chronic_condition": responses_dict.get("Are you suffering from any pre-existing or chronic conditions?", "").lower(),
-        "chronic_note": responses_dict.get("Please provide us with the details of your Chronic Conditions Medical Report","").lower(),
-        "pregnant": responses_dict.get("May I kindly ask if you are currently pregnant?", "").lower() if gender_question == "female" and marital_status_member_question == "married" else "no",
+        "chronic_condition": responses_dict.get("Are you suffering from any pre-existing or chronic conditions?", "").capitalize(),
+        "chronic_note": responses_dict.get("Please provide us with the details of your Chronic Conditions Medical Report","").capitalize(),
+        "pregnant": responses_dict.get("May I kindly ask if you are currently pregnant?", "").capitalize() if gender_question == "female" and marital_status_member_question == "married" else "no",
         "pregnant_note": "",
         "pregnant_referral": "",
-        "pregnant_planning": responses_dict.get("Have you recently been preparing or planning for pregnancy?", "").lower() if gender_question == "female" and marital_status_member_question == "married" else "no",
+        "pregnant_planning": responses_dict.get("Have you recently been preparing or planning for pregnancy?", "").capitalize() if gender_question == "female" and marital_status_member_question == "married" else "no",
         "menstrual_date": convert_date_format(responses_dict.get("Could you please share the date of your last menstrual period?", "")) if gender_question == "female" and marital_status_member_question == "married" else ""
+    
+            }
+        ]
+    
     }
 
     api = "https://www.insuranceclub.ae/Api/medical_insert"
@@ -302,43 +310,3 @@ def fetching_medical_detail(responses_dict):
     print(payload)
     return id
 
-responses = {
-    "What would you like to do today?": "Purchase a new policy",
-    "Let's start with your Medical insurance details. Chosse your Visa issued Emirate?": "Fujairah",
-    "question": "Sharjah",
-    "Please enter your Entry Date or Visa Change Status Date?": "21/10/2025",
-    "What type of plan are you looking for?": "Basic Plan",
-    "To whom are you purchasing this plan?": "4th Child",
-    "Could you please tell me your monthly salary (in AED)?": 20000.0,
-    "Is accommodation provided to you?": "Yes",
-    "Please provide us with your job title": "software engineer",
-    "Now, let\u2019s move to the sponsor details. Please provide the Sponsor Name?": "Jeffin1",
-    "Could you share your PO Box number, please?": "POB1567828",
-    "Tell me your Emirate sponsor located in?": "Sharjah",
-    "Could you let me know the sponsor's nationality?": "Indian",
-    "May I have the sponsor's Country, please?": "India",
-    "May I have the sponsor's mobile number, please?": "+919567551494",
-    "Could you let me know the sponsor's type?": "Employee",
-    "May I have the sponsor's Email Address, please?": "akash1@gmail.com",
-    "What company does the sponsor work for?": "Giza systems",
-    "Could you provide the sponsor's Emirates ID?": "784-1990-1234567-0",
-    "Tell me Sponsor's  VAT Number": "VAT4567812",
-    "Could you kindly provide me with the sponsor's Source of Income": "Salary",
-    "May I Know sponsor's gender.Please": "Male",
-    "May I know sponsor's marital status?": "Married",
-    "Next, we need the details of the member for whom the policy is being purchased. Please provide Name": "Jeffin1",
-    "Date of Birth (DOB)": "21/10/1999",
-    "May I Know member's gender.Please?": "Male",
-    "May I know your marital status?": "Married",
-    "Tell me you Height in Cm": "175",
-    "Tell me you Weight in Kg": "78",
-    "Tell your relationship with the Sponsor": "wife",
-    "Have you been vaccinated for Covid-19?": "No",
-    "Are you suffering from any pre-existing or chronic conditions?": "No",
-    "Do you have an Insurance Advisor code?": "Yes",
-    "Please enter your Insurance Advisor code for assigning your enquiry for further assistance": "1234"
-}
-
-
-
-print(fetching_medical_detail(responses))
