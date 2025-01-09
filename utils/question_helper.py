@@ -453,13 +453,14 @@ def handle_company_name_question(question, user_message, conversation_state, que
                     next_question = questions[conversation_state["current_question_index"]]
                     if "options" in next_question:
                         options = ", ".join(next_question["options"])
+                        next_questions = next_question["question"]
                         return {
-                            "response": f"Thank you! Now, let's move on to: {next_question['question']}",
+                            "response": f"Thank you! Now, let's move on to: {next_questions}",
                             "options": options
                         }
                     else:
                         return {
-                            "response": f"Thank you for providing the company name. Now, let's move on to: {next_question['question']}"
+                            "response": f"Thank you for providing the company name. Now, let's move on to: {next_question}"
                         }
                 else:
                     with open("user_responses.json", "w") as file:
@@ -472,11 +473,13 @@ def handle_company_name_question(question, user_message, conversation_state, que
                 # Handle invalid or unrelated input
                 general_assistant_prompt = f"The user entered '{user_message}', . Please assist."
                 general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+                next_question = questions[conversation_state["current_question_index"]]
                 if "options" in next_question:
+                    next_question = next_question['question']
                     options = ", ".join(next_question["options"])
                     return {
                         "response": f"{general_assistant_response.content.strip()}",
-                        "question": f"Let's Move Back {question}",
+                        "question": f"Let's Move Back {next_question}",
                         "options": options
                     }
 

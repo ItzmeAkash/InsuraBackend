@@ -205,6 +205,10 @@
          },
          "Could you let me know the sponsor's nationality?",
          "May I have the sponsor's mobile number, please?",
+         {
+          "question":"Could you let me know the sponsor's type?",
+          "options":["Employee","Investors"]
+        },
          "May I have the sponsor's Email Address, please?",
          "What company does the sponsor work for?",
          "Could you provide the sponsor's Emirates ID?",
@@ -219,7 +223,7 @@
          "Next, Please provide the member's details.Please tell me the Name",
          "Date of Birth (DOB)",
          {
-             "question":"May I Know you gender.Please",
+             "question":"May I Know member's gender.Please?",
              "options":[
                  "Male",
                  "Female"
