@@ -1522,7 +1522,7 @@ def process_user_input(user_input: UserInput):
                             medical_deatil_response = fetching_medical_detail(responses)
                             print(medical_deatil_response)
                             return {
-                                "response": f"Thank you for sharing the details We will inform Akash to assist you further with your enquiry. Please find the link below to view your quotation:",
+                                "response": f"Thank you for sharing the details We will inform Shefeek to assist you further with your enquiry. Please find the link below to view your quotation:",
                                 "link":f"https://insuranceclub.ae/customer_plan/{medical_deatil_response}",
                             }
                     except Exception as e:
