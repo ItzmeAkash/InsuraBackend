@@ -1,7 +1,7 @@
 from datetime import datetime
 from utils.helper import fetching_medical_detail, is_valid_country, is_valid_mobile_number, is_valid_nationality, valid_adivisor_code
-from utils.helper import get_user_name, is_valid_marital_status,valid_date_format,valid_emirates_id,is_valid_name
-from utils.question_helper import handle_adiviosr_code, handle_company_name_question, handle_country_question, handle_date_question, handle_emirate_question, handle_gender, handle_job_title_question, handle_marital_status, handle_policy_question, handle_pregant, handle_purchasing_plan_question, handle_sposor_type, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_what_would_you_do_today_question, handle_yes_or_no
+from utils.helper import get_user_name, valid_date_format,valid_emirates_id
+from utils.question_helper import handle_adiviosr_code,  handle_country_question, handle_date_question, handle_emirate_question, handle_gender, handle_job_title_question, handle_marital_status, handle_policy_question, handle_pregant, handle_purchasing_plan_question, handle_sposor_type, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_what_would_you_do_today_question, handle_yes_or_no
 from langchain_groq.chat_models import ChatGroq
 from fastapi import FastAPI, File, UploadFile
 from langchain_core.messages import HumanMessage,SystemMessage
@@ -1278,16 +1278,7 @@ def process_user_input(user_input: UserInput):
                     "response": "Invalid response. Please answer with 'Yes' or 'No'."
                 }
 
-        elif question in [
-            "Now, let’s move to the sponsor details. Please provide the Sponsor Name?",
-            # "Next, we need the details of the member for whom the policy is being purchased. Please provide Name",
-            "Please provide the member's details.Please tell me the Name",
-            "Next, Please provide the member's details.Please tell me the Name",
-            "Could you please provide your full name",
-            "Could you kindly share your contact details with me? To start, may I know your name, please?"
-        ]:
-            return handle_validate_name(question, user_message, conversation_state, questions, responses, is_valid_name)
-        
+
         elif question == "Next, we need the details of the member for whom the policy is being purchased. Please provide Name":
             responses[question] = user_message
             conversation_state["current_question_index"] += 1
