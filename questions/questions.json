@@ -39,10 +39,6 @@
       "Could you please tell me your monthly salary?",
       "May I have the sponsor's mobile number, please?",
       "May I have the sponsor's Email Address, please?",
-      {
-        "question":"May I kindly ask you to tell me the currency?",
-        "options":["AED","USD"]
-      },
       "Next, we need the details of the member for whom the policy is being purchased. Please provide Name",
       "May I know your Date of Birth (DOB)? Please ensure it is in the format DD/MM/YYYY.",
       {

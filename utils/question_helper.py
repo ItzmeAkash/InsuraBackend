@@ -137,12 +137,12 @@ def handle_type_plan_question(user_message, conversation_state, questions, respo
                 next_question = questions[conversation_state["current_question_index"]]
                 next_questions = next_question["question"]
                 return {
-                    "response": f"Thank you! Now, let's move on to: {next_questions}",
+                    "response": f"Thank you!{next_questions}",
                     "options": options
                 }
             else:
                 return {
-                    "response": f"Thank you. Now, let's move on to: {next_question}"
+                    "response": f"Thank you.{next_question}"
                 }
         else:
             with open("user_responses.json", "w") as file:
