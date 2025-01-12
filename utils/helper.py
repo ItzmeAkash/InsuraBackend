@@ -5,7 +5,7 @@ from urllib import response
 from fuzzywuzzy import process, fuzz
 import requests
 from sqlalchemy import null
-import spacy
+
 import subprocess
 import json
 from rapidfuzz import process, fuzz
