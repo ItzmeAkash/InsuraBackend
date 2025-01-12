@@ -1,5 +1,5 @@
 from datetime import datetime
-from utils.helper import fetching_medical_detail, is_valid_country, is_valid_nationality, valid_adivisor_code
+from utils.helper import fetching_medical_detail, is_valid_country, is_valid_mobile_number, is_valid_nationality, valid_adivisor_code
 from utils.helper import get_user_name, is_valid_marital_status,valid_date_format,valid_emirates_id,is_valid_name
 from utils.question_helper import handle_adiviosr_code, handle_company_name_question, handle_country_question, handle_date_question, handle_emirate_question, handle_gender, handle_job_title_question, handle_marital_status, handle_policy_question, handle_pregant, handle_purchasing_plan_question, handle_sposor_type, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_what_would_you_do_today_question, handle_yes_or_no
 from langchain_groq.chat_models import ChatGroq
@@ -43,7 +43,7 @@ questions_data = load_questions()
 # Access questions in your logic
 initial_questions = questions_data["initial_questions"]
 medical_questions = questions_data["medical_questions"]
-new_policy_questions = questions_data["new_policy_questions"]
+# new_policy_questions = questions_data["new_policy_questions"]
 existing_policy_questions = questions_data["existing_policy_questions"]
 motor_insurance_questions = questions_data["motor_insurance_questions"]
 car_questions = questions_data["car_questions"]
@@ -89,8 +89,8 @@ def process_user_input(user_input: UserInput):
         questions = car_questions
     elif current_flow == "bike_questions":
         questions = bike_questions
-    elif current_flow == "new_policy":
-        questions = new_policy_questions
+    # elif current_flow == "new_policy":
+    #     questions = new_policy_questions
     elif current_flow == "existing_policy":
         questions = existing_policy_questions
     elif current_flow == "motor_claim":
@@ -148,12 +148,12 @@ def process_user_input(user_input: UserInput):
                     return {
                         "response": f"Great choice! {bike_questions[0]['question']}","options": ', '.join(next_options)
                     }                    
-                elif user_message == "Purchase a new policy":
-                    conversation_state["current_flow"] = "new_policy"
-                    conversation_state["current_question_index"] = 0
-                    return {
-                        "response": f"Great choice! {new_policy_questions[0]}"
-                    }
+                # elif user_message == "Purchase a new policy":
+                #     conversation_state["current_flow"] = "new_policy"
+                #     conversation_state["current_question_index"] = 0
+                #     return {
+                #         "response": f"Great choice! {new_policy_questions[0]}"
+                #     }
                 elif user_message == "Renew my existing policy":
                     conversation_state["current_flow"] = "existing_policy"
                     conversation_state["current_question_index"] = 0
@@ -190,9 +190,17 @@ def process_user_input(user_input: UserInput):
                 # Check if there are more questions
                 if conversation_state["current_question_index"] < len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
-                    return {
-                        "response": f"Thank you! That was helpful. Now, let's move on to: {next_question}"
-                    }
+                    if 'options' in next_question:
+                        options = ", ".join(next_question["options"])
+                        next_questions = next_question["question"]
+                        return {
+                        "response": f"Thank you! Now, let's move on to: {next_questions}",
+                        "options": options
+                        }
+                    else:
+                        return {
+                        "response": f"Thank you for providing your email. Now, let's move on to: {next_question}"
+                } 
                 else:
                     with open("user_responses.json", "w") as file:
                         json.dump(responses, file, indent=4)
@@ -767,7 +775,47 @@ def process_user_input(user_input: UserInput):
                         "question": f"Let's move back: {question}"
                     }
 
-        
+
+        elif question == "May I have the sponsor's mobile number, please?":
+            is_mobile_number = is_valid_mobile_number(user_message)
+
+            if is_mobile_number:
+                # Store the mobile number
+                responses[question] = user_message
+                conversation_state["current_question_index"] += 1
+
+                # Check if there are more questions
+                if conversation_state["current_question_index"] < len(questions):
+                    next_question = questions[conversation_state["current_question_index"]]
+                    return {
+                        "response": f"Thank you for providing the mobile number. Now, let's move on to: {next_question}"
+                    }
+                else:
+                    with open("user_responses.json", "w") as file:
+                        json.dump(responses, file, indent=4)
+                    return {
+                        "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                        "final_responses": responses
+                    }
+            else:
+                general_assistant_prompt = f"The user entered '{user_message}', . Please assist."
+                general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+                next_question = questions[conversation_state["current_question_index"]]
+                if "options" in next_question:
+                    next_question = next_question['question']
+                    options = ", ".join(next_question["options"])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's Move Back {next_question}",
+                        "options": options
+                    }
+
+
+                else:
+                        return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's Move Back {question}",
+                        }     
         elif question == "What would you like to do today?":
             return handle_what_would_you_do_today_question(user_message,conversation_state,questions,responses,question)
         # elif question == "May I know your marital status?":
@@ -828,7 +876,7 @@ def process_user_input(user_input: UserInput):
                             options = ", ".join(next_question["options"])
                             next_questions = next_question["question"]
                             return {
-                            "response": f"Thank you for your response. Now, let's move on to: {next_question}",
+                            "response": f"Thank you for your response. Now, let's move on to: {next_questions}",
                                 "options": options
                             }
                         return {
@@ -1232,7 +1280,7 @@ def process_user_input(user_input: UserInput):
 
         elif question in [
             "Now, let’s move to the sponsor details. Please provide the Sponsor Name?",
-            "Next, we need the details of the member for whom the policy is being purchased. Please provide Name",
+            # "Next, we need the details of the member for whom the policy is being purchased. Please provide Name",
             "Please provide the member's details.Please tell me the Name",
             "Next, Please provide the member's details.Please tell me the Name",
             "Could you please provide your full name",
@@ -1240,6 +1288,31 @@ def process_user_input(user_input: UserInput):
         ]:
             return handle_validate_name(question, user_message, conversation_state, questions, responses, is_valid_name)
         
+        elif question == "Next, we need the details of the member for whom the policy is being purchased. Please provide Name":
+            responses[question] = user_message
+            conversation_state["current_question_index"] += 1
+            
+            if conversation_state["current_question_index"] < len(questions):
+                next_question = questions[conversation_state["current_question_index"]]
+                if "options" in next_question:
+                    options = ", ".join(next_question["options"])
+                    next_questions = next_question["question"]
+                    return {
+                        "response": f"Thank you! Now, let's move on to: {next_questions}",
+                        "options": options
+                    }
+                else:
+                    return {
+                        "response": f"Thank you. Now, let's move on to: {next_question}"
+                    }
+            else:
+                with open("user_responses.json", "w") as file:
+                    json.dump(responses, file, indent=4)
+                return {
+                "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                "final_responses": responses
+                    }
+            
             # if conversation_state["current_question_index"] == questions.index(question):
             #     # Prompt LLM to check if the input is a valid person name
             #     check_prompt = f"The user has responded with: '{user_message}'. Is this a valid person's name? Respond with 'Yes' or 'No'."
@@ -1855,7 +1928,7 @@ def process_user_input(user_input: UserInput):
                                 }
                          else:
                            return {
-                               "response": f"Thank you for providing the plan. Now, let's move on to: {next_question}"
+                               "response": f"Thank you for providing the relationship. Now, let's move on to: {next_question}"
                              }   
                         
                     else:
@@ -2094,10 +2167,56 @@ def process_user_input(user_input: UserInput):
         ]:
             return handle_job_title_question(question, user_message, conversation_state, questions, responses)
         
-        elif question == "Could you let me know the sponsor's type?":
+        elif question == "Now, let’s move to the sponsor details.Could you let me know the sponsor's type?":
             valid_options = ["Employee","Investors"]
             if user_message in valid_options:
                 responses[question] = user_message
+                conversation_state["current_question_index"] += 1
+                
+                if conversation_state["current_question_index"] < len(questions):
+                    next_question = questions[conversation_state["current_question_index"]]
+                    if "options" in next_question:
+                        options = ", ".join(next_question["options"])
+                        next_questions = next_question["question"]
+                        return {
+                            "response": f"Thank you! Now, let's move on to: {next_questions}",
+                            "options": options
+                        }
+                    else:
+                        return {
+                            "response": f"Thank you. Now, let's move on to: {next_question}"
+                        }
+                else:
+                    with open("user_responses.json", "w") as file:
+                        json.dump(responses, file, indent=4)
+                    return {
+                    "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                    "final_responses": responses
+                        }
+            else:
+                # Handle invalid responses or unrelated queries
+                general_assistant_prompt = f"The user entered '{user_message}', . Please assist."
+                general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+                next_question = questions[conversation_state["current_question_index"]]
+                if "options" in next_question:
+                    options = ", ".join(next_question["options"])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's Move Back {question}",
+                        "options": options
+                    }
+
+
+                else:
+                        return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's Move Back {question}",
+                        } 
+        
+        elif question == "May I kindly ask you to tell me the currency?":
+            valid_options = ["AED", "USD"]
+            if user_message in valid_options:
+                responses["question"] = user_message
                 conversation_state["current_question_index"] += 1
                 
                 if conversation_state["current_question_index"] < len(questions):
@@ -2129,8 +2248,7 @@ def process_user_input(user_input: UserInput):
                     "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
                 }
 
-
-        elif question == "Could you please tell me your monthly salary (in AED)?":
+        elif question == "Could you please tell me your monthly salary?":
             if conversation_state["current_question_index"] == questions.index(question):
                 try:
                     # Check if the input is a valid numeric value
@@ -2143,15 +2261,17 @@ def process_user_input(user_input: UserInput):
                         # Check if there are more questions
                         if conversation_state["current_question_index"] < len(questions):
                             next_question = questions[conversation_state["current_question_index"]]
-                            options = ", ".join(next_question["options"])
-                            next_questions = next_question["question"]
-                                
-                            
-                            return {
-                                "response": f"Thank you! Now, let's move on to: {next_questions}",
-                                "options":options
-
-                            }
+                            if 'options' in next_question:
+                               options = ", ".join(next_question["options"])
+                               next_questions = next_question["question"]
+                               return {
+                              "response": f"Thank you! Now, let's move on to: {next_questions}",
+                              "options": options
+                             }
+                            else:
+                              return {
+                               "response": f"Thank you for providing your salary. Now, let's move on to: {next_question}"
+                      } 
                         else:
                             # If all questions are completed, save responses and end conversation
                             with open("user_responses.json", "w") as file:

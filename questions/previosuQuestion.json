@@ -22,27 +22,89 @@
               "Umm Al Quwain"
           
       ]
-      },
+      },{
+        "question": "What would you like to do today?",
+        "options": [
+          "Purchase a new policy",
+          "Renew my existing policy"
+        ]
+      }
+    ],
+    "new_policy_questions": [
+      "Please enter your Entry Date or Visa Change Status Date?",
       {"question":"What type of plan are you looking for?",
       "options":[
           "Basic Plan",
-          "Enhanced Plan",
-          "Enhanced Plan Standalone",
-          "Flexi Plan"
+          "Enhanced Plan"
       ]
      },
-     {
-      "question":"Now, let’s move to the sponsor details.Could you let me know the sponsor's type?",
-      "options":["Employee","Investors"]
-    },
 
-      "Could you please tell me your monthly salary?",
-      "May I have the sponsor's mobile number, please?",
-      "May I have the sponsor's Email Address, please?",
       {
-        "question":"May I kindly ask you to tell me the currency?",
-        "options":["AED","USD"]
+          "question": "To whom are you purchasing this plan?",
+          "options": [
+            "Employee",
+            "Dependents",
+            "Small Investors",
+            "Domestic Help",
+            "4th Child",
+            "Children above 18 years",
+            "Parents"
+          ]
       },
+      "Could you please tell me your monthly salary (in AED)?",
+      {
+          "question": "Is accommodation provided to you?",
+          "options":[
+              "Yes",
+              "No"
+            ]
+      },
+      
+      "Please provide us with your job title",
+      "Now, let’s move to the sponsor details. Please provide the Sponsor Name?",
+      "Could you share your PO Box number, please?",
+      {"question":"Tell me your Emirate sponsor located in?",
+      "options":[
+
+              "Abudhabi",
+              "Ajman",
+              "Dubai",
+              "Fujairah",
+              "Ras Al Khaimah",
+              "Sharjah",
+              "Umm Al Quwain"
+          
+      ]
+      },
+
+      "Could you let me know the sponsor's nationality?",
+      "May I have the sponsor's Country, please?",
+
+      "May I have the sponsor's mobile number, please?",
+      {
+        "question":"Could you let me know the sponsor's type?",
+        "options":["Employee","Investors"]
+      },
+      "May I have the sponsor's Email Address, please?",
+      "What company does the sponsor work for?",
+      "Could you provide the sponsor's Emirates ID?",
+      "Tell me Sponsor's  VAT Number",
+      {"question":"Could you kindly provide me with the sponsor's Source of Income",
+       
+      "options":[
+              "Business",
+              "Salary"]
+      },
+      {
+        "question":"May I Know sponsor's gender.Please",
+        "options":[
+            "Male",
+            "Female"
+        ]
+     
+    },
+    { "question":"May I know sponsor's marital status?",
+    "options":["Single", "Married"]},
       "Next, we need the details of the member for whom the policy is being purchased. Please provide Name",
       "Date of Birth (DOB)",
       {
@@ -53,10 +115,10 @@
         ]
      
     },
-
       { "question":"May I know your marital status?",
       "options":["Single", "Married"]},
-
+      "Tell me you Height in Cm",
+      "Tell me you Weight in Kg",
       {
         "question":"Tell your relationship with the Sponsor",
         "options":[
@@ -70,17 +132,26 @@
         ]
       },
 
-      
-       {
+      {"question":"Have you been vaccinated for Covid-19?",
+       "options":[
+           "Yes",
+           "No"
+       ]
+       },
+       { "question":"Are you suffering from any pre-existing or chronic conditions?",
+        "options":[
+            "Yes",
+            "No"
+        ]
+       },{
         "question":"Do you have an Insurance Advisor code?",
         "options":[
             "Yes",
             "No"
         ]
-       } 
-    ],
-
+       }  ],
     "existing_policy_questions": [
+      "Please enter your policy number",
        {
          "question":"Your policy is up for renewal. Would you like to proceed with renewing it?",
          "options":[
@@ -88,24 +159,95 @@
              "No"
          ]
          },
-         "Could you please tell me your monthly salary?",
+       "Your Insurance policy!.Can you please share the details of your current insurance policy.What is the policy expiry date?",
+       "Which insurance company is your current policy with?",
+       {"question":"What type of plan are you looking for?",
+        "options":[
+            "Basic Plan",
+            "Enhanced Plan"
+        ]
+       },
+         {"question":"To whom are you purchasing this plan?",
+        "options":[
+           "Employee",
+         "Dependents",
+         "Small Investors",
+         "Domestic Help",
+         "4th Child",
+         "Children above 18 years",
+         "Parents"
+        ]
+       },
+         "Could you please tell me your monthly salary (in AED)?",
          {
-          "question":"May I kindly ask you to tell me the currency?",
-          "options":["ADE","USD"]
-        },
+             "question": "Is accommodation provided to you?",
+             "options":[
+                 "Yes",
+                 "No"]
+         },
+         "Please provide us with the member job title.",
+         "Now, let’s move to the sponsor details. Please provide the Sponsor Name?",
+         "Could you share your PO Box number, please?",
          {
-          "question":"Now, let’s move to the sponsor details.Could you let me know the sponsor's type?",
+          "question":"Tell me your Emirate sponsor located in?",
+          "options":[
+
+            "Abudhabi",
+            "Ajman",
+            "Dubai",
+            "Fujairah",
+            "Ras Al Khaimah",
+            "Sharjah",
+            "Umm Al Quwain"
+        
+    ]
+
+         },
+         "Could you let me know the sponsor's nationality?",
+         "May I have the sponsor's mobile number, please?",
+         {
+          "question":"Could you let me know the sponsor's type?",
           "options":["Employee","Investors"]
         },
-         "May I have the sponsor's mobile number, please?",
          "May I have the sponsor's Email Address, please?",
-
+         "What company does the sponsor work for?",
+         "Could you provide the sponsor's Emirates ID?",
+         "Tell me Sponsor's  VAT Number",
+         {"question":"Could you kindly provide me with the sponsor's Source of Income",
+          
+         "options":[
+                 "Business",
+                 "Salary"
+                 ]
+         },
          "Next, Please provide the member's details.Please tell me the Name",
          "Date of Birth (DOB)",
+         {
+             "question":"May I Know member's gender.Please?",
+             "options":[
+                 "Male",
+                 "Female"
+             ]
+          
+         },
          { "question":"May I know your marital status?",
          "options":["Single", "Married"]},
-
+         "Tell me you Height in Cm",
+         "Tell me you Weight in Kg",
          "Tell your relationship with the Sponsor",
+         {
+          "question":"Have you been vaccinated for Covid-19?",
+          "options":[
+              "Yes",
+              "No"
+          ]
+          },
+          { "question":"Are you suffering from any pre-existing or chronic conditions?",
+           "options":[
+               "Yes",
+               "No"
+           ]
+          },
           {
             "question":"Do you have an Insurance Advisor code?",
             "options":[
