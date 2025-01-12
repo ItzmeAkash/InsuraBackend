@@ -290,10 +290,10 @@ def fetching_medical_detail(responses_dict):
         "members":[
             {
         "name": responses_dict.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name", "").capitalize(),
-        "dob": convert_date_format(responses_dict.get("Date of Birth (DOB)", "")),
-        "gender":responses_dict.get("May I Know member's gender.Please?",""),
+        "dob": convert_date_format(responses_dict.get("May I know your Date of Birth (DOB)? Please ensure it is in the format DD/MM/YYYY.", "")),
+        "gender":responses_dict.get("May I Know your gender.Please?",""),
         "marital_status": marital_status_member_question,
-        "relation": responses_dict.get("Tell your relationship with the Sponsor", "").capitalize(),
+        "relation": responses_dict.get("Could you kindly share your relationship with the sponsor?", "").capitalize(),
 
             }
         ]
