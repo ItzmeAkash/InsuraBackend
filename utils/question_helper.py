@@ -286,12 +286,13 @@ def handle_gender(user_message,conversation_state,questions,responses,question):
             if "options" in next_question:
                 options = ", ".join(next_question["options"])
                 next_questions = next_question["question"]
+                member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
                 return {
-                   "response": f"Thank you for your response. Now, let's move on to: {next_questions}",
+                   "response": f"Thank you {member_name} for your response. Now,{next_questions}",
                     "options": options
                 }
             return {
-                "response": f"Thank you for your response. Now, let's move on to: {next_question}"
+                "response": f"Thank you {member_name} for your response. Now, {next_question}"
                 }
         else:
             with open("user_responses.json", "w") as file:
@@ -381,53 +382,53 @@ def handle_policy_question(user_message,conversation_state,questions,responses,q
 
 
 
-def handle_date_question(question, user_message, responses, conversation_state, questions):
+# def handle_date_question(question, user_message, responses, conversation_state, questions):
     
 
-    if question == question:
-        # Debugging: Check the type of user_messa
+#     if question == question:
+#         # Debugging: Check the type of user_messa
 
-        # Ensure user_message is a string
-        if isinstance(user_message, str):
-            if valid_date_format(user_message):
-                responses[question] = user_message
-                conversation_state["current_question_index"] += 1
+#         # Ensure user_message is a string
+#         if isinstance(user_message, str):
+#             if valid_date_format(user_message):
+#                 responses[question] = user_message
+#                 conversation_state["current_question_index"] += 1
 
-                # Check if there are more questions to ask
-                if conversation_state["current_question_index"] < len(questions):
-                    next_question = questions[conversation_state["current_question_index"]]
-                    return {
-                        "response": f"Thank you! Now, let's move on to: {next_question}"
-                    }
-                else:
-                    # All questions have been answered
-                    with open("user_responses.json", "w") as file:
-                        json.dump(responses, file, indent=4)
-                    return {
-                        "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
-                        "final_responses": responses
-                    }
-            else:
-                # Handle invalid date format
-                try:
-                    datetime.strptime(user_message, "%d/%m/%Y")
-                except ValueError:
-                    return {
-                        "response": "Invalid date format. Please provide the date in the format DD/MM/YYYY.",
-                        "question": question
-                    }
+#                 # Check if there are more questions to ask
+#                 if conversation_state["current_question_index"] < len(questions):
+#                     next_question = questions[conversation_state["current_question_index"]]
+#                     return {
+#                         "response": f"Thank you! Now, let's move on to: {next_question}"
+#                     }
+#                 else:
+#                     # All questions have been answered
+#                     with open("user_responses.json", "w") as file:
+#                         json.dump(responses, file, indent=4)
+#                     return {
+#                         "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+#                         "final_responses": responses
+#                     }
+#             else:
+#                 # Handle invalid date format
+#                 try:
+#                     datetime.strptime(user_message, "%d/%m/%Y")
+#                 except ValueError:
+#                     return {
+#                         "response": "Invalid date format. Please provide the date in the format DD/MM/YYYY.",
+#                         "question": question
+#                     }
 
-                general_assistant_prompt = f"User response: {user_message}. Please assist."
-                general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
-                return {
-                    "response": general_assistant_response.content.strip(),
-                    "question": f"Let’s try again: {question}"
-                }
-        else:
-            return {
-                "response": "Error: Expected a string input for the date. Please provide a valid date.",
-                "question": question
-            }
+#                 general_assistant_prompt = f"User response: {user_message}. Please assist."
+#                 general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+#                 return {
+#                     "response": general_assistant_response.content.strip(),
+#                     "question": f"Let’s try again: {question}"
+#                 }
+#         else:
+#             return {
+#                 "response": "Error: Expected a string input for the date. Please provide a valid date.",
+#                 "question": question
+#             }
             
             
 
@@ -796,11 +797,11 @@ def handle_marital_status(user_message, conversation_state, questions, responses
                     options = ", ".join(next_question["options"])
                     next_questions = next_question["question"]
                     return {
-                    "response": f"Thank you for your response. Now, let's move on to: {next_questions}",
+                    "response": f"Thank you Next, let's discuss. {next_questions}",
                         "options": options
                     }
                 return {
-                    "response": f"Thank you for your response. Now, let's move on to: {next_question}"
+                    "response": f"Thank you Next, let's discuss. {next_question}"
                     }
             else:
                 with open("user_responses.json", "w") as file:
@@ -908,44 +909,44 @@ def valid_date_format(date_str):
             continue
     return False
 
-def handle_date_question(question, user_message, responses, conversation_state, questions):
-    if question == question:
-        # Validate and store the date
-        if valid_date_format(user_message):
-            responses[question] = user_message
-            conversation_state["current_question_index"] += 1
+# def handle_date_question(question, user_message, responses, conversation_state, questions):
+#     if question == question:
+#         # Validate and store the date
+#         if valid_date_format(user_message):
+#             responses[question] = user_message
+#             conversation_state["current_question_index"] += 1
 
-            # Check if there are more questions to ask
-            if conversation_state["current_question_index"] < len(questions):
-                next_question = questions[conversation_state["current_question_index"]]
-                options = ", ".join(next_question["options"])
-                next_questions = next_question["question"]
+#             # Check if there are more questions to ask
+#             if conversation_state["current_question_index"] < len(questions):
+#                 next_question = questions[conversation_state["current_question_index"]]
+#                 options = ", ".join(next_question["options"])
+#                 next_questions = next_question["question"]
 
-                return {
-                    "response": f"Thank you! Now, let's move on to: {next_questions}",
-                    "options": options
-                }
-            else:
-                # All questions have been answered
-                try:
-                    with open("user_responses.json", "w") as file:
-                        json.dump(responses, file, indent=4)
-                except Exception as e:
-                    return {
-                        "response": f"An error occurred while saving responses: {str(e)}"
-                    }
-                return {
-                    "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
-                    "final_responses": responses
-                }
-        else:
-            return {
-                "response": "Invalid date format. Please provide the date in the format DD/MM/YYYY or MM-DD-YYYY."
-            }
-    else:
-        return {
-            "response": "Unexpected question."
-        }
+#                 return {
+#                     "response": f"Thank you! Now, let's move on to: {next_questions}",
+#                     "options": options
+#                 }
+#             else:
+#                 # All questions have been answered
+#                 try:
+#                     with open("user_responses.json", "w") as file:
+#                         json.dump(responses, file, indent=4)
+#                 except Exception as e:
+#                     return {
+#                         "response": f"An error occurred while saving responses: {str(e)}"
+#                     }
+#                 return {
+#                     "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+#                     "final_responses": responses
+#                 }
+#         else:
+#             return {
+#                 "response": "Invalid date format. Please provide the date in the format DD/MM/YYYY or MM-DD-YYYY."
+#             }
+#     else:
+#         return {
+#             "response": "Unexpected question."
+#         }
   
 def handle_country_question(user_message,question, conversation_state, questions, responses):
            if conversation_state["current_question_index"] == questions.index(question):
@@ -1025,7 +1026,7 @@ def handle_what_would_you_do_today_question(user_message,conversation_state,ques
                 }
                 
                 
-
+#Todo
 def  handle_date_question(question, user_message, responses, conversation_state, questions):
     if valid_date_format(user_message):
                 responses[question] = user_message
@@ -1038,12 +1039,12 @@ def  handle_date_question(question, user_message, responses, conversation_state,
                          options = ", ".join(next_question["options"])
                          next_questions = next_question["question"]
                          return {
-                              "response": f"Thank you! Now, let's move on to: {next_questions}",
+                              "response": f"Thanks! Let’s continue with {next_questions}",
                               "options": options
                              }
                     else:
                         return {
-                               "response": f"Thank you for providing the plan. Now, let's move on to: {next_question}"
+                               "response": f"Thanks! Let’s continue with {next_question}"
                              }     
                 else:
                     # All questions answered
@@ -1092,7 +1093,7 @@ def handle_adiviosr_code(question, user_message, responses, conversation_state, 
                     conversation_state["current_question_index"] += 1
                     next_question = questions[conversation_state["current_question_index"]]
                     return {
-                        "response": f"Thank you! Now, let's move on to: {next_question}"
+                        "response": f"Thank you for the responses! Now,{next_question}"
                     }
                 elif user_message == "No":
                     # Remove the questions about first and second doses if they exist

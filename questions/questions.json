@@ -44,9 +44,9 @@
         "options":["AED","USD"]
       },
       "Next, we need the details of the member for whom the policy is being purchased. Please provide Name",
-      "Date of Birth (DOB)",
+      "May I know your Date of Birth (DOB)? Please ensure it is in the format DD/MM/YYYY.",
       {
-        "question":"May I Know member's gender.Please?",
+        "question":"May I Know your gender.Please?",
         "options":[
             "Male",
             "Female"
@@ -58,7 +58,7 @@
       "options":["Single", "Married"]},
 
       {
-        "question":"Tell your relationship with the Sponsor",
+        "question":"Could you kindly share your relationship with the sponsor?",
         "options":[
           "Investor",
           "Employee",
