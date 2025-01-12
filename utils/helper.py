@@ -5,7 +5,6 @@ from urllib import response
 from fuzzywuzzy import process, fuzz
 import requests
 from sqlalchemy import null
-
 import subprocess
 import json
 from rapidfuzz import process, fuzz
@@ -58,6 +57,30 @@ def valid_emirates_id(emirates_id):
 #     return bool(re.match(pattern, name.strip()))
 
 
+
+def download_model():
+    """
+    Download the spaCy model if it's not installed.
+    """
+    try:
+        # Try loading the model
+        nlp = spacy.load("en_core_web_sm")
+    except OSError:
+        # If the model is not found, download it
+        subprocess.run(["python", "-m", "spacy", "download", "en_core_web_sm"])
+        nlp = spacy.load("en_core_web_sm")  # Load the model again after download
+    return nlp
+
+def is_valid_name(text):
+    """
+    Detect if the text contains a person's name.
+    """
+    nlp = download_model()  
+    doc = nlp(text)
+    for ent in doc.ents:
+        if ent.label_ == 'PERSON':
+            return True
+    return False
 
 
 

@@ -1,7 +1,7 @@
 from datetime import datetime
 from utils.helper import fetching_medical_detail, is_valid_country, is_valid_mobile_number, is_valid_nationality, valid_adivisor_code
-from utils.helper import get_user_name, valid_date_format,valid_emirates_id
-from utils.question_helper import handle_adiviosr_code,  handle_country_question, handle_date_question, handle_emirate_question, handle_gender, handle_job_title_question, handle_marital_status, handle_policy_question, handle_pregant, handle_purchasing_plan_question, handle_sposor_type, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_what_would_you_do_today_question, handle_yes_or_no
+from utils.helper import get_user_name, is_valid_marital_status,valid_date_format,valid_emirates_id,is_valid_name
+from utils.question_helper import handle_adiviosr_code, handle_company_name_question, handle_country_question, handle_date_question, handle_emirate_question, handle_gender, handle_job_title_question, handle_marital_status, handle_policy_question, handle_pregant, handle_purchasing_plan_question, handle_sposor_type, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_what_would_you_do_today_question, handle_yes_or_no
 from langchain_groq.chat_models import ChatGroq
 from fastapi import FastAPI, File, UploadFile
 from langchain_core.messages import HumanMessage,SystemMessage
@@ -325,7 +325,7 @@ def process_user_input(user_input: UserInput):
         elif question == "Is your car currently insured?":
             return handle_yes_or_no(user_message,conversation_state,questions,responses,question)
         
-        elif question in [ "May I Know sponsor's gender.Please","May I Know member's gender.Please?"]:
+        elif question in ["May I Know your gender.Please?"]:
             return handle_gender(user_message,conversation_state,questions,responses,question)
         
         elif question == "May I kindly ask if you are currently pregnant?":
@@ -1278,7 +1278,16 @@ def process_user_input(user_input: UserInput):
                     "response": "Invalid response. Please answer with 'Yes' or 'No'."
                 }
 
-
+        elif question in [
+            "Now, let’s move to the sponsor details. Please provide the Sponsor Name?",
+            # "Next, we need the details of the member for whom the policy is being purchased. Please provide Name",
+            "Please provide the member's details.Please tell me the Name",
+            "Next, Please provide the member's details.Please tell me the Name",
+            "Could you please provide your full name",
+            "Could you kindly share your contact details with me? To start, may I know your name, please?"
+        ]:
+            return handle_validate_name(question, user_message, conversation_state, questions, responses, is_valid_name)
+        
         elif question == "Next, we need the details of the member for whom the policy is being purchased. Please provide Name":
             responses[question] = user_message
             conversation_state["current_question_index"] += 1
@@ -1288,13 +1297,15 @@ def process_user_input(user_input: UserInput):
                 if "options" in next_question:
                     options = ", ".join(next_question["options"])
                     next_questions = next_question["question"]
+                    member_name = responses.get["Next, we need the details of the member for whom the policy is being purchased. Please provide Name"]
                     return {
-                        "response": f"Thank you! Now, let's move on to: {next_questions}",
+                        "response": f"Thank you, {member_name} Now,  {next_questions}",
                         "options": options
                     }
                 else:
+                    member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
                     return {
-                        "response": f"Thank you. Now, let's move on to: {next_question}"
+                        "response": f"Thank you, {member_name} Now, {next_question}"
                     }
             else:
                 with open("user_responses.json", "w") as file:
@@ -1586,7 +1597,7 @@ def process_user_input(user_input: UserInput):
                             medical_deatil_response = fetching_medical_detail(responses)
                             print(medical_deatil_response)
                             return {
-                                "response": f"Thank you for sharing the details We will inform Shefeek to assist you further with your enquiry. Please find the link below to view your quotation:",
+                                "response": f"Thank you for sharing the details We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please find the link below to view your quotation:",
                                 "link":f"https://insuranceclub.ae/customer_plan/{medical_deatil_response}",
                             }
                     except Exception as e:
@@ -1891,7 +1902,7 @@ def process_user_input(user_input: UserInput):
     
         elif question == "Do you have an Insurance Advisor code?":
             return handle_adiviosr_code(question, user_message, responses, conversation_state, questions)
-        elif question == "Tell your relationship with the Sponsor":
+        elif question == "Could you kindly share your relationship with the sponsor?":
                 valid_options = [
                     "Investor",
                     "Employee",
@@ -1913,13 +1924,15 @@ def process_user_input(user_input: UserInput):
                          if 'options' in next_question:
                             options = ", ".join(next_question["options"])
                             next_questions = next_question["question"]
+                            member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
                             return {
-                                "response": f"Thank you! Now, let's move on to: {next_questions}",
+                                "response": f"Thank you {member_name} for providing the relationship. let's proceed with: {next_questions}",
                                 "options": options
                                 }
                          else:
-                           return {
-                               "response": f"Thank you for providing the relationship. Now, let's move on to: {next_question}"
+                             member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
+                             return {
+                               "response": f"Thank you {member_name} for providing the relationship.  Now, let's address: {next_question}"
                              }   
                         
                     else:
@@ -2355,7 +2368,7 @@ def process_user_input(user_input: UserInput):
                         "response": f"{general_assistant_response.content.strip()}",
                         "question": f"Let’s try again: {question}\n"
                     }
-        elif question == "Date of Birth (DOB)":
+        elif question == "May I know your Date of Birth (DOB)? Please ensure it is in the format DD/MM/YYYY.":
             return handle_date_question(question, user_message, responses, conversation_state, questions)
        # For other free-text questions
 
