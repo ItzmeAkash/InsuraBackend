@@ -1927,13 +1927,13 @@ def process_user_input(user_input: UserInput):
                             next_questions = next_question["question"]
                             member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
                             return {
-                                "response": f"Thank you {member_name} for providing the relationship. let's proceed with: {next_questions}",
+                                "response": f"Thank you for providing the relationship. let's proceed with: {next_questions}",
                                 "options": options
                                 }
                          else:
                              member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
                              return {
-                               "response": f"Thank you {member_name} for providing the relationship.  Now, let's address: {next_question}"
+                               "response": f"Thank you for providing the relationship.  Now, let's address: {next_question}"
                              }   
                         
                     else:
