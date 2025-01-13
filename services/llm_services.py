@@ -172,7 +172,7 @@ def process_user_input(user_input: UserInput):
         if question=="To whom are you purchasing this plan?":
             return handle_purchasing_plan_question(user_message,conversation_state,questions,responses,question)
         
-        elif question in ["Let's start with your Medical insurance details. Chosse your Visa issued Emirate?","Tell me your Emirate sponsor located in?"]:
+        elif question in ["Let's start with your Medical insurance details. Choose your Visa issued Emirate?","Tell me your Emirate sponsor located in?"]:
             return handle_visa_issued_emirate_question(user_message,conversation_state,questions,responses,question)
         
         elif question=="What type of plan are you looking for?":
@@ -194,12 +194,12 @@ def process_user_input(user_input: UserInput):
                         options = ", ".join(next_question["options"])
                         next_questions = next_question["question"]
                         return {
-                        "response": f"Thank you! Now, let's move on to: {next_questions}",
+                        "response": f"Thank you for providing the sponsor's email. Now, let's move on to: {next_questions}",
                         "options": options
                         }
                     else:
                         return {
-                        "response": f"Thank you for providing your email. Now, let's move on to: {next_question}"
+                        "response": f"Thank you for providing the sponsor's email. Now, let's move on to: {next_question}"
                 } 
                 else:
                     with open("user_responses.json", "w") as file:
@@ -325,7 +325,7 @@ def process_user_input(user_input: UserInput):
         elif question == "Is your car currently insured?":
             return handle_yes_or_no(user_message,conversation_state,questions,responses,question)
         
-        elif question in ["May I Know your gender.Please?"]:
+        elif question in ["Please confirm this gender of"]:
             return handle_gender(user_message,conversation_state,questions,responses,question)
         
         elif question == "May I kindly ask if you are currently pregnant?":
@@ -859,7 +859,7 @@ def process_user_input(user_input: UserInput):
         #                 "question": f"Let's move back: {question}"
         #             }
         
-        elif question == "May I know your marital status?":
+        elif question == "Please Confirm the marital status of":
           return handle_marital_status(user_message,conversation_state,questions,responses,question)
 
                     
@@ -1299,13 +1299,14 @@ def process_user_input(user_input: UserInput):
                     next_questions = next_question["question"]
                     member_name = responses.get["Next, we need the details of the member for whom the policy is being purchased. Please provide Name"]
                     return {
-                        "response": f"Thank you, {member_name} Now,  {next_questions}",
+                        "response": f"Thank you,May I know the {next_question} of {member_name}.Please ensure it is in the format DD/MM/YYYY.",
                         "options": options
                     }
                 else:
                     member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
+                    
                     return {
-                        "response": f"Thank you, {member_name} Now, {next_question}"
+                        "response": f"Thank you,May I know the {next_question} of {member_name}.Please ensure it is in the format DD/MM/YYYY."
                     }
             else:
                 with open("user_responses.json", "w") as file:
@@ -2368,7 +2369,7 @@ def process_user_input(user_input: UserInput):
                         "response": f"{general_assistant_response.content.strip()}",
                         "question": f"Let’s try again: {question}\n"
                     }
-        elif question == "May I know your Date of Birth (DOB)? Please ensure it is in the format DD/MM/YYYY.":
+        elif question == "Date of Birth (DOB)":
             return handle_date_question(question, user_message, responses, conversation_state, questions)
        # For other free-text questions
 

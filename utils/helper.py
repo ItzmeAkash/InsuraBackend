@@ -13,6 +13,18 @@ def get_user_name(user_id: str) -> str:
 
     return f"{user_id}"  
 
+def replace_your(sentence: str, replacement: str) -> str:
+    """
+    Replace the word 'your' in a sentence with a given replacement phrase.
+
+    Parameters:
+    sentence (str): The original sentence.
+    replacement (str): The phrase to replace 'your' with.
+
+    Returns:
+    str: The modified sentence.
+    """
+    return sentence.replace("your", replacement)
 
 def is_valid_mobile_number(number):
     # This is a simple regex for validating a mobile number
@@ -270,7 +282,7 @@ def fetching_medical_detail(responses_dict):
 
     policy_type_question = responses_dict.get("What would you like to do today?", "").lower()
 
-    marital_status_member_question = responses_dict.get("May I know your marital status?", "").capitalize()
+    marital_status_member_question = responses_dict.get("Please Confirm the marital status of", "").capitalize()
 
     if policy_type_question == "purchase a new policy":
         policy_type = "New"
@@ -279,7 +291,7 @@ def fetching_medical_detail(responses_dict):
         policy_type = "Renewal"
 
     payload = {
-        "visa_issued_emirates": responses_dict.get("Let's start with your Medical insurance details. Chosse your Visa issued Emirate?", "").capitalize(),
+        "visa_issued_emirates": responses_dict.get("Let's start with your Medical insurance details. Choose your Visa issued Emirate?", "").capitalize(),
         "plan": responses_dict.get("What type of plan are you looking for?", "").capitalize(),
 
         "monthly_salary": responses_dict.get("Could you please tell me your monthly salary?", ""),
@@ -290,8 +302,8 @@ def fetching_medical_detail(responses_dict):
         "members":[
             {
         "name": responses_dict.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name", "").capitalize(),
-        "dob": convert_date_format(responses_dict.get("May I know your Date of Birth (DOB)? Please ensure it is in the format DD/MM/YYYY.", "")),
-        "gender":responses_dict.get("May I Know your gender.Please?",""),
+        "dob": convert_date_format(responses_dict.get("Date of Birth (DOB)", "")),
+        "gender":responses_dict.get("Please confirm this gender of",""),
         "marital_status": marital_status_member_question,
         "relation": responses_dict.get("Could you kindly share your relationship with the sponsor?", "").capitalize(),
 

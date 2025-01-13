@@ -288,11 +288,12 @@ def handle_gender(user_message,conversation_state,questions,responses,question):
                 next_questions = next_question["question"]
                 member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
                 return {
-                   "response": f"Thank you {member_name} for your response. Now,{next_questions}",
+                   "response": f"Thank you,{next_questions} {member_name}",
+                   
                     "options": options
                 }
             return {
-                "response": f"Thank you {member_name} for your response. Now, {next_question}"
+                "response": f"Thank you,{next_question} {member_name}"
                 }
         else:
             with open("user_responses.json", "w") as file:
@@ -1038,8 +1039,9 @@ def  handle_date_question(question, user_message, responses, conversation_state,
                     if 'options' in next_question:
                          options = ", ".join(next_question["options"])
                          next_questions = next_question["question"]
+                         member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
                          return {
-                              "response": f"Thanks! Let’s continue with {next_questions}",
+                              "response": f"Thanks! Let’s continue.{next_questions} {member_name}.given below",
                               "options": options
                              }
                     else:
