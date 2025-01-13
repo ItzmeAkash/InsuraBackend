@@ -796,7 +796,10 @@ def handle_marital_status(user_message, conversation_state, questions, responses
                 next_question = questions[conversation_state["current_question_index"]]
                 if "options" in next_question:
                     options = ", ".join(next_question["options"])
-                    next_questions = next_question["question"]
+                    # next_questions = next_question["question"]
+                    member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
+                    next_questions = next_question["question"].replace("your", f"{member_name}'s")
+
                     return {
                     "response": f"Thank you Next, let's discuss. {next_questions}",
                         "options": options
