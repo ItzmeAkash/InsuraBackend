@@ -58,7 +58,7 @@ def valid_adivisor_code(code):
     return code.isdigit() and len(code) == 4
        
 def valid_emirates_id(emirates_id):
-    # Pattern: Starts with 784, followed by a birth year (4 digits), 7 digits, and ends with 1 digit
+    # Pattern: Starts with 784, followed by a birth year (4 digits ), 7 digits, and ends with 1 digit
     pattern = r"784-\d{4}-\d{7}-\d"
     return bool(re.fullmatch(pattern, emirates_id))
 
