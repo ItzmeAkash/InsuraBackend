@@ -2172,7 +2172,7 @@ def process_user_input(user_input: UserInput):
         ]:
             return handle_job_title_question(question, user_message, conversation_state, questions, responses)
         
-        elif question == "Now, let’s move to the sponsor details.Could you let me know the sponsor's type?":
+        elif question == "Now, let’s move to the sponsor details, Could you let me know the sponsor's type?":
             valid_options = ["Employee","Investors"]
             if user_message in valid_options:
                 responses[question] = user_message
