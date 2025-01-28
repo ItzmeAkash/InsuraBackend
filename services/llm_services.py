@@ -2172,7 +2172,7 @@ def process_user_input(user_input: UserInput):
         ]:
             return handle_job_title_question(question, user_message, conversation_state, questions, responses)
         
-        elif question == "Now, let’s move to the sponsor details.Could you let me know the sponsor's type?":
+        elif question == "Now, let’s move to the sponsor details, Could you let me know the sponsor's type?":
             valid_options = ["Employee","Investors"]
             if user_message in valid_options:
                 responses[question] = user_message
@@ -2422,4 +2422,3 @@ def process_user_input(user_input: UserInput):
         general_assistant_prompt = f"General query: {user_message}."
         general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
         return {"response": f"{general_assistant_response.content.strip()}"}
-
