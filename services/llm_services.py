@@ -209,11 +209,11 @@ def process_user_input(user_input: UserInput):
                             "final_responses": responses
                         }
                 else:
-                    raise ValueError("The uploaded document is not a valid JSON object.")
+                    raise ValueError("Please Upload Again")
             except json.JSONDecodeError:
                 # Handle invalid JSON input
                 return {
-                    "response": "The uploaded document is not a valid JSON object. Please provide a valid JSON document."
+                    "response": "Please Upload Again."
                 }
                                                             
         elif question in ["Please confirm this gender of"]:

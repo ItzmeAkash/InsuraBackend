@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 from utils.helper import fetching_medical_detail, is_valid_country, is_valid_nationality
 from utils.helper import valid_date_format
-
+from fastapi import Request
 llm = ChatGroq(
     model=os.getenv('LLM_MODEL'),
     temperature=0,
@@ -817,7 +817,7 @@ def handle_marital_status(user_message, conversation_state, questions, responses
         else:
             # Handle invalid responses or unrelated queries
                 general_assistant_prompt = f"user response: {user_message}. Please assist."
-                general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+                general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
                 return {
                 "response": f"{general_assistant_response.content.strip()}",
                 "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
@@ -1244,3 +1244,30 @@ def handle_emirate_upload_document(user_message, conversation_state, questions, 
                 return {
                     "response": f"An error occurred while saving your responses: {str(e)}"
                 }
+
+
+def handle_emerf_document_request(user_message, conversation_state, responses, request: Request):
+    # Check if the user provided the document name
+    if "emerf_document_name" not in conversation_state:
+        # Ask for the document name
+        conversation_state["emerf_document_name"] = user_message
+        return {
+            "response": "Can you tell me the name of the emerf document?"
+        }
+    else:
+        # Provide the download link for the document
+        document_name = conversation_state["emerf_document_name"]
+        document_path = f"documents/{document_name}.pdf"
+        if os.path.exists(document_path):
+            # Construct the full URL dynamically
+            base_url = request.base_url
+            document_url = f"{base_url}download/{document_name}.pdf"
+            return {
+                "response": f"Here is the [link to download the document]({document_url})",
+                "document_url": document_url
+            }
+        else:
+            return {
+                "response": "Sorry, the document you requested does not exist. Please check the name and try again."
+            }
+            
