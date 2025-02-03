@@ -1,284 +1,268 @@
 {
-    "initial_questions": [
-      {
-        "question": "What would you like to do today?",
-        "options": [
-          "Purchase a Medical Insurance",
-          "Purchase a Motor Insurance",
-          "Claim a Motor Insurance"
-        ]
-      }
-    ],
-    "medical_questions": [
-      {"question":"Let's start with your Medical insurance details. Choose your Visa issued Emirate?",
-      "options":[
+  "initial_questions": [
+    {
+      "question": "What would you like to do today?",
+      "options": [
+        "Purchase a Medical Insurance",
+        "Purchase a Motor Insurance",
+        "Claim a Motor Insurance"
+      ]
+    }
+  ],
+  "medical_questions": [
+    {"question":"Let's start with your Medical insurance details. Choose your Visa issued Emirate?",
+    "options":[
 
-              "Abudhabi",
-              "Ajman",
-              "Dubai",
-              "Fujairah",
-              "Ras Al Khaimah",
-              "Sharjah",
-              "Umm Al Quwain"
-          
-      ]
-      },
-      {"question":"What type of plan are you looking for?",
+            "Abudhabi",
+            "Ajman",
+            "Dubai",
+            "Fujairah",
+            "Ras Al Khaimah",
+            "Sharjah",
+            "Umm Al Quwain"
+        
+    ]
+    },
+    {"question":"What type of plan are you looking for?",
+    "options":[
+        "Basic Plan",
+        "Enhanced Plan",
+        "Enhanced Plan Standalone",
+        "Flexi Plan"
+    ]
+   },
+   {
+    "question":"Now, let’s move to the sponsor details, Could you let me know the sponsor's type?",
+    "options":["Employee","Investors"]
+  },
+
+    "Could you please tell me your monthly salary?",
+    "May I have the sponsor's mobile number, please?",
+    "May I have the sponsor's Email Address, please?",
+    {
+      "question": "Next, we need the details of the member. Would you like to upload their Emirates ID or manually enter the information?",
       "options":[
-          "Basic Plan",
-          "Enhanced Plan",
-          "Enhanced Plan Standalone",
-          "Flexi Plan"
+        "Yes",
+        "No"
       ]
-     },
+    },
+    {"question": "Please Confirm the marital status of",
+    "options": ["Single", "Married"]},
+    {
+      "question": "Could you kindly share your relationship with the sponsor?",
+      "options": ["Investor", "Employee", "Spouse", "Child", "4th Child", "Parent", "Domestic"]
+  },
      {
-      "question":"Now, let’s move to the sponsor details, Could you let me know the sponsor's type?",
-      "options":["Employee","Investors"]
-    },
+      "question":"Do you have an Insurance Advisor code?",
+      "options":[
+          "Yes",
+          "No"
+      ]
+     } 
+  ],
 
-      "Could you please tell me your monthly salary?",
-      "May I have the sponsor's mobile number, please?",
-      "May I have the sponsor's Email Address, please?",
-      "Next, we need the details of the member for whom the policy is being purchased. Please provide Name",
-      "Date of Birth (DOB)",
-      {
-        "question":"Please confirm this gender of",
-        "options":[
-            "Male",
-            "Female"
-        ]
-     
-    },
-
-      { "question":"Please Confirm the marital status of",
-      "options":["Single", "Married"]},
-
-      {
-        "question":"Could you kindly share your relationship with the sponsor?",
-        "options":[
-          "Investor",
-          "Employee",
-          "Spouse",
-          "Child",
-          "4th Child",
-          "Parent",
-          "Domestic"
-        ]
-      },
-
-      
-       {
-        "question":"Do you have an Insurance Advisor code?",
-        "options":[
-            "Yes",
-            "No"
-        ]
-       } 
-    ],
-
-    "existing_policy_questions": [
-       {
-         "question":"Your policy is up for renewal. Would you like to proceed with renewing it?",
-         "options":[
-             "Yes",
-             "No"
-         ]
-         },
-         "Could you please tell me your monthly salary?",
-         {
-          "question":"May I kindly ask you to tell me the currency?",
-          "options":["ADE","USD"]
-        },
-         {
-          "question":"Now, let’s move to the sponsor details, Could you let me know the sponsor's type?",
-          "options":["Employee","Investors"]
-        },
-         "May I have the sponsor's mobile number, please?",
-         "May I have the sponsor's Email Address, please?",
-
-         "Next, Please provide the member's details.Please tell me the Name",
-         "Date of Birth (DOB)",
-         { "question":"May I know your marital status?",
-         "options":["Single", "Married"]},
-
-         "Tell your relationship with the Sponsor",
-          {
-            "question":"Do you have an Insurance Advisor code?",
-            "options":[
-                "Yes",
-                "No"
-            ]
-           }  
-       ],
-    "motor_insurance_questions": [
-      {
-        "question": "What would you like to do today?",
-        "options": [
-          "Purchase a Car Insurance",
-          "Purchase a Bike Insurance"
-        ]
-      }
-    ],
-    "car_questions": [
-      {
-          "question": "Let's start with your motor insurance details. Select the city of registration",
-          "options": [
-              "Abudhabi",
-              "Ajman",
-              "Dubai",
-              "Fujairah",
-              "Ras Al Khaimah",
-              "Sharjah",
-              "Umm Al Quwain"
-          ]
-      },
-      "Let me know the make of the car",
-      "Could you please let me know the year your car was made?",
-      "May I know the model number of your car, please?",
-      "May I know the variant of your car, please?",
-      "Could you please provide the registration details? When was your car first registered?",
-      "Could you please provide the car owner's date of birth?",
-      {
-       "question":"How many years of driving experience do you have in the UAE?",
+  "existing_policy_questions": [
+     {
+       "question":"Your policy is up for renewal. Would you like to proceed with renewing it?",
        "options":[
-         "0-1 year",
-         "1-2 years",
-         "2+ years"  
+           "Yes",
+           "No"
        ]
        },
-        "Could you let me know your nationality?",
-            {
-          "question": "Is your car currently insured?",
-          "options": [
+       "Could you please tell me your monthly salary?",
+       {
+        "question":"May I kindly ask you to tell me the currency?",
+        "options":["ADE","USD"]
+      },
+       {
+        "question":"Now, let’s move to the sponsor details, Could you let me know the sponsor's type?",
+        "options":["Employee","Investors"]
+      },
+       "May I have the sponsor's mobile number, please?",
+       "May I have the sponsor's Email Address, please?",
+
+       "Next, Please provide the member's details.Please tell me the Name",
+       "Date of Birth (DOB)",
+       { "question":"May I know your marital status?",
+       "options":["Single", "Married"]},
+
+       "Tell your relationship with the Sponsor",
+        {
+          "question":"Do you have an Insurance Advisor code?",
+          "options":[
               "Yes",
               "No"
           ]
-      },
-      {
-      "question":"Do you have a vehicle test passing certificate?",
-      "options":["Yes","No"]
-      },
-      {
-      "question":"Does your current policy have comprehensive cover?",
-      "options":[
-          "Yes",
-          "No"
-      ]
-            },
-                  {
-      "question":"Does your policy include agency repair?",
-      "options":[
-          "Yes",
-          "No"
-      ]
-            },
-                                  {
-      "question":"Do you have a No Claim certificate?",
-      "options":["No","1 Year","2 Years","3+ Years"]
-            },
-          "Could you kindly share your contact details with me? To start, may I know your name, please?",
-          "May i know your Email address",
-          "May i know your  mobile number, please?"
-            
-        
-  ]
-  ,
-    "bike_questions": [
-      {
-      "question": "Let's start with your motor insurance details. Select the city of registration",
+         }  
+     ],
+  "motor_insurance_questions": [
+    {
+      "question": "What would you like to do today?",
       "options": [
-          "Abudhabi",
-          "Ajman",
-          "Dubai",
-          "Fujairah",
-          "Ras Al Khaimah",
-          "Sharjah",
-          "Umm Al Quwain"
+        "Purchase a Car Insurance",
+        "Purchase a Bike Insurance"
       ]
-  },
-      "Now, let's gather some details about your bike. Let me know the make of the bike.",
-      "Could you please tell me the year your bike was made?",
-      "Could you please tell me the model number of your bike",
-      "Could you please tell me the Variant of your bike",
-      "Could you please provide the registration details? When was your bike first registered?",
-      "Could you please provide the car owner's date of birth?",
-  {
-   "question":"How many years of driving experience do you have in the UAE?",
-   "options":[
-     "0-1 year",
-     "1-2 years",
-     "2+ years"  
-   ]
-   },
-    "Could you let me know your nationality?",
-        {
-      "question": "Is your car currently insured?",
-      "options": [
-          "Yes",
-          "No"
-      ]
-  },
-  {
-  "question":"Do you have a vehicle test passing certificate?",
-  "options":[
-      "Yes",
-      "No"
-  ]
-        },
-      {
-  "question":"Does your current policy have comprehensive cover?",
-  "options":[
-      "Yes",
-      "No"
-  ]
-        },
-              {
-  "question":"Does your policy include agency repair?",
-  "options":[
-      "Yes",
-      "No"
-  ]
-        },
-  {
-  "question":"Do you have a No Claim certificate?",
-  "options":["No","1 Year","2 Years","3+ Years"]
-        },
-      "Could you kindly share your contact details with me? To start, may I know your name, please?",
-      "May i know your Email address",
-      "May i know your mobile number, please?"
-        
-      
-      
-],
-    "greeting_templates": [
-      "Hey {user_name}, nice to know you! Let's dive in: {first_question}",
-      "Hello {user_name}! really great to work on your request{first_question}",
-      "Hi {user_name},  thanks for connecting today! {first_question}",
-      "Hi {user_name},excited to work on your requirements {first_question}",
-      "Hi {user_name},great to chat! Let start with {first_question}"
-    ],
-    "motor_claim":[
-      "Could you please provide your full name",
-      "Please enter your policy number",
-      "Please upload photos of your driving license Front side",
-      "Please upload photos of your driving license Back side",
-      "Please upload photos of your vehicle registration (Mulkiya) Front side",
-      "Please upload photos of your vehicle registration (Mulkiya)  Back side",
-      "Please upload a copy of the police report related to the incident",
-      {
-        "question":"In which emirate would you prefer your vehicle to be repaired?",
-          "options": [
-          "Abudhabi",
-          "Ajman",
-          "Dubai",
-          "Fujairah",
-          "Ras Al Khaimah",
-          "Sharjah",
-          "Umm Al Quwain"
-      ]
-      },
-      "Which area you prefer for the vehicle repair? Please type the name of the area"
-      
+    }
+  ],
+  "car_questions": [
+    {
+        "question": "Let's start with your motor insurance details. Select the city of registration",
+        "options": [
+            "Abudhabi",
+            "Ajman",
+            "Dubai",
+            "Fujairah",
+            "Ras Al Khaimah",
+            "Sharjah",
+            "Umm Al Quwain"
+        ]
+    },
+    "Let me know the make of the car",
+    "Could you please let me know the year your car was made?",
+    "May I know the model number of your car, please?",
+    "May I know the variant of your car, please?",
+    "Could you please provide the registration details? When was your car first registered?",
+    "Could you please provide the car owner's date of birth?",
+    {
+     "question":"How many years of driving experience do you have in the UAE?",
+     "options":[
+       "0-1 year",
+       "1-2 years",
+       "2+ years"  
+     ]
+     },
+      "Could you let me know your nationality?",
+          {
+        "question": "Is your car currently insured?",
+        "options": [
+            "Yes",
+            "No"
+        ]
+    },
+    {
+    "question":"Do you have a vehicle test passing certificate?",
+    "options":["Yes","No"]
+    },
+    {
+    "question":"Does your current policy have comprehensive cover?",
+    "options":[
+        "Yes",
+        "No"
     ]
-  }
-  
+          },
+                {
+    "question":"Does your policy include agency repair?",
+    "options":[
+        "Yes",
+        "No"
+    ]
+          },
+                                {
+    "question":"Do you have a No Claim certificate?",
+    "options":["No","1 Year","2 Years","3+ Years"]
+          },
+        "Could you kindly share your contact details with me? To start, may I know your name, please?",
+        "May i know your Email address",
+        "May i know your  mobile number, please?"
+          
+      
+]
+,
+  "bike_questions": [
+    {
+    "question": "Let's start with your motor insurance details. Select the city of registration",
+    "options": [
+        "Abudhabi",
+        "Ajman",
+        "Dubai",
+        "Fujairah",
+        "Ras Al Khaimah",
+        "Sharjah",
+        "Umm Al Quwain"
+    ]
+},
+    "Now, let's gather some details about your bike. Let me know the make of the bike.",
+    "Could you please tell me the year your bike was made?",
+    "Could you please tell me the model number of your bike",
+    "Could you please tell me the Variant of your bike",
+    "Could you please provide the registration details? When was your bike first registered?",
+    "Could you please provide the car owner's date of birth?",
+{
+ "question":"How many years of driving experience do you have in the UAE?",
+ "options":[
+   "0-1 year",
+   "1-2 years",
+   "2+ years"  
+ ]
+ },
+  "Could you let me know your nationality?",
+      {
+    "question": "Is your car currently insured?",
+    "options": [
+        "Yes",
+        "No"
+    ]
+},
+{
+"question":"Do you have a vehicle test passing certificate?",
+"options":[
+    "Yes",
+    "No"
+]
+      },
+    {
+"question":"Does your current policy have comprehensive cover?",
+"options":[
+    "Yes",
+    "No"
+]
+      },
+            {
+"question":"Does your policy include agency repair?",
+"options":[
+    "Yes",
+    "No"
+]
+      },
+{
+"question":"Do you have a No Claim certificate?",
+"options":["No","1 Year","2 Years","3+ Years"]
+      },
+    "Could you kindly share your contact details with me? To start, may I know your name, please?",
+    "May i know your Email address",
+    "May i know your mobile number, please?"
+      
+    
+    
+],
+  "greeting_templates": [
+    "Hey {user_name}, nice to know you! Let's dive in: {first_question}",
+    "Hello {user_name}! really great to work on your request{first_question}",
+    "Hi {user_name},  thanks for connecting today! {first_question}",
+    "Hi {user_name},excited to work on your requirements {first_question}",
+    "Hi {user_name},great to chat! Let start with {first_question}"
+  ],
+  "motor_claim":[
+    "Could you please provide your full name",
+    "Please enter your policy number",
+    "Please upload photos of your driving license Front side",
+    "Please upload photos of your driving license Back side",
+    "Please upload photos of your vehicle registration (Mulkiya) Front side",
+    "Please upload photos of your vehicle registration (Mulkiya)  Back side",
+    "Please upload a copy of the police report related to the incident",
+    {
+      "question":"In which emirate would you prefer your vehicle to be repaired?",
+        "options": [
+        "Abudhabi",
+        "Ajman",
+        "Dubai",
+        "Fujairah",
+        "Ras Al Khaimah",
+        "Sharjah",
+        "Umm Al Quwain"
+    ]
+    },
+    "Which area you prefer for the vehicle repair? Please type the name of the area"
+    
+  ]
+}
