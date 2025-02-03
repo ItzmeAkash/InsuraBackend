@@ -6,7 +6,7 @@ from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.tools import tool
 from langchain.agents import initialize_agent
 
-# Initialize FastAPI ap
+# Initialize FastAPI app
 app = FastAPI()
 
 # Load environment variables
