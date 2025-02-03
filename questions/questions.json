@@ -39,35 +39,19 @@
     "Could you please tell me your monthly salary?",
     "May I have the sponsor's mobile number, please?",
     "May I have the sponsor's Email Address, please?",
-    
-    "Next, we need the details of the member for whom the policy is being purchased. Please provide Name",
-    "Date of Birth (DOB)",
     {
-      "question":"Please confirm this gender of",
+      "question": "Next, we need the details of the member. Would you like to upload their Emirates ID or manually enter the information?",
       "options":[
-          "Male",
-          "Female"
-      ]
-   
-  },
-
-    { "question":"Please Confirm the marital status of",
-    "options":["Single", "Married"]},
-
-    {
-      "question":"Could you kindly share your relationship with the sponsor?",
-      "options":[
-        "Investor",
-        "Employee",
-        "Spouse",
-        "Child",
-        "4th Child",
-        "Parent",
-        "Domestic"
+        "Yes",
+        "No"
       ]
     },
-
-    
+    {"question": "Please Confirm the marital status of",
+    "options": ["Single", "Married"]},
+    {
+      "question": "Could you kindly share your relationship with the sponsor?",
+      "options": ["Investor", "Employee", "Spouse", "Child", "4th Child", "Parent", "Domestic"]
+  },
      {
       "question":"Do you have an Insurance Advisor code?",
       "options":[

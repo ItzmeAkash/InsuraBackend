@@ -23,6 +23,7 @@ async def extract_pdf_info(file_path: str):
         raw_text = ""
         for page in convert_from_path(file_path):
             raw_text += pytesseract.image_to_string(page, lang='eng')
+        print(raw_text)    
 
         # Initialize LLM and create extraction chain
         llm = ChatGroq(
@@ -71,8 +72,14 @@ async def extract_image_info(file_path: str) -> Dict:
     Extract information from JPG and return as JSON
     """
     try:
+        # Preprocess the image
+        image = Image.open(file_path)
+        image = image.convert('L')  # Convert to grayscale
+        image = image.resize((image.width * 2, image.height * 2))  # Resize to improve OCR accuracy
+        
         # Extract text from JPG image
-        raw_text = pytesseract.image_to_string(Image.open(file_path), lang='eng')
+        raw_text = pytesseract.image_to_string(image, lang='eng')
+        print("Extracted text:", raw_text)  # Debugging step to verify OCR extraction
         
         # Initialize LLM and create extraction chain
         llm = ChatGroq(
@@ -96,13 +103,22 @@ async def extract_image_info(file_path: str) -> Dict:
         }
         
         # Extract information
-        extracted_content = create_extraction_chain(schema, llm).run(raw_text)
+        extraction_chain = create_extraction_chain(schema, llm)
+        extracted_content = extraction_chain.run(raw_text)
+        
+        print("Extracted content:", extracted_content)  # Debugging step to verify LLM extraction
         
         # Combine results into single dictionary
         result = {}
         for item in extracted_content:
             for key, value in item.items():
                 if value and value.strip():
+                    if key == "gender":
+                        # Map gender values
+                        if value.lower() == 'm':
+                            value = 'male'
+                        elif value.lower() == 'f':
+                            value = 'female'
                     if key in result:
                         if isinstance(result[key], list):
                             result[key].append(value)
@@ -115,7 +131,11 @@ async def extract_image_info(file_path: str) -> Dict:
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+    
 @router.post("/extract-pdf/", tags=["PDF Processing"])
 async def upload_pdf(file: UploadFile = File(...)):
     """
@@ -143,8 +163,7 @@ async def upload_pdf(file: UploadFile = File(...)):
         finally:
             # Clean up the temporary file
             os.unlink(temp_file.name)
-            
-@router.post("/extract-image/", tags=["Image Processing"])  # Changed tag to Image Processing
+@router.post("/extract-image/", tags=["Image Processing"])
 async def upload_image(file: UploadFile = File(...)):
     """
     Upload an image file and extract information from it.
