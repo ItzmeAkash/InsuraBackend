@@ -1126,7 +1126,7 @@ def handle_adiviosr_code(question, user_message, responses, conversation_state, 
                             return {
                                 "response":f"Thank you for sharing the details We will inform (Agent Name) to assist you further with your enquiry.Please find the link below to view your quotation: {medical_deatil_response}",
                             }
-                            
+                          
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
                         return {
@@ -1187,6 +1187,16 @@ def handle_emirate_upload_document(user_message, conversation_state, questions, 
     # Handle "Yes" path
     if user_message == "Yes":
         upload_question = QUESTIONS["upload"]
+        name_question = QUESTIONS["name"]
+        dob_question = QUESTIONS["dob"]
+        gender_question = QUESTIONS["gender"]
+        if name_question in questions:
+            questions.remove(name_question)
+        if dob_question in questions:
+            questions.remove(dob_question)
+        if gender_question in questions:
+            questions.remove(gender_question)
+            
         if upload_question not in questions:
             questions.insert(conversation_state["current_question_index"] + 1, upload_question)
             responses[upload_question["question"]] = None
@@ -1244,30 +1254,3 @@ def handle_emirate_upload_document(user_message, conversation_state, questions, 
                 return {
                     "response": f"An error occurred while saving your responses: {str(e)}"
                 }
-
-
-def handle_emerf_document_request(user_message, conversation_state, responses, request: Request):
-    # Check if the user provided the document name
-    if "emerf_document_name" not in conversation_state:
-        # Ask for the document name
-        conversation_state["emerf_document_name"] = user_message
-        return {
-            "response": "Can you tell me the name of the emerf document?"
-        }
-    else:
-        # Provide the download link for the document
-        document_name = conversation_state["emerf_document_name"]
-        document_path = f"documents/{document_name}.pdf"
-        if os.path.exists(document_path):
-            # Construct the full URL dynamically
-            base_url = request.base_url
-            document_url = f"{base_url}download/{document_name}.pdf"
-            return {
-                "response": f"Here is the [link to download the document]({document_url})",
-                "document_url": document_url
-            }
-        else:
-            return {
-                "response": "Sorry, the document you requested does not exist. Please check the name and try again."
-            }
-            
