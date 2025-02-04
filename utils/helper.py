@@ -8,7 +8,17 @@ from sqlalchemy import null
 import subprocess
 import json
 from rapidfuzz import process, fuzz
-
+from ast import Dict
+from fastapi import APIRouter, File, UploadFile, HTTPException
+from langchain_groq import ChatGroq
+from langchain.chains import create_extraction_chain
+import pytesseract
+from pdf2image import convert_from_path
+from PIL import Image
+from dotenv import load_dotenv
+import os
+import tempfile
+load_dotenv()
 def get_user_name(user_id: str) -> str:
 
     return f"{user_id}"  
@@ -319,3 +329,53 @@ def fetching_medical_detail(responses_dict):
     print(payload)
     return id
 
+
+def extract_image_info(file_path: str) -> Dict:
+    """
+    Extract information from JPG and return as JSON
+    """
+    try:
+        # Extract text from JPG image
+        raw_text = pytesseract.image_to_string(Image.open(file_path), lang='eng')
+        
+        # Initialize LLM and create extraction chain
+        llm = ChatGroq(
+            model=os.getenv('LLM_MODEL'),
+            temperature=0,
+            api_key=os.getenv('GROQ_API_KEY')
+        )
+        
+        schema = {
+            "properties": {
+                "name": {"type": "string", "description": "Full name of the person"},
+                "date_of_birth": {"type": "string", "description": "Date of birth"},
+                "passport_number": {"type": "string", "description": "Passport or ID number"},
+                "nationality": {"type": "string", "description": "Nationality"},
+                "issue_date": {"type": "string", "description": "Document issue date"},
+                "expiry_date": {"type": "string", "description": "Document expiry date"},
+                "gender": {"type": "string", "description": "Gender"},
+                "document_number": {"type": "string", "description": "Document identification number"}
+            },
+            "required": ["name"]
+        }
+        
+        # Extract information
+        extracted_content = create_extraction_chain(schema, llm).run(raw_text)
+        
+        # Combine results into single dictionary
+        result = {}
+        for item in extracted_content:
+            for key, value in item.items():
+                if value and value.strip():
+                    if key in result:
+                        if isinstance(result[key], list):
+                            result[key].append(value)
+                        else:
+                            result[key] = [result[key], value]
+                    else:
+                        result[key] = value
+                        
+        return result or {"error": "No information extracted"}
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

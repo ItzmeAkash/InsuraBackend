@@ -6,7 +6,7 @@ import re
 from datetime import datetime
 from utils.helper import fetching_medical_detail, is_valid_country, is_valid_nationality
 from utils.helper import valid_date_format
-
+from fastapi import Request
 llm = ChatGroq(
     model=os.getenv('LLM_MODEL'),
     temperature=0,
@@ -100,7 +100,7 @@ def handle_visa_issued_emirate_question(user_message,conversation_state,question
                 }
     else:    
                 general_assistant_prompt = f"The user entered '{user_message}', . Please assist."
-                general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+                general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
                 next_question = questions[conversation_state["current_question_index"]]
                 if "options" in next_question:
                     options = ", ".join(next_question["options"])
@@ -153,7 +153,7 @@ def handle_type_plan_question(user_message, conversation_state, questions, respo
             }
     else:
         general_assistant_prompt = f"The user entered '{user_message}', . Please assist."
-        general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+        general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
         next_question = questions[conversation_state["current_question_index"]]
         if "options" in next_question:
             options = ", ".join(next_question["options"])
@@ -817,7 +817,7 @@ def handle_marital_status(user_message, conversation_state, questions, responses
         else:
             # Handle invalid responses or unrelated queries
                 general_assistant_prompt = f"user response: {user_message}. Please assist."
-                general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+                general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
                 return {
                 "response": f"{general_assistant_response.content.strip()}",
                 "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
@@ -1010,10 +1010,11 @@ def handle_what_would_you_do_today_question(user_message,conversation_state,ques
             "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
             "final_responses": responses
                 }
-    else:
+    else:  
+        #TODO 
            # Handle invalid responses or unrelated queries
             general_assistant_prompt = f"user response: {user_message}. Please assist."
-            general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+            general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
             next_question = questions[conversation_state["current_question_index"]]
             if "options" in next_question:
                 options = ", ".join(next_question["options"])
@@ -1125,7 +1126,7 @@ def handle_adiviosr_code(question, user_message, responses, conversation_state, 
                             return {
                                 "response":f"Thank you for sharing the details We will inform (Agent Name) to assist you further with your enquiry.Please find the link below to view your quotation: {medical_deatil_response}",
                             }
-                            
+                          
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
                         return {
@@ -1144,4 +1145,112 @@ def handle_adiviosr_code(question, user_message, responses, conversation_state, 
                         
                     ),
                     "question": f"Let’s try again: {question}"
+                }
+                
+                
+                
+                
+def handle_emirate_upload_document(user_message, conversation_state, questions, responses, question):
+    valid_options = ["Yes", "No"]
+    
+    # Define all questions upfront for better maintainability
+    QUESTIONS = {
+        "upload": {"question": "Please Upload Your Document"},
+        "name": {"question": "Next, we need the details of the member for whom the policy is being purchased. Please provide Name"},
+        "dob": {"question": "Date of Birth (DOB)"},
+        "gender": {"question": "Please confirm this gender of", "options": ["Male", "Female"]},
+        
+    }
+
+    # Validate user input
+    if user_message not in valid_options:
+        general_assistant_prompt = f"user response: {user_message}. Please assist."
+        general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
+        next_question = questions[conversation_state["current_question_index"]]
+        if "options" in next_question:
+            options = ", ".join(next_question["options"])
+            print(question)
+            return {
+            "response": f"{general_assistant_response.content.strip()}",
+            "question":f"Let’s try again: {question}",
+            "options": options
+            }
+        else:
+            return {
+            "response": f"{general_assistant_response.content.strip()}",
+            "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}",
+            }
+    # Store the response - handle both string and dict question formats
+    question_text = question["question"] if isinstance(question, dict) else question
+    responses[question_text] = user_message
+
+    # Handle "Yes" path
+    if user_message == "Yes":
+        upload_question = QUESTIONS["upload"]
+        name_question = QUESTIONS["name"]
+        dob_question = QUESTIONS["dob"]
+        gender_question = QUESTIONS["gender"]
+        if name_question in questions:
+            questions.remove(name_question)
+        if dob_question in questions:
+            questions.remove(dob_question)
+        if gender_question in questions:
+            questions.remove(gender_question)
+            
+        if upload_question not in questions:
+            questions.insert(conversation_state["current_question_index"] + 1, upload_question)
+            responses[upload_question["question"]] = None
+        
+        conversation_state["current_question_index"] += 1
+        next_question = questions[conversation_state["current_question_index"]]
+        return {
+            "response": f"Thank you for the responses! Now, {next_question['question']}"
+        }
+
+    # Handle "No" path
+    elif user_message == "No":
+        # Remove upload document question if it exists
+        upload_question = QUESTIONS["upload"]
+        if upload_question in questions:
+            questions.remove(upload_question)
+        
+        # Add all required questions in sequence
+        next_index = conversation_state["current_question_index"] + 1
+        for key in ["name", "dob", "gender"]:
+            question_dict = QUESTIONS[key]
+            if question_dict not in questions:
+                questions.insert(next_index, question_dict)
+                responses[question_dict["question"]] = None
+                next_index += 1
+
+        # Move to next question
+        conversation_state["current_question_index"] += 1
+        
+        # Check if there are more questions
+        if conversation_state["current_question_index"] < len(questions):
+            next_question = questions[conversation_state["current_question_index"]]
+            response_text = f"Thank you for your response. Now, let's move on to: {next_question['question']}"
+            
+            # Add options if they exist
+            if "options" in next_question:
+                return {
+                    "response": response_text,
+                    "options": ", ".join(next_question["options"])
+                }
+            return {"response": response_text}
+        
+        # Handle end of questions
+        else:
+            # All questions answered
+            try:
+                with open("user_responses.json", "w") as file:
+                    json.dump(responses, file, indent=4)
+                return {
+                    "response": "Thank you for using Insura. Your responses have been recorded. "
+                                "Feel free to ask any other questions. Have a great day!",
+                    "final_responses": responses
+                }
+            except Exception as e:
+                return {
+                    "response": f"An error occurred while saving your responses: {str(e)}"
                 }
