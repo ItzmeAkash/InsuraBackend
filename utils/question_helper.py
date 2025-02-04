@@ -1157,9 +1157,8 @@ def handle_emirate_upload_document(user_message, conversation_state, questions, 
     QUESTIONS = {
         "upload": {"question": "Please Upload Your Document"},
         "name": {"question": "Next, we need the details of the member for whom the policy is being purchased. Please provide Name"},
-        "dob": {"question": "Date of Birth (DOB)"},
+        "dob": "Date of Birth (DOB)",  # Simple string format as requested
         "gender": {"question": "Please confirm this gender of", "options": ["Male", "Female"]},
-        
     }
 
     # Validate user input
@@ -1167,19 +1166,20 @@ def handle_emirate_upload_document(user_message, conversation_state, questions, 
         general_assistant_prompt = f"user response: {user_message}. Please assist."
         general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
         next_question = questions[conversation_state["current_question_index"]]
-        if "options" in next_question:
+        if isinstance(next_question, dict) and "options" in next_question:
             options = ", ".join(next_question["options"])
-            print(question)
             return {
-            "response": f"{general_assistant_response.content.strip()}",
-            "question":f"Let’s try again: {question}",
-            "options": options
+                "response": f"{general_assistant_response.content.strip()}",
+                "question": f"Let's try again: {next_question['question']}",
+                "options": options
             }
         else:
+            question_text = question["question"] if isinstance(question, dict) else question
             return {
-            "response": f"{general_assistant_response.content.strip()}",
-            "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}",
+                "response": f"{general_assistant_response.content.strip()}",
+                "question": f"Let's try again: {question_text}\nPlease choose from the following options: {', '.join(valid_options)}",
             }
+
     # Store the response - handle both string and dict question formats
     question_text = question["question"] if isinstance(question, dict) else question
     responses[question_text] = user_message
@@ -1190,12 +1190,11 @@ def handle_emirate_upload_document(user_message, conversation_state, questions, 
         name_question = QUESTIONS["name"]
         dob_question = QUESTIONS["dob"]
         gender_question = QUESTIONS["gender"]
-        if name_question in questions:
-            questions.remove(name_question)
-        if dob_question in questions:
-            questions.remove(dob_question)
-        if gender_question in questions:
-            questions.remove(gender_question)
+        
+        # Remove other questions if they exist
+        for q in [name_question, dob_question, gender_question]:
+            if q in questions:
+                questions.remove(q)
             
         if upload_question not in questions:
             questions.insert(conversation_state["current_question_index"] + 1, upload_question)
@@ -1203,8 +1202,9 @@ def handle_emirate_upload_document(user_message, conversation_state, questions, 
         
         conversation_state["current_question_index"] += 1
         next_question = questions[conversation_state["current_question_index"]]
+        next_question_text = next_question["question"] if isinstance(next_question, dict) else next_question
         return {
-            "response": f"Thank you for the responses! Now, {next_question['question']}"
+            "response": f"Thank you for the responses! Now, {next_question_text}"
         }
 
     # Handle "No" path
@@ -1220,7 +1220,7 @@ def handle_emirate_upload_document(user_message, conversation_state, questions, 
             question_dict = QUESTIONS[key]
             if question_dict not in questions:
                 questions.insert(next_index, question_dict)
-                responses[question_dict["question"]] = None
+                responses[question_dict["question"] if isinstance(question_dict, dict) else question_dict] = None
                 next_index += 1
 
         # Move to next question
@@ -1229,10 +1229,11 @@ def handle_emirate_upload_document(user_message, conversation_state, questions, 
         # Check if there are more questions
         if conversation_state["current_question_index"] < len(questions):
             next_question = questions[conversation_state["current_question_index"]]
-            response_text = f"Thank you for your response. Now, let's move on to: {next_question['question']}"
+            next_question_text = next_question["question"] if isinstance(next_question, dict) else next_question
+            response_text = f"Thank you for your response. Now, let's move on to: {next_question_text}"
             
             # Add options if they exist
-            if "options" in next_question:
+            if isinstance(next_question, dict) and "options" in next_question:
                 return {
                     "response": response_text,
                     "options": ", ".join(next_question["options"])
@@ -1241,7 +1242,6 @@ def handle_emirate_upload_document(user_message, conversation_state, questions, 
         
         # Handle end of questions
         else:
-            # All questions answered
             try:
                 with open("user_responses.json", "w") as file:
                     json.dump(responses, file, indent=4)

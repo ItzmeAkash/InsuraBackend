@@ -7,20 +7,12 @@
     "Could you please tell me your monthly salary?": 2000.0,
     "May I have the sponsor's mobile number, please?": "9567551494",
     "May I have the sponsor's Email Address, please?": "akash@gmail.com",
-    "Next, we need the details of the member. Would you like to upload their Emirates ID or manually enter the information?": "Yes",
-    "Next, we need the details of the member for whom the policy is being purchased. Please provide Name": "Prasad Puthiya Veettil Natakkal Gopalan",
-    "Date of Birth (DOB)": "30/05/1972",
-    "Please confirm this gender of": "male",
-    "Please Upload Your Document": {
-        "name": "Prasad Puthiya Veettil Natakkal Gopalan",
-        "date_of_birth": "30/05/1972",
-        "nationality": "India",
-        "issue_date": "19/06/2023",
-        "expiry_date": "18/06/2025",
-        "gender": "male",
-        "document_number": "784-1972-3584260-2"
-    },
+    "Next, we need the details of the member. Would you like to upload their Emirates ID or manually enter the information?": "No",
+    "Next, we need the details of the member for whom the policy is being purchased. Please provide Name": "akash",
+    "Date of Birth (DOB)": "21/10/1999",
+    "Please confirm this gender of": "Male",
     "Please Confirm the marital status of": "Single",
-    "Could you kindly share your relationship with the sponsor?": "Spouse",
-    "Do you have an Insurance Advisor code?": "No"
+    "Could you kindly share your relationship with the sponsor?": "Child",
+    "Do you have an Insurance Advisor code?": "Yes",
+    "Please enter your Insurance Advisor code for assigning your enquiry for further assistance": "1234"
 }

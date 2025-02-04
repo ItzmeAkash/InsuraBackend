@@ -323,11 +323,14 @@ def fetching_medical_detail(responses_dict):
     }
 
     api = "https://www.insuranceclub.ae/Api/medical_insert"
-
-    res = requests.post(api, json=payload)
-    id = res.json()["id"]
-    print(payload)
-    return id
+    try:
+        res = requests.post(api, json=payload,timeout=10)
+        res.raise_for_status()
+        id = res.json()["id"]
+        print(payload)
+        return id
+    except requests.exceptions.RequestException as e:
+        return "There are some issues with the request. Please wait for a moment and try again. If the problem persists, contact support@insurca.com."
 
 
 def extract_image_info(file_path: str) -> Dict:

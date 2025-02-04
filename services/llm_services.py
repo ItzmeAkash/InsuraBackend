@@ -1327,13 +1327,18 @@ def process_user_input(user_input: UserInput):
                 else:
                     try:
                         if responses.get("Do you have an Insurance Advisor code?") == "Yes":
-                            medical_deatil_response = fetching_medical_detail(responses)
-                            print(medical_deatil_response)
+                            medical_detail_response = fetching_medical_detail(responses)
+                            print(medical_detail_response)
                             del user_states[user_id]
-                            return {
-                                "response": f"Thank you for sharing the details We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please find the link below to view your quotation:",
-                                "link":f"https://insuranceclub.ae/customer_plan/{medical_deatil_response}",
-                            }
+                            if isinstance(medical_detail_response, int):
+                                return {
+                                    "response": f"Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please find the link below to view your quotation:",
+                                    "link": f"https://insuranceclub.ae/customer_plan/{medical_detail_response}",
+                                }
+                            else:
+                                return {
+                                    "response": "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae."
+                                }
                     except Exception as e:
                         return {
                             "response": f"An error occurred while fetching medical details: {str(e)}"
@@ -1363,7 +1368,6 @@ def process_user_input(user_input: UserInput):
                     "example": "The Advisor code should be a 4-digit numeric value. Please enter a valid code",
                     "question": f"Let’s try again: {question}"
                 }
-        
         elif question == "Could you please tell me the year your bike was made?":
             if conversation_state["current_question_index"] == questions.index(question):
                 # Check if the input is a valid year
