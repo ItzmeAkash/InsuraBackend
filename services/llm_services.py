@@ -1031,14 +1031,14 @@ def process_user_input(user_input: UserInput):
                     next_questions = next_question["question"]
                     member_name = responses.get["Next, we need the details of the member for whom the policy is being purchased. Please provide Name"]
                     return {
-                        "response": f"Thank you,May I know the {next_question} of {member_name}.Please ensure it is in the format DD/MM/YYYY.",
+                        "response": f"Thank you,May I know the {next_question["question"]} of {member_name}.Please ensure it is in the format DD/MM/YYYY.",
                         "options": options
                     }
                 else:
                     member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
                     
                     return {
-                        "response": f"Thank you,May I know the {next_question} of {member_name}.Please ensure it is in the format DD/MM/YYYY."
+                        "response": f"Thank you,May I know the {next_question["question"]} of {member_name}.Please ensure it is in the format DD/MM/YYYY."
                     }
             else:
                 with open("user_responses.json", "w") as file:
