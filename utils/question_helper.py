@@ -818,10 +818,21 @@ def handle_marital_status(user_message, conversation_state, questions, responses
             # Handle invalid responses or unrelated queries
                 general_assistant_prompt = f"user response: {user_message}. Please assist."
                 general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
-                return {
-                "response": f"{general_assistant_response.content.strip()}",
-                "question":f"Let’s try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}"
-            }
+                next_question = questions[conversation_state["current_question_index"]]
+                if "options" in next_question:
+                    options = ", ".join(next_question["options"])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's Move Back {question}",
+                        "options": options
+                    }
+
+
+                else:
+                        return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's Move Back {question}",
+                        } 
 def handle_pregant(user_message,conversation_state,questions,responses,question):
     valid_options = ["Yes","No"]
     if user_message in valid_options:

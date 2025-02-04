@@ -178,9 +178,9 @@ def process_user_input(user_input: UserInput):
         elif question == "Please Upload Your Document":
             try:
                 document_data = json.loads(user_message)
-                responses["Next, we need the details of the member for whom the policy is being purchased. Please provide Name"]=document_data.get("name")
-                responses["Date of Birth (DOB)"]=document_data.get("date_of_birth")
-                responses["Please confirm this gender of"]=document_data.get("gender")
+                responses["Next, we need the details of the member for whom the policy is being purchased. Please provide Name"] = document_data.get("name")
+                responses["Date of Birth (DOB)"] = document_data.get("date_of_birth")
+                responses["Please confirm this gender of"] = document_data.get("gender")
                 print(user_message)
                 if isinstance(document_data, dict):
                     responses[question] = document_data
@@ -212,10 +212,28 @@ def process_user_input(user_input: UserInput):
                     raise ValueError("Please Upload Again")
             except json.JSONDecodeError:
                 # Handle invalid JSON input
+                general_assistant_prompt = f"user response: {user_message}. Please assist."
+                general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
+
                 return {
-                    "response": "Please Upload Again."
+                    "response": (
+                        f"{general_assistant_response.content.strip()} \n\n"
+                    ),
+                    "example": "Please ensure that the document is in JPEG format.",
+                    "question": f"Let’s try again: {question}"
                 }
-                                                            
+            except ValueError as e:
+                general_assistant_prompt = f"user response: {user_message}. Please assist."
+                general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+
+                return {
+                    "response": (
+                        f"{general_assistant_response.content.strip()} \n\n"
+                    ),
+                    "example": "Please ensure the document is in the correct format and try uploading again.",
+                    "question": f"Let’s try again: {question}"
+                }
+                                                                
         elif question in ["Please confirm this gender of"]:
             return handle_gender(user_message,conversation_state,questions,responses,question)
         
