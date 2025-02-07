@@ -2,7 +2,7 @@ from re import search
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from routes import chat, searchInternet,upload,pdf2text
-
+from routes.pdf2text import get_pdf
 # Initialize FastAPI app
 app = FastAPI()
 
@@ -21,4 +21,5 @@ app.include_router(upload.router)
 app.include_router(searchInternet.router)
 app.include_router(pdf2text.router)
 app.include_router(upload.router)
+
 

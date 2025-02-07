@@ -25,6 +25,10 @@ llm = ChatGroq(
     groq_proxy=None
 )
 
+def list_pdfs(directory="pdf"):
+    """List all PDF files in the specified directory."""
+    return [f for f in os.listdir(directory) if f.endswith('.pdf')]
+
 
 user_states = {}
 
@@ -61,7 +65,9 @@ def process_user_input(user_input: UserInput):
             "current_question_index": 0,
             "responses": {},
             "current_flow": "initial",
-            "welcome_shown": False
+            "welcome_shown": False,
+            "awaiting_document_name": False,
+            "document_name": ""
         }
         
     
@@ -77,6 +83,30 @@ def process_user_input(user_input: UserInput):
         return {"response":greeting,"options": ', '.join(next_options)}
 
 
+    # Check if awaiting document name
+    if conversation_state["awaiting_document_name"]:
+        conversation_state["awaiting_document_name"] = False
+        document_name = user_message
+        conversation_state["document_name"] = f"{document_name}"
+        # Provide the link to download the PDF
+        return {
+            "response": f"Here is the document you requested: {document_name}. You can download it click below",
+            "document_name":f"{document_name}",
+        }
+    # Check if the user is asking to list all PDFs
+    if "emaf" in user_message or "send" in user_message:
+        pdf_list = list_pdfs()
+        print(", ".join(pdf_list) )
+        return {
+            "response": "Here are the available documents please select the emaf",
+            "document_options":", ".join(pdf_list) 
+        }
+    # Check if the user is asking for a document
+    if "send a document" in user_message or "provide a document" in user_message or "need a document" in user_message:
+        conversation_state["awaiting_document_name"] = True
+        return {
+            "response": "Please provide the name of the document you need."
+        }
     # Determine the current flow and questions
     current_flow = conversation_state["current_flow"]
     if current_flow == "initial":

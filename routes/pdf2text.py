@@ -4,6 +4,7 @@ from langchain_groq import ChatGroq
 from langchain.chains import create_extraction_chain
 import pytesseract
 from pdf2image import convert_from_path
+from fastapi.responses import FileResponse
 from PIL import Image
 from dotenv import load_dotenv
 import os
@@ -194,3 +195,28 @@ async def upload_image(file: UploadFile = File(...)):
         finally:
             # Clean up the temporary file
             os.unlink(temp_file.name)
+            
+
+
+#Get the pdf document
+
+@router.get("/pdf/{document_name}")
+def get_pdf(document_name: str):
+    pdf_path = f"pdf/{document_name}.pdf"
+    if os.path.exists(pdf_path):
+        return FileResponse(pdf_path, media_type='application/pdf', filename=f"{document_name}.pdf")
+    else:
+        raise HTTPException(status_code=404, detail="Document not found")
+    
+
+@router.get("/pdfs", tags=["PDF Processing"])
+def get_all_pdfs():
+    pdf_directory = "pdf"
+    try:
+        # List all files in the pdf directory
+        files = os.listdir(pdf_directory)
+        # Filter to include only .pdf files
+        pdf_files = [file for file in files if file.endswith('.pdf')]
+        return {"pdf_files": pdf_files}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
