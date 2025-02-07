@@ -208,7 +208,7 @@ def get_pdf(document_name: str):
     else:
         raise HTTPException(status_code=404, detail="Document not found")
     
-
+#Get all trhe pdf
 @router.get("/pdfs", tags=["PDF Processing"])
 def get_all_pdfs():
     pdf_directory = "pdf"
