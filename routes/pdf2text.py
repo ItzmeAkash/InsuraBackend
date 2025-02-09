@@ -199,7 +199,7 @@ async def upload_image(file: UploadFile = File(...)):
 
 
 #Get the pdf document
-
+ 
 @router.get("/pdf/{document_name}")
 def get_pdf(document_name: str):
     pdf_path = f"pdf/{document_name}.pdf"
