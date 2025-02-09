@@ -1,5 +1,5 @@
 # Use a specific Python version with platform specification
-FROM --platform=linux/amd64 python:3.10.15
+FROM python:3.10.16-slim
 
 # Install system dependencies and clean up to reduce image size
 RUN apt-get update && \
@@ -9,12 +9,12 @@ RUN apt-get update && \
 # Set the working directory inside the container
 WORKDIR /app
 
-# Copy and install Python dependencies
-COPY requirements.txt /app/requirements.txt
-RUN pip3 install --no-cache-dir -r requirements.txt
-
 # Copy the rest of the application code
 COPY . /app
+
+# Copy and install Python dependencies
+RUN pip install -r requirements.txt
+
 
 # Start Gunicorn to serve the app
 CMD ["gunicorn", "main:app"]
