@@ -25,10 +25,10 @@ llm = ChatGroq(
     groq_proxy=None
 )
 
-def list_pdfs(directory="pdf"):
-    """List all PDF files in the specified directory."""
-    return [f for f in os.listdir(directory) if f.endswith('.pdf')]
 
+def list_pdfs(directory="pdf"):
+    """List all PDF file names (without extension) in the specified directory."""
+    return [os.path.splitext(f)[0] for f in os.listdir(directory) if f.endswith('.pdf')]
 
 user_states = {}
 
@@ -96,10 +96,11 @@ def process_user_input(user_input: UserInput):
     # Check if the user is asking to list all PDFs
     if "emaf" in user_message or "send" in user_message:
         pdf_list = list_pdfs()
-        print(", ".join(pdf_list) )
+        print(pdf_list)
+        # print(", ".join(pdf_list) )
         return {
             "response": "Here are the available documents please select the emaf",
-            "document_options":", ".join(pdf_list) 
+            "document_options":pdf_list
         }
     # Check if the user is asking for a document
     if "send a document" in user_message or "provide a document" in user_message or "need a document" in user_message:
