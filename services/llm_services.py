@@ -94,7 +94,7 @@ def process_user_input(user_input: UserInput):
             "document_name":f"{document_name}",
         }
     # Check if the user is asking to list all PDFs
-    if "emaf" in user_message or "send" in user_message:
+    if "emaf" in user_message.lower() or "send" in user_message.lower():
         pdf_list = list_pdfs()
         print(pdf_list)
         # print(", ".join(pdf_list) )
