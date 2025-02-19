@@ -223,7 +223,7 @@ def process_user_input(user_input: UserInput):
                     "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
                     "final_responses": responses
                 }
-        
+        #Handled Emaf
         elif question == "Could you kindly confirm the name of your insurance company, please?":
             # responses[question] =  user_message
             # conversation_state["current_question_index"]+=1
