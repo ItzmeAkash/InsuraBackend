@@ -1265,3 +1265,134 @@ def handle_emirate_upload_document(user_message, conversation_state, questions, 
                 return {
                     "response": f"An error occurred while saving your responses: {str(e)}"
                 }
+                
+                
+
+# def handle_emaf_document(question, user_message, responses, conversation_state, questions):
+#     required_questions = [
+#         "Tell me your document name",
+#         "Phone number",
+#         "Company name"
+#     ]
+    
+#     # Store the current response
+#     responses[question] = user_message
+    
+#     # If it's the first time, add required questions in order
+#     if not conversation_state.get("initialized"):
+#         for req_question in required_questions:
+#             if req_question not in questions:
+#                 responses[req_question] = None
+#                 questions.append(req_question)
+#         conversation_state["initialized"] = True
+
+#     # Move to next question
+#     conversation_state["current_question_index"] += 1
+    
+#     # Check if there are more questions to ask
+#     if conversation_state["current_question_index"] < len(questions):
+#         next_question = questions[conversation_state["current_question_index"]]
+        
+#         # Handle questions with options
+#         if isinstance(next_question, dict) and "options" in next_question:
+#             options = ", ".join(next_question["options"])
+#             return {
+#                 "response": f"Thank you for your response. Now, let's move on to: {next_question['question']}",
+#                 "options": options
+#             }
+#         # Handle regular questions
+#         else:
+#             return {
+#                 "response": f"Thank you for the responses! Now, {next_question}"
+#             }
+    
+#     # Handle completion of all questions
+#     if responses.get("Do you have an Insurance Advisor code?") == "Yes":
+#         medical_detail_response = fetching_medical_detail(responses)
+#         return {
+#             "response": f"Thank you for sharing the details. We will inform (Agent Name) to assist you further with your enquiry. Please find the link below to view your quotation: {medical_detail_response}"
+#         }
+    
+#     # Save responses if no agent code is provided
+#     with open("emaf_document.json", "w") as file:
+#         json.dump(responses, file, indent=4)
+#     return {
+#         "response": "Since you don't have an agent code, we will arrange a callback from the next available agent to assist you further. Thank you!",
+#         "final_responses": responses
+#     }
+    
+    
+def handle_emaf_document(question, user_message, responses, conversation_state, questions):
+    QUESTIONS = {
+        "name": {
+            "question": "May I know your name, please?",
+        },
+        "phone": {
+            "question": "May I kindly ask for your phone number, please?"
+        },
+        "company": {
+            "question": "Could you kindly confirm the name of your insurance company, please?",
+            "options": [
+    "Takaful Emarat (Ecare)",
+    "National Life & General Insurance (Innayah)",
+    "Takaful Emarat (Aafiya)",
+    "National Life & General Insurance (NAS)",
+    "Orient UNB Takaful (Nextcare)",
+    "Orient Mednet (Mednet)",
+    "Al Sagr Insurance (Nextcare)",
+    "RAK Insurance (Mednet)",
+    "Dubai Insurance (Dubai Care)",
+    "Fidelity United (Nextcare)",
+    "Salama April International (Salama)",
+    "Sukoon (Sukoon)",
+    "Orient basic"
+]
+
+        }
+    }
+    
+    # Store the current response
+    question_text = question["question"] if isinstance(question, dict) else question
+    responses[question_text] = user_message
+    
+    # Add all required questions in sequence
+    next_index = conversation_state["current_question_index"] + 1
+    for key in ["name", "phone", "company"]:
+        question_dict = QUESTIONS[key]
+        if question_dict not in questions:
+            questions.insert(next_index, question_dict)
+            responses[question_dict["question"] if isinstance(question_dict, dict) else question_dict] = None
+            next_index += 1
+            
+    # Move to next question
+    conversation_state["current_question_index"] += 1
+    
+    # Check if there are more questions
+    if conversation_state["current_question_index"] < len(questions):
+        next_question = questions[conversation_state["current_question_index"]]
+        next_question_text = next_question["question"] if isinstance(next_question, dict) else next_question
+        response_text = f"Thank you for your response! I appreciate it. Now, {next_question_text}"
+        
+        # Add options if they exist
+        if isinstance(next_question, dict) and "options" in next_question:
+            return {
+                "response": response_text,
+                "options": ", ".join(next_question["options"])
+            }
+        return {"response": response_text}
+        
+    # Handle end of questions
+    else:
+        try:
+            with open("user_responses.json", "w") as file:
+                json.dump(responses, file, indent=4)
+            return {
+                "response": "Thank you for using Insura. Your responses have been recorded. "
+                "Feel free to ask any other questions. Have a great day!",
+                "final_responses": responses
+            }
+        except Exception as e:
+            return {
+                "response": f"An error occurred while saving your responses: {str(e)}",
+                "final_responses": responses
+            }

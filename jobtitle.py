@@ -1,85 +1,38 @@
-from fuzzywuzzy import fuzz
-from fuzzywuzzy import process
+from rapidfuzz import process
 
-# Define your list of job titles
-job_titles = [
-    # Healthcare and Medicine
-    "Nurse", "Doctor", "Surgeon", "Pharmacist", "Dentist", "Veterinarian", "Psychologist",
-    "Psychiatrist", "Physical Therapist", "Occupational Therapist", "Radiologist", 
-    "Paramedic/EMT", "Nutritionist", "Dietitian", "Medical Laboratory Technician", 
-    "Optometrist", "Dermatologist",
-    
-    # Technology and IT
-    "Software Developer", "Web Developer", "UX/UI Designer", "IT Support Specialist", 
-    "Data Analyst", "Data Scientist", "AI/ML Engineer", "Cybersecurity Specialist", 
-    "DevOps Engineer", "Blockchain Developer", "Cloud Solutions Architect", 
-    "Database Administrator", "Network Administrator", "Systems Analyst", 
-    "QA Tester", "QA Analyst", "Product Manager", "Game Developer", "Mobile App Developer","Software Engineer",
-    
-    # Business and Management
-    "Manager", "Marketing Manager", "Operations Manager", "Project Manager", 
-    "Business Analyst", "Human Resources Specialist", "Supply Chain Manager", 
-    "Procurement Specialist", "Sales Manager", "Financial Analyst", "Investment Banker", 
-    "Compliance Officer", "Management Consultant",
-    
-    # Sales and Marketing
-    "Sales Representative", "Marketing Coordinator", "Social Media Manager", 
-    "Content Marketing Specialist", "Digital Marketing Specialist", "Brand Manager", 
-    "Advertising Specialist", "Public Relations Specialist", "Copywriter", "Telemarketer",
-    
-    # Education
-    "Teacher", "College Professor", "Educational Consultant", "Instructional Designer", 
-    "School Administrator", "Tutor", "Special Education Teacher",
-    
-    # Arts, Design, and Media
-    "Graphic Designer", "Graphic Artist", "Video Editor", "Animator", "Photographer", 
-    "Musician", "Actor", "Actress", "Art Director", "Journalist", "Writer", "Author", 
-    "Copywriter", "Editor", "Proofreader", "Illustrator", "Fashion Designer", 
-    "Interior Designer",
-    
-    # Trades and Skilled Labor
-    "Electrician", "Plumber", "Carpenter", "Welder", "Mason", "Auto Mechanic", 
-    "HVAC Technician", "Construction Worker", "Machinist", "Heavy Equipment Operator", 
-    "Painter",
-    
-    # Finance and Accounting
-    "Accountant", "Auditor", "Financial Analyst", "Bookkeeper", "Tax Consultant", 
-    "Loan Officer", "Actuary", "Credit Analyst",
-    
-    # Public Service and Law
-    "Lawyer", "Judge", "Police Officer", "Firefighter", "Paralegal", "Social Worker", 
-    "Policy Analyst",
-    
-    # Hospitality and Service Industry
-    "Chef", "Bartender", "Hotel Manager", "Event Planner", "Travel Agent", 
-    "Tour Guide", "Housekeeper", "Flight Attendant",
-    
-    # Science and Research
-    "Research Scientist", "Environmental Scientist", "Marine Biologist", "Astronomer", 
-    "Biochemist", "Epidemiologist", "Geologist",
-    
-    # Freelance and Self-Employment
-    "Freelance Writer", "Freelance Designer", "Freelance Developer", "Consultant", 
-    "Virtual Assistant", "Entrepreneur",
-    
-    # Miscellaneous
-    "Pilot", "Librarian", "Real Estate Agent", "Fitness Trainer", "Security Guard", 
-    "Interpreter", "Delivery Driver", "Retail Sales Associate", "Warehouse Supervisor", 
-    "Zoologist", "Customer Service Representative",
-    
-    # Additional Jobs/Subcategories
-    "Event Coordinator", "Transcriptionist", "Voice Actor", "Sign Language Interpreter", 
-    "Auctioneer", "Pet Groomer", "Forensic Scientist", "Archaeologist"
-]
+# Insurance list with corresponding numbers
+insurance_options = {
+    1: "Takaful Emarat (Ecare)",
+    2: "National Life & General Insurance (Innayah)",
+    3: "Takaful Emarat (Aafiya)",
+    4: "National Life & General Insurance (NAS)",
+    6: "Orient UNB Takaful (Nextcare)",
+    7: "Orient Mednet (Mednet)",
+    8: "Al Sagr Insurance (Nextcare)",
+    9: "RAK Insurance (Mednet)",
+    10: "Dubai Insurance (Dubai Care)",
+    11: "Fidelity United (Nextcare)",
+    12: "Salama April International (Salama)",
+    13: "Sukoon (Sukoon)",
+    14: "Orient basic"
+}
 
-def is_job_title(input_job_title):
-    # Use fuzzy matching to find the most similar job titles in the list
-    matched_job = process.extractOne(input_job_title, job_titles, scorer=fuzz.partial_ratio)
-    if matched_job and matched_job[1] > 80:  # Use a threshold of 80 for the similarity score
-        return True
+def find_matching_insurance(text):
+    words = text.split()  # Split text into words
+    matched_results = []
+    for word in words:
+        match = process.extractOne(word, insurance_options.values(), score_cutoff=70)
+        if match:
+            matched_string, score, index = match  # Unpack all three values
+            # Find the key (number) for the matched value
+            option_number = next(k for k, v in insurance_options.items() if v == matched_string)
+            matched_results.append((option_number, matched_string))
+    if matched_results:
+        return {"matches": matched_results, "count": len(matched_results)}
     else:
-        return False
+        return {"matches": [], "count": 0}
 
-# Test the function
-input_job = "mobile developer"
-print(is_job_title(input_job))  # Output: True
+# Example usage
+text = "Send me an email for Takaful"
+result = find_matching_insurance(text)
+print(result)

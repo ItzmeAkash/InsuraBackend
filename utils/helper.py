@@ -382,3 +382,23 @@ def extract_image_info(file_path: str) -> Dict:
         
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+    
+def emaf_document(response_dict):
+    payload = {
+        "name": response_dict.get("May I know your name, please?"),
+        "network_id": response_dict.get("emaf_company_id"),
+        "phone": response_dict.get("May I kindly ask for your phone number, please?"),
+    }
+    emaf_api = "https://www.insuranceclub.ae/Api/emaf"
+    try:
+        # Use data= or json= instead of payload=
+        respond = requests.post(emaf_api, json=payload, timeout=10)
+        respond.raise_for_status()
+        id = respond.json()["id"]
+        return id
+    except requests.exceptions.RequestException as e:
+        return "There are some issues with the request. Please wait for a moment and try again. If the problem persists, contact support@insurca.com."
+
+             
+             
+

@@ -1,7 +1,7 @@
 from datetime import datetime
-from utils.helper import fetching_medical_detail, is_valid_mobile_number, valid_adivisor_code
+from utils.helper import emaf_document, fetching_medical_detail, is_valid_mobile_number, valid_adivisor_code
 from utils.helper import get_user_name,valid_date_format,valid_emirates_id,is_valid_name
-from utils.question_helper import handle_adiviosr_code, handle_date_question, handle_emirate_question, handle_emirate_upload_document, handle_gender, handle_job_title_question, handle_marital_status, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_what_would_you_do_today_question, handle_yes_or_no
+from utils.question_helper import handle_adiviosr_code, handle_date_question, handle_emaf_document, handle_emirate_question, handle_emirate_upload_document, handle_gender, handle_job_title_question, handle_marital_status, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_what_would_you_do_today_question, handle_yes_or_no
 from langchain_groq.chat_models import ChatGroq
 from fastapi import FastAPI, File, UploadFile
 from langchain_core.messages import HumanMessage,SystemMessage
@@ -82,32 +82,7 @@ def process_user_input(user_input: UserInput):
         greeting = choice(greeting_templates).format(user_name=user_name, first_question=first_question['question'])
         return {"response":greeting,"options": ', '.join(next_options)}
 
-
-    # Check if awaiting document name
-    if conversation_state["awaiting_document_name"]:
-        conversation_state["awaiting_document_name"] = False
-        document_name = user_message
-        conversation_state["document_name"] = f"{document_name}"
-        # Provide the link to download the PDF
-        return {
-            "response": f"Here is the document you requested: {document_name}. You can download it click below",
-            "document_name":f"{document_name}",
-        }
-    # Check if the user is asking to list all PDFs
-    if "emaf" in user_message.lower() or "send" in user_message.lower():
-        pdf_list = list_pdfs()
-        print(pdf_list)
-        # print(", ".join(pdf_list) )
-        return {
-            "response": "Here are the available documents please select the emaf",
-            "document_options":pdf_list
-        }
-    # Check if the user is asking for a document
-    if "send a document" in user_message or "provide a document" in user_message or "need a document" in user_message:
-        conversation_state["awaiting_document_name"] = True
-        return {
-            "response": "Please provide the name of the document you need."
-        }
+             
     # Determine the current flow and questions
     current_flow = conversation_state["current_flow"]
     if current_flow == "initial":
@@ -203,6 +178,132 @@ def process_user_input(user_input: UserInput):
         if question in ["Let's start with your Medical insurance details. Choose your Visa issued Emirate?","Tell me your Emirate sponsor located in?"]:
             return handle_visa_issued_emirate_question(user_message,conversation_state,questions,responses,question)
         
+        elif "emaf" in user_message.lower() or "from" in user_message.lower():
+            return handle_emaf_document(question, user_message, responses, conversation_state, questions)
+        
+        elif question == "May I know your name, please?":
+            responses[question] =  user_message
+            conversation_state["current_question_index"]+=1
+            
+            if conversation_state["current_question_index"] < len(questions):
+                next_question = questions[conversation_state["current_question_index"]]
+                next_questions = next_question["question"]
+                return {
+                    "response": f"Thanks a lot for providing your name! Alright, moving on {next_questions}"
+                }
+            else:
+                with open("user_responses.json", "w") as file:
+                    json.dump(responses, file, indent=4)
+                return {
+                    "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                    "final_responses": responses
+                }
+        elif question == "May I kindly ask for your phone number, please?":
+            responses[question] =  user_message
+            conversation_state["current_question_index"]+=1
+            
+            if conversation_state["current_question_index"] < len(questions):
+                next_question = questions[conversation_state["current_question_index"]]
+                if 'options' in next_question:
+                    options = ", ".join(next_question["options"])
+                    next_questions = next_question["question"]
+                    return {
+                        "response": f"Thank you so much! I’d really appreciate it {next_questions}",
+                        "dropdown": options
+                    }
+                else:
+                    return {
+                        "response": f"Thank you so much! I’d really appreciate it {next_question}"
+                    
+        }
+            else:
+                with open("user_responses.json", "w") as file:
+                    json.dump(responses, file, indent=4)
+                return {
+                    "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                    "final_responses": responses
+                }
+        
+        elif question == "Could you kindly confirm the name of your insurance company, please?":
+            # responses[question] =  user_message
+            # conversation_state["current_question_index"]+=1
+
+                valid_options = [
+                                "Takaful Emarat (Ecare)",
+                                "National Life & General Insurance (Innayah)",
+                                "Takaful Emarat (Aafiya)",
+                                "National Life & General Insurance (NAS)",
+                                "Orient UNB Takaful (Nextcare)",
+                                "Orient Mednet (Mednet)",
+                                "Al Sagr Insurance (Nextcare)",
+                                "RAK Insurance (Mednet)",
+                                "Dubai Insurance (Dubai Care)",
+                                "Fidelity United (Nextcare)",
+                                "Salama April International (Salama)",
+                                "Sukoon (Sukoon)",
+                                "Orient basic"
+                            ]
+                company_number_mapping = {
+                                "Takaful Emarat (Ecare)": 1,
+                                "National Life & General Insurance (Innayah)": 2,
+                                "Takaful Emarat (Aafiya)": 3,
+                                "National Life & General Insurance (NAS)": 4,
+                                "Orient UNB Takaful (Nextcare)": 6,
+                                "Orient Mednet (Mednet)": 7,
+                                "Al Sagr Insurance (Nextcare)": 8,
+                                "RAK Insurance (Mednet)": 9,
+                                "Dubai Insurance (Dubai Care)": 10,
+                                "Fidelity United (Nextcare)": 11,
+                                "Salama April International (Salama)": 12,
+                                "Sukoon (Sukoon)": 13,
+                                "Orient basic": 14
+                            }
+                
+                if user_message in valid_options:
+                    #Update the Response 
+                    responses[question] = user_message
+                    selected_company_number = company_number_mapping.get(user_message)
+                    responses["emaf_company_id"] = selected_company_number
+                    conversation_state["current_question_index"]+=1
+                    emaf_id = emaf_document(responses)
+                    
+                    
+                    if conversation_state["current_question_index"]< len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        del user_states[user_id]
+                        return {
+                            "response": f"Thank you! That was helpful. Now, let's move on to: {next_question}"
+                        }
+                    else:
+                        if isinstance(emaf_id, int):
+                                del user_states[user_id] 
+                                return {
+                                    "response": f"Thank you for sharing the details. Please find the link below to view your emaf document:",
+                                    "link": f"https://www.insuranceclub.ae/medical_form/view/{emaf_id}",
+                                }
+                        else:
+                                return {
+                                    "response": "Thank you for sharing the details. If you have any questions, please contact support@insuranceclub.ae."
+                                }
+                else:    
+                            general_assistant_prompt = f"The user entered '{user_message}', . Please assist."
+                            general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+                            next_question = questions[conversation_state["current_question_index"]]
+                            if "options" in next_question:
+                                options = ", ".join(next_question["options"])
+                                return {
+                                    "response": f"{general_assistant_response.content.strip()}",
+                                    "question": f"Let's Move Back {question}",
+                                    "options": options
+                                }
+
+
+                            else:
+                                    return {
+                                    "response": f"{general_assistant_response.content.strip()}",
+                                    "question": f"Let's Move Back {question}",
+                                    }      
+             
         elif question=="What type of plan are you looking for?":
             return handle_type_plan_question(user_message,conversation_state,questions,responses,question)
         
