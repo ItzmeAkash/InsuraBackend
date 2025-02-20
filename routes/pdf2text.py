@@ -57,9 +57,9 @@ async def extract_pdf_info(file_path: str):
                 if value and value.strip():
                     if key == "gender":
                         # Map gender values
-                        if value.lower() == 'm':
+                        if value.lower() == 'm' or value.lower() == 'male':
                             value = 'male'
-                        elif value.lower() == 'f':
+                        elif value.lower() == 'f' or value.lower() == 'female': 
                             value = 'female'
                     if key in result:
                         if isinstance(result[key], list):
@@ -68,6 +68,7 @@ async def extract_pdf_info(file_path: str):
                             result[key] = [result[key], value]
                     else:
                         result[key] = value
+
 
         return result or {"error": "No information extracted"}
 
