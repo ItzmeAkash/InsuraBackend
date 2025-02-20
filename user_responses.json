@@ -1,28 +1,27 @@
 {
     "What would you like to do today?": "Purchase a Medical Insurance",
-    "Let's start with your Medical insurance details. Choose your Visa issued Emirate?": "Dubai",
-    "question": "Dubai",
-    "What type of plan are you looking for?": "Enhanced Plan",
+    "Let's start with your Medical insurance details. Choose your Visa issued Emirate?": "Fujairah",
+    "question": "Fujairah",
+    "What type of plan are you looking for?": "Basic Plan",
     "Now, let\u2019s move to the sponsor details, Could you let me know the sponsor's type?": "Employee",
     "Could you please tell me your monthly salary?": 2000.0,
     "May I have the sponsor's mobile number, please?": "9567551494",
     "May I have the sponsor's Email Address, please?": "akash@gmail.com",
     "Next, we need the details of the member. Would you like to upload their Emirates ID or manually enter the information?": "Yes",
-    "Please Upload Your Document": {
-        "name": "Harun Ar Rashid Abu Hanif",
-        "date_of_birth": "02/10/1985",
-        "nationality": "Bangladesh",
-        "gender": "M",
-        "issue_date": "13/03/2023",
-        "passport_number": "784-1985-0251759-6",
-        "expiry_date": "14/03/2025",
-        "document_number": "128126835"
-    },
-    "Next, we need the details of the member for whom the policy is being purchased. Please provide Name": "Harun Ar Rashid Abu Hanif",
-    "Date of Birth (DOB)": "02/10/1985",
+    "Next, we need the details of the member for whom the policy is being purchased. Please provide Name": "Akash",
+    "Date of Birth (DOB)": "05/03/1976",
     "Please confirm this gender of": "M",
+    "Please Upload Your Document": {
+        "name": "Akash",
+        "date_of_birth": "05/03/1976",
+        "nationality": "India",
+        "issue_date": "16/06/2023",
+        "expiry_date": "95/06/2025",
+        "gender": "M",
+        "document_number": "184-1976-9136373-9",
+        "passport_number": "129908207"
+    },
     "Please Confirm the marital status of": "Single",
     "Could you kindly share your relationship with the sponsor?": "Child",
-    "Do you have an Insurance Advisor code?": "No",
-    "Please enter your Insurance Advisor code for assigning your enquiry for further assistance": "1221"
+    "Do you have an Insurance Advisor code?": "No"
 }

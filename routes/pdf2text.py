@@ -55,6 +55,12 @@ async def extract_pdf_info(file_path: str):
         for item in extracted_content:
             for key, value in item.items():
                 if value and value.strip():
+                    if key == "gender":
+                        # Map gender values
+                        if value.lower() == 'm':
+                            value = 'male'
+                        elif value.lower() == 'f':
+                            value = 'female'
                     if key in result:
                         if isinstance(result[key], list):
                             result[key].append(value)
