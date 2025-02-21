@@ -1335,17 +1335,17 @@ def handle_emaf_document(question, user_message, responses, conversation_state, 
             "options": [
     "Takaful Emarat (Ecare)",
     "National Life & General Insurance (Innayah)",
-    "Takaful Emarat (Aafiya)",
-    "National Life & General Insurance (NAS)",
-    "Orient UNB Takaful (Nextcare)",
-    "Orient Mednet (Mednet)",
-    "Al Sagr Insurance (Nextcare)",
-    "RAK Insurance (Mednet)",
-    "Dubai Insurance (Dubai Care)",
-    "Fidelity United (Nextcare)",
-    "Salama April International (Salama)",
-    "Sukoon (Sukoon)",
-    "Orient basic"
+    # "Takaful Emarat (Aafiya)",
+    # "National Life & General Insurance (NAS)",
+    # "Orient UNB Takaful (Nextcare)",
+    # "Orient Mednet (Mednet)",
+    # "Al Sagr Insurance (Nextcare)",
+    # "RAK Insurance (Mednet)",
+    # "Dubai Insurance (Dubai Care)",
+    # "Fidelity United (Nextcare)",
+    # "Salama April International (Salama)",
+    # "Sukoon (Sukoon)",
+    # "Orient basic"
 ]
 
         }

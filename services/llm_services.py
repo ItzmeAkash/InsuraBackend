@@ -231,17 +231,17 @@ def process_user_input(user_input: UserInput):
                 valid_options = [
                                 "Takaful Emarat (Ecare)",
                                 "National Life & General Insurance (Innayah)",
-                                "Takaful Emarat (Aafiya)",
-                                "National Life & General Insurance (NAS)",
-                                "Orient UNB Takaful (Nextcare)",
-                                "Orient Mednet (Mednet)",
-                                "Al Sagr Insurance (Nextcare)",
-                                "RAK Insurance (Mednet)",
-                                "Dubai Insurance (Dubai Care)",
-                                "Fidelity United (Nextcare)",
-                                "Salama April International (Salama)",
-                                "Sukoon (Sukoon)",
-                                "Orient basic"
+                                # "Takaful Emarat (Aafiya)",
+                                # "National Life & General Insurance (NAS)",
+                                # "Orient UNB Takaful (Nextcare)",
+                                # "Orient Mednet (Mednet)",
+                                # "Al Sagr Insurance (Nextcare)",
+                                # "RAK Insurance (Mednet)",
+                                # "Dubai Insurance (Dubai Care)",
+                                # "Fidelity United (Nextcare)",
+                                # "Salama April International (Salama)",
+                                # "Sukoon (Sukoon)",
+                                # "Orient basic"
                             ]
                 company_number_mapping = {
                                 "Takaful Emarat (Ecare)": 1,
