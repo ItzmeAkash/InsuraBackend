@@ -36,15 +36,15 @@ async def extract_pdf_info(file_path: str):
         schema = {
             "properties": {
                 "name": {"type": "string", "description": "Full name of the person"},
+                "id_number": {"type": "string", "description": "ID number"},
                 "date_of_birth": {"type": "string", "description": "Date of birth"},
-                "passport_number": {"type": "string", "description": "Passport or ID number"},
                 "nationality": {"type": "string", "description": "Nationality"},
                 "issue_date": {"type": "string", "description": "Document issue date"},
                 "expiry_date": {"type": "string", "description": "Document expiry date"},
                 "gender": {"type": "string", "description": "Gender"},
-                "document_number": {"type": "string", "description": "Document identification number"}
+                "card_number": {"type": "string", "description": "Document identification number or Card Number"}
             },
-            "required": ["name"]
+            "required": ["name","id_number","gender"]
         }
 
         # Extract information
@@ -99,15 +99,15 @@ async def extract_image_info(file_path: str) -> Dict:
         schema = {
             "properties": {
                 "name": {"type": "string", "description": "Full name of the person"},
+                "id_number": {"type": "string", "description": "ID number"},
                 "date_of_birth": {"type": "string", "description": "Date of birth"},
-                "passport_number": {"type": "string", "description": "Passport or ID number"},
                 "nationality": {"type": "string", "description": "Nationality"},
                 "issue_date": {"type": "string", "description": "Document issue date"},
                 "expiry_date": {"type": "string", "description": "Document expiry date"},
                 "gender": {"type": "string", "description": "Gender"},
-                "document_number": {"type": "string", "description": "Document identification number"}
+                 "card_number": {"type": "string", "description": "Document identification number or Card Number"}
             },
-            "required": ["name"]
+            "required": ["name","id_number","gender"]
         }
         
         # Extract information
