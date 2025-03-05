@@ -12,7 +12,7 @@ import tempfile
 load_dotenv()
 
 
-# Initialize Router
+# Initialize Route
 router = APIRouter()
 
 async def extract_pdf_info(file_path: str):
