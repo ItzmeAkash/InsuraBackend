@@ -97,6 +97,7 @@ def get_all_pdfs():
         return {"pdf_files": pdf_files}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
     
     
     
