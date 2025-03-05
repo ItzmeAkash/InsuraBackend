@@ -547,14 +547,20 @@ def handle_emirate_question(question, user_message, conversation_state, question
                 
                 if conversation_state["current_question_index"]< len(questions):
                     next_question = questions[conversation_state["current_question_index"]]
-
-                        
+                    if "options" in next_question:
+                        options = ", ".join(next_question["options"])
+                        next_questions = next_question["question"]
+                        return {
+                            "response": f"Thank you! Now, let's move on to: {next_questions}",
+                            "options": options
+                        }
                     
                     return {
                          "response": f"Thank you! Now, let's move on to: {next_question}",
                       
 
                     }
+                
                 else:
                     with open("user_responses.json", "w") as file:
                          json.dump(responses, file, indent=4)
@@ -1333,20 +1339,22 @@ def handle_emaf_document(question, user_message, responses, conversation_state, 
         "company": {
             "question": "Could you kindly confirm the name of your insurance company, please?",
             "options": [
-    "Takaful Emarat (Ecare)",
-    "National Life & General Insurance (Innayah)",
-    "Takaful Emarat (Aafiya)",
-    "National Life & General Insurance (NAS)",
-    "Orient UNB Takaful (Nextcare)",
-    "Orient Mednet (Mednet)",
-    "Al Sagr Insurance (Nextcare)",
-    "RAK Insurance (Mednet)",
-    "Dubai Insurance (Dubai Care)",
-    "Fidelity United (Nextcare)",
-    "Salama April International (Salama)",
-    "Sukoon (Sukoon)",
-    "Orient basic"
-]
+                        "Takaful Emarat (Ecare)",
+                        "National Life & General Insurance (Innayah)",
+                        "Takaful Emarat (Aafiya)",
+                        "National Life & General Insurance (NAS)",
+                        "Orient UNB Takaful (Nextcare)",
+                        "Orient Mednet (Mednet)",
+                        "Al Sagr Insurance (Nextcare)",
+                        "RAK Insurance (Mednet)",
+                        "Dubai Insurance (Dubai Care)",
+                        "Fidelity United (Nextcare)",
+                        "Salama April International (Salama)",
+                        "Sukoon (Sukoon)",
+                        "Orient basic",
+                        "Daman",
+                        "Dubai insurance(Mednet)"
+                    ]
 
         }
     }
@@ -1396,3 +1404,112 @@ def handle_emaf_document(question, user_message, responses, conversation_state, 
                 "response": f"An error occurred while saving your responses: {str(e)}",
                 "final_responses": responses
             }
+            
+            
+
+            
+def handle_emirate_upload_document_car_insurance(user_message, conversation_state, questions, responses, question):
+    valid_options = ["Yes", "No"]
+    
+    # Define all questions upfront for better maintainability
+    QUESTIONS = {
+        "upload": {"question": "Please Upload Your Document"},
+        "name": {"question": "Next, we need the details of the member for whom the policy is being purchased. Please provide Name"},
+        "dob": "Date of Birth (DOB)",  # Simple string format as requested
+        "gender": {"question": "Please confirm this gender of", "options": ["Male", "Female"]},
+    }
+
+    # Validate user input
+    if user_message not in valid_options:
+        general_assistant_prompt = f"user response: {user_message}. Please assist."
+        general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
+        next_question = questions[conversation_state["current_question_index"]]
+        if isinstance(next_question, dict) and "options" in next_question:
+            options = ", ".join(next_question["options"])
+            return {
+                "response": f"{general_assistant_response.content.strip()}",
+                "question": f"Let's try again: {next_question['question']}",
+                "options": options
+            }
+        else:
+            question_text = question["question"] if isinstance(question, dict) else question
+            return {
+                "response": f"{general_assistant_response.content.strip()}",
+                "question": f"Let's try again: {question_text}\nPlease choose from the following options: {', '.join(valid_options)}",
+            }
+
+    # Store the response - handle both string and dict question formats
+    question_text = question["question"] if isinstance(question, dict) else question
+    responses[question_text] = user_message
+
+    # Handle "Yes" path
+    if user_message == "Yes":
+        upload_question = QUESTIONS["upload"]
+        name_question = QUESTIONS["name"]
+        dob_question = QUESTIONS["dob"]
+        gender_question = QUESTIONS["gender"]
+        
+        # Remove other questions if they exist
+        for q in [name_question, dob_question, gender_question]:
+            if q in questions:
+                questions.remove(q)
+            
+        if upload_question not in questions:
+            questions.insert(conversation_state["current_question_index"] + 1, upload_question)
+            responses[upload_question["question"]] = None
+        
+        conversation_state["current_question_index"] += 1
+        next_question = questions[conversation_state["current_question_index"]]
+        next_question_text = next_question["question"] if isinstance(next_question, dict) else next_question
+        return {
+            "response": f"Thank you for the responses! Now, {next_question_text}"
+        }
+
+    # Handle "No" path
+    elif user_message == "No":
+        # Remove upload document question if it exists
+        upload_question = QUESTIONS["upload"]
+        if upload_question in questions:
+            questions.remove(upload_question)
+        
+        # Add all required questions in sequence
+        next_index = conversation_state["current_question_index"] + 1
+        for key in ["name", "dob", "gender"]:
+            question_dict = QUESTIONS[key]
+            if question_dict not in questions:
+                questions.insert(next_index, question_dict)
+                responses[question_dict["question"] if isinstance(question_dict, dict) else question_dict] = None
+                next_index += 1
+
+        # Move to next question
+        conversation_state["current_question_index"] += 1
+        
+        # Check if there are more questions
+        if conversation_state["current_question_index"] < len(questions):
+            next_question = questions[conversation_state["current_question_index"]]
+            next_question_text = next_question["question"] if isinstance(next_question, dict) else next_question
+            response_text = f"Thank you for your response. Now, let's move on to: {next_question_text}"
+            
+            # Add options if they exist
+            if isinstance(next_question, dict) and "options" in next_question:
+                return {
+                    "response": response_text,
+                    "options": ", ".join(next_question["options"])
+                }
+            return {"response": response_text}
+        
+        # Handle end of questions
+        else:
+            try:
+                with open("user_responses.json", "w") as file:
+                    json.dump(responses, file, indent=4)
+                return {
+                    "response": "Thank you for using Insura. Your responses have been recorded. "
+                                "Feel free to ask any other questions. Have a great day!",
+                    "final_responses": responses
+                }
+            except Exception as e:
+                return {
+                    "response": f"An error occurred while saving your responses: {str(e)}"
+                }
+                

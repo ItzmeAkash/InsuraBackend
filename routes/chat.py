@@ -1,3 +1,4 @@
+import asyncio
 from fastapi import APIRouter
 from models.model import UserInput
 from services.llm_services import process_user_input

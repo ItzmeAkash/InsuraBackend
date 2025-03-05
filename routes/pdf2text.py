@@ -7,14 +7,34 @@ from typing import List, Optional
 from fastapi import APIRouter, File, UploadFile, HTTPException, Form
 import os
 import tempfile
+import asyncio
 
 
 # Initialize Route
 router = APIRouter()
 
+user_states = {}
+
+async def clear_user_states():
+    while True:
+        await asyncio.sleep(86400)  # 24 hours in seconds
+        user_states.clear()
+        print("User states cleared")
+
+@router.on_event("startup")
+async def startup_event():
+    asyncio.create_task(clear_user_states())
     
 @router.post("/extract-pdf/", tags=["PDF Processing"])
-async def upload_pdf(file: UploadFile = File(...)):
+async def upload_pdf(file: UploadFile = File(...), user_id: str = Form(...)):
+    user_id = user_id.strip()
+    print("pdf",user_id)
+    # Initialize user state if not already present
+    if user_id not in user_states:
+        user_states[user_id] = {
+            "document_name": file
+        }
+    
     """
     Upload a PDF file and extract information from it.
     """
@@ -42,7 +62,14 @@ async def upload_pdf(file: UploadFile = File(...)):
             os.unlink(temp_file.name)
             
 @router.post("/extract-image/", tags=["Image Processing"])
-async def upload_image(file: UploadFile = File(...)):
+async def upload_image(file: UploadFile = File(...), user_id: str = Form(...)):
+    user_id = user_id.strip()
+    print("image",user_id)
+    # Initialize user state if not already present
+    if user_id not in user_states:
+        user_states[user_id] = {
+            "document_name": file
+        }
     """
     Upload an image file and extract information from it.
     """
@@ -102,7 +129,13 @@ def get_all_pdfs():
     
     
 @router.post("/extract-pdf-licence/", tags=["PDF Processing"])
-async def upload_lience_pdf(file: UploadFile = File(...)):
+async def upload_lience_pdf(file: UploadFile = File(...),user_id: str = Form(...)):
+    user_id = user_id.strip()
+    # Initialize user state if not already present
+    if user_id not in user_states:
+        user_states[user_id] = {
+            "document_name": file
+        }
     """
     Upload a PDF file and extract information from it.
     """
@@ -135,7 +168,13 @@ async def upload_lience_pdf(file: UploadFile = File(...)):
 
 
 @router.post("/extract-image-licence/", tags=["Image Processing"])
-async def upload_liences_image(file: UploadFile = File(...)):
+async def upload_liences_image(file: UploadFile = File(...),user_id: str = Form(...)):
+    user_id = user_id.strip()
+    # Initialize user state if not already present
+    if user_id not in user_states:
+        user_states[user_id] = {
+            "document_name": file
+        }
     """
     Upload an image file and extract information from it.
     """
@@ -171,7 +210,13 @@ async def upload_liences_image(file: UploadFile = File(...)):
  
    
 @router.post("/extract-pdf-mulkiya/", tags=["PDF Processing"])
-async def upload_lience_pdf(file: UploadFile = File(...)):
+async def upload_lience_pdf(file: UploadFile = File(...),user_id: str = Form(...)):
+    user_id = user_id.strip()
+    # Initialize user state if not already present
+    if user_id not in user_states:
+        user_states[user_id] = {
+            "document_name": file
+        }
     """
     Upload a PDF file and extract information from it.
     """
@@ -203,7 +248,13 @@ async def upload_lience_pdf(file: UploadFile = File(...)):
 
 
 @router.post("/extract-image-mulkiya/", tags=["Image Processing"])
-async def upload_licence_images(files: List[UploadFile] = File(...)):
+async def upload_licence_images(files: List[UploadFile] = File(...),user_id: str = Form(...)):
+    user_id = user_id.strip()
+    # Initialize user state if not already present
+    if user_id not in user_states:
+        user_states[user_id] = {
+            "document_name": file
+        }
     """
     Upload multiple image files and extract information from them.
     

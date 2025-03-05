@@ -1,7 +1,8 @@
+import asyncio
 from datetime import datetime
 from utils.helper import emaf_document, fetching_medical_detail, is_valid_mobile_number, valid_adivisor_code
 from utils.helper import get_user_name,valid_date_format,valid_emirates_id,is_valid_name
-from utils.question_helper import handle_adiviosr_code, handle_date_question, handle_emaf_document, handle_emirate_question, handle_emirate_upload_document, handle_gender, handle_job_title_question, handle_marital_status, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_what_would_you_do_today_question, handle_yes_or_no
+from utils.question_helper import handle_adiviosr_code, handle_date_question, handle_emaf_document, handle_emirate_question, handle_emirate_upload_document, handle_emirate_upload_document_car_insurance, handle_gender, handle_job_title_question, handle_marital_status, handle_type_plan_question, handle_validate_name, handle_visa_issued_emirate_question, handle_what_would_you_do_today_question, handle_yes_or_no
 from langchain_groq.chat_models import ChatGroq
 from fastapi import FastAPI, File, UploadFile
 from langchain_core.messages import HumanMessage,SystemMessage
@@ -54,6 +55,8 @@ car_questions = questions_data["car_questions"]
 bike_questions = questions_data["bike_questions"]
 motor_claim = questions_data["motor_claim"]
 greeting_templates = questions_data["greeting_templates"]
+
+
 
 
 def process_user_input(user_input: UserInput):
@@ -241,7 +244,9 @@ def process_user_input(user_input: UserInput):
                                 "Fidelity United (Nextcare)",
                                 "Salama April International (Salama)",
                                 "Sukoon (Sukoon)",
-                                "Orient basic"
+                                "Orient basic",
+                                "Daman",
+                                "Dubai insurance(Mednet)"
                             ]
                 company_number_mapping = {
                                 "Takaful Emarat (Ecare)": 1,
@@ -256,7 +261,9 @@ def process_user_input(user_input: UserInput):
                                 "Fidelity United (Nextcare)": 11,
                                 "Salama April International (Salama)": 12,
                                 "Sukoon (Sukoon)": 13,
-                                "Orient basic": 14
+                                "Orient basic": 14,
+                                "Daman":15,
+                                "Dubai insurance(Mednet)":16
                             }
                 
                 if user_message in valid_options:
@@ -365,13 +372,77 @@ def process_user_input(user_input: UserInput):
                     "example": "Please ensure the document is in the correct format and try uploading again.",
                     "question": f"Let’s try again: {question}"
                 }
-                                                                
+        elif question == "Please Upload Your Driving license":
+            try:
+                document_data = json.loads(user_message)
+                responses["driving license Name in the License"] = document_data.get("name")
+                responses["Date of Birth (DOB) in the License"] = document_data.get("date_of_birth")
+                responses["License No in the License"] = document_data.get("license_no")
+                responses["Nationality in the License"] = document_data.get("nationality")
+                responses["Issue Date in the License"] = document_data.get("issue_date")
+                responses["Expiry Date in the License"] = document_data.get("expiry_date")
+                responses["Place Of Issue in the License"] = document_data.get("place_of_issue")
+                
+                print(user_message)
+                if isinstance(document_data, dict):
+                    responses[question] = document_data
+                    print(document_data)
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        if 'options' in next_question:
+                            options = ", ".join(next_question["options"])
+                            next_questions = next_question["question"]
+                            return {
+                                "response": f"Thank you for uploading the document. Now, let's move on to: {next_questions}",
+                                "options": options
+                            }
+                        else:
+                            return {
+                                "response": f"Thank you for uploading the document. Now, let's move on to: {next_question}"
+                            }
+                    else:
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                            "final_responses": responses
+                        }
+                else:
+                    raise ValueError("Please Upload Again")
+            except json.JSONDecodeError:
+                # Handle invalid JSON input
+                general_assistant_prompt = f"user response: {user_message}. Please assist."
+                general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
+
+                return {
+                    "response": (
+                        f"{general_assistant_response.content.strip()} \n\n"
+                    ),
+                    "example": "Please ensure that the document is in JPEG format.",
+                    "question": f"Let’s try again: {question}"
+                }
+            except ValueError as e:
+                general_assistant_prompt = f"user response: {user_message}. Please assist."
+                general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+
+                return {
+                    "response": (
+                        f"{general_assistant_response.content.strip()} \n\n"
+                    ),
+                    "example": "Please ensure the document is in the correct format and try uploading again.",
+                    "question": f"Let’s try again: {question}"
+                }                                                    
         elif question in ["Please confirm this gender of"]:
             return handle_gender(user_message,conversation_state,questions,responses,question)
         
 
         elif question == "Next, we need the details of the member. Would you like to upload their Emirates ID or manually enter the information?":
               return handle_emirate_upload_document(user_message, conversation_state, questions, responses, question)
+        elif question == "Next, we need the details of the car owner. Would you like to upload their Emirates ID or manually enter the information?":
+              return handle_emirate_upload_document_car_insurance(user_message, conversation_state, questions, responses, question)
         
         elif question == "Have you recently been preparing or planning for pregnancy?":
             valid_options = ["Yes","No"]
@@ -2345,3 +2416,17 @@ def process_user_input(user_input: UserInput):
         general_assistant_prompt = f"General query: {user_message}."
         general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
         return {"response": f"{general_assistant_response.content.strip()}"}
+    
+    
+async def clear_user_states_task():
+    while True:
+        await asyncio.sleep(86400)  # Sleep for 24 hours
+        user_states.clear()
+        print(f"User states cleared at {datetime.utcnow()}")
+
+def start_clear_user_states_task():
+    loop = asyncio.get_event_loop()
+    loop.create_task(clear_user_states_task())
+
+# Ensure the task starts when the module is imported
+start_clear_user_states_task()

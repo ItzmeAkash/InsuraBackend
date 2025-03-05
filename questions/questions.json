@@ -116,55 +116,18 @@
             "Sharjah",
             "Umm Al Quwain"
         ]
-    },
-    "Let me know the make of the car",
-    "Could you please let me know the year your car was made?",
-    "May I know the model number of your car, please?",
-    "May I know the variant of your car, please?",
-    "Could you please provide the registration details? When was your car first registered?",
-    "Could you please provide the car owner's date of birth?",
-    {
-     "question":"How many years of driving experience do you have in the UAE?",
-     "options":[
-       "0-1 year",
-       "1-2 years",
-       "2+ years"  
-     ]
-     },
-      "Could you let me know your nationality?",
-          {
-        "question": "Is your car currently insured?",
-        "options": [
-            "Yes",
-            "No"
-        ]
+       
     },
     {
-    "question":"Do you have a vehicle test passing certificate?",
-    "options":["Yes","No"]
-    },
-    {
-    "question":"Does your current policy have comprehensive cover?",
-    "options":[
+      "question": "Next, we need the details of the car owner. Would you like to upload their Emirates ID or manually enter the information?",
+      "options":[
         "Yes",
         "No"
-    ]
-          },
-                {
-    "question":"Does your policy include agency repair?",
-    "options":[
-        "Yes",
-        "No"
-    ]
-          },
-                                {
-    "question":"Do you have a No Claim certificate?",
-    "options":["No","1 Year","2 Years","3+ Years"]
-          },
-        "Could you kindly share your contact details with me? To start, may I know your name, please?",
-        "May i know your Email address",
-        "May i know your  mobile number, please?"
-          
+      ]
+    },
+    "Please Upload Your Driving license"
+    
+    
       
 ]
 ,
@@ -180,57 +143,7 @@
         "Sharjah",
         "Umm Al Quwain"
     ]
-},
-    "Now, let's gather some details about your bike. Let me know the make of the bike.",
-    "Could you please tell me the year your bike was made?",
-    "Could you please tell me the model number of your bike",
-    "Could you please tell me the Variant of your bike",
-    "Could you please provide the registration details? When was your bike first registered?",
-    "Could you please provide the car owner's date of birth?",
-{
- "question":"How many years of driving experience do you have in the UAE?",
- "options":[
-   "0-1 year",
-   "1-2 years",
-   "2+ years"  
- ]
- },
-  "Could you let me know your nationality?",
-      {
-    "question": "Is your car currently insured?",
-    "options": [
-        "Yes",
-        "No"
-    ]
-},
-{
-"question":"Do you have a vehicle test passing certificate?",
-"options":[
-    "Yes",
-    "No"
-]
-      },
-    {
-"question":"Does your current policy have comprehensive cover?",
-"options":[
-    "Yes",
-    "No"
-]
-      },
-            {
-"question":"Does your policy include agency repair?",
-"options":[
-    "Yes",
-    "No"
-]
-      },
-{
-"question":"Do you have a No Claim certificate?",
-"options":["No","1 Year","2 Years","3+ Years"]
-      },
-    "Could you kindly share your contact details with me? To start, may I know your name, please?",
-    "May i know your Email address",
-    "May i know your mobile number, please?"
+}
       
     
     
