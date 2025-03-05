@@ -1,0 +1,68 @@
+{
+    "properties": {
+        "owner": {
+            "type": "string",
+            "description": "Full name of the owner"
+        },
+        "traffic_plate_no": {
+            "type": "string",
+            "description": "The Traffic Plate Number example:1/6233"
+        },
+        "tc_no": {
+            "type": "string",
+            "description": "T C Number"
+        },
+        "nationality": {
+            "type": "string",
+            "description": "Nationality"
+        },
+        "reg_date": {
+            "type": "string",
+            "description": "Registeration Date (Reg. Date)"
+        },
+        "expiry_date": {
+            "type": "string",
+            "description": "Document expiry date"
+        },
+        "ins_exp": {
+            "type": "string",
+            "description": "insurances expiry date"
+        },
+        "policy_no": {
+            "type": "string",
+            "description": "Policy number"
+        },
+        "place_of_issue": {
+            "type": "string",
+            "description": "Please select the Place of issue"
+        },
+        "model_no": {
+            "type": "string",
+            "description": "Vehicle Model number"
+        },
+        "number_of_pass": {
+            "type": "string",
+            "description": "Number of Pass"
+        },
+        "origin": {
+            "type": "string",
+            "description": "Vehicle Origin"
+        },
+        "vehicle_type": {
+            "type": "string",
+            "description": "Vehicle Type"
+        },
+        "vehicle_empty_weight": {
+            "type": "string",
+            "description": "Vehicle Empty Weight"
+        },
+        "engine_no": {
+            "type": "string",
+            "description": "Vehicle Engine number"
+        },
+        "chassis_no": {
+            "type": "string",
+            "description": "Vehicle Chassis number"
+        }
+    }
+}
