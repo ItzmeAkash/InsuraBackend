@@ -407,7 +407,7 @@ class ChatGroqVisionOCR:
             api_key (str, optional): Groq API key
         """
         # Use API key from environment or passed parameter
-        self.api_key = "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"
+        self.api_key = os.getenv("GROQ_API_KEY")
         
         # Initialize ChatGroq with vision-capable model
         self.chat = ChatGroq(
