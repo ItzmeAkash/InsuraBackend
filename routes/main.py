@@ -10,7 +10,7 @@ import io
 
 
 
-
+#Vison model class
 class ChatGroqVisionOCR:
     def __init__(self, api_key=None):
         """
