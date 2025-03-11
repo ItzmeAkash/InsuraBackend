@@ -1353,7 +1353,9 @@ def handle_emaf_document(question, user_message, responses, conversation_state, 
                         "Sukoon (Sukoon)",
                         "Orient basic",
                         "Daman",
-                        "Dubai insurance(Mednet)"
+                        "Dubai insurance(Mednet)",
+                        "Takaful Emarat(NAS)",
+                        "Takaful emarat(Nextcare)",
                     ]
 
         }

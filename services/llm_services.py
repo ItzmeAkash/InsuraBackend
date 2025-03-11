@@ -246,7 +246,10 @@ def process_user_input(user_input: UserInput):
                                 "Sukoon (Sukoon)",
                                 "Orient basic",
                                 "Daman",
-                                "Dubai insurance(Mednet)"
+                                "Dubai insurance(Mednet)",
+                                "Takaful Emarat(NAS)",
+                               "Takaful emarat(Nextcare)",
+                                
                             ]
                 company_number_mapping = {
                                 "Takaful Emarat (Ecare)": 1,
@@ -263,7 +266,9 @@ def process_user_input(user_input: UserInput):
                                 "Sukoon (Sukoon)": 13,
                                 "Orient basic": 14,
                                 "Daman":15,
-                                "Dubai insurance(Mednet)":16
+                                "Dubai insurance(Mednet)":16,
+                                "Takaful Emarat(NAS)":17,
+                                "Takaful emarat(Nextcare)":18,
                             }
                 
                 if user_message in valid_options:
@@ -320,6 +325,7 @@ def process_user_input(user_input: UserInput):
                 responses["Next, we need the details of the member for whom the policy is being purchased. Please provide Name"] = document_data.get("name")
                 responses["Date of Birth (DOB)"] = document_data.get("date_of_birth")
                 responses["Please confirm this gender of"] = document_data.get("gender")
+                
                 print(user_message)
                 if isinstance(document_data, dict):
                     responses[question] = document_data
@@ -406,6 +412,7 @@ def process_user_input(user_input: UserInput):
                     else:
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
+                            del user_states[user_id] 
                         return {
                             "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
                             "final_responses": responses
@@ -434,7 +441,84 @@ def process_user_input(user_input: UserInput):
                     ),
                     "example": "Please ensure the document is in the correct format and try uploading again.",
                     "question": f"Let’s try again: {question}"
-                }                                                    
+                }
+                
+        elif question == "Please Upload Mulkiya":
+            try:
+                document_data = json.loads(user_message)
+                responses["Owner in the Vehicle Mulkiya"] = document_data.get("owner")
+                responses["Place of Issues in the Vehicle License"] = document_data.get("place_of_issue")
+                responses["Traffic Plate No in the Vehicle License"] = document_data.get("traffic_plate_no")
+                responses["T.C.NO in the Vehicle Mulkiya"] = document_data.get("nationality")
+                responses["Nationality in the Vehicle Mulkiya"] = document_data.get("nationality")
+                responses["Expiry Date in the Vehicle Mulkiya"] = document_data.get("expiry_date")
+                responses["Registertion Date in the Vehicle Mulkiya"] = document_data.get("reg_date")
+                responses["Issues Date in the Vehicle Mulkiya"] = document_data.get("ins_exp")
+                responses["Policy No in the Vehicle Mulkiya"] = document_data.get("policy_no")
+                responses["Model in the Vehicle Mulkiya"] = document_data.get("model_no")
+                responses["Origin in the Vehicle Mulkiya"] = document_data.get("origin")
+                responses["Vehicle Type in the Vehicle Mulkiya"] = document_data.get("vehicle_type")
+                responses["Num of pass in the Vehicle Mulkiya"] = document_data.get("number_of_pass")
+                responses["G V M in the Vehicle Mulkiya"] = document_data.get("gvw")
+                responses["Empty Weight in the Vehicle Mulkiya"] = document_data.get("empty_weight")
+                responses["Engine Number in the Vehicle Mulkiya"] = document_data.get("engine_no")
+                responses["Chassis Number in the Vehicle Mulkiya"] = document_data.get("chassis_no")
+                
+                
+                print(user_message)
+                if isinstance(document_data, dict):
+                    responses[question] = document_data
+                    print(document_data)
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[conversation_state["current_question_index"]]
+                        if 'options' in next_question:
+                            options = ", ".join(next_question["options"])
+                            next_questions = next_question["question"]
+                            return {
+                                "response": f"Thank you for uploading the document. Now, let's move on to: {next_questions}",
+                                "options": options
+                            }
+                        else:
+                            return {
+                                "response": f"Thank you for uploading the document. Now, let's move on to: {next_question}"
+                            }
+                    else:
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                            del user_states[user_id] 
+                        return {
+                            "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                            "final_responses": responses
+                        }
+                else:
+                    raise ValueError("Please Upload Again")
+            except json.JSONDecodeError:
+                # Handle invalid JSON input
+                general_assistant_prompt = f"user response: {user_message}. Please assist."
+                general_assistant_response = llm.invoke([SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),HumanMessage(content=general_assistant_prompt)])
+
+                return {
+                    "response": (
+                        f"{general_assistant_response.content.strip()} \n\n"
+                    ),
+                    "example": "Please ensure that the document is in JPEG format.",
+                    "question": f"Let’s try again: {question}"
+                }
+            except ValueError as e:
+                general_assistant_prompt = f"user response: {user_message}. Please assist."
+                general_assistant_response = llm.invoke([HumanMessage(content=general_assistant_prompt)])
+
+                return {
+                    "response": (
+                        f"{general_assistant_response.content.strip()} \n\n"
+                    ),
+                    "example": "Please ensure the document is in the correct format and try uploading again.",
+                    "question": f"Let’s try again: {question}"
+                }                                             
+                                                                    
         elif question in ["Please confirm this gender of"]:
             return handle_gender(user_message,conversation_state,questions,responses,question)
         

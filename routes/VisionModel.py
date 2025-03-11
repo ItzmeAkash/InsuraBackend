@@ -16,7 +16,6 @@ from dotenv import load_dotenv
 load_dotenv()
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
 class DocumentVisionOCR:
     def __init__(self, api_key=None, model=None, max_tokens=1000, temperature=0.2):
         """
@@ -246,18 +245,21 @@ class DocumentVisionOCR:
         else:
             logging.error(f"Unsupported file type: {mime_type}")
             return None
+        
+        
 
-# Example usage
-if __name__ == "__main__":
-    # Initialize the OCR processor
-    ocr = DocumentVisionOCR()
+
+# # Example usage
+# if __name__ == "__main__":
+#     # Initialize the OCR processor
+#     ocr = DocumentVisionOCR()
     
-    # Example with image
-    # image_result = ocr.extract_text("WhatsApp Image 2025-03-05 at 11.21.21 AM.jpeg")
-    # print("\n=== IMAGE TEXT ===")
-    # print(image_result)
+#     # Example with image
+#     # image_result = ocr.extract_text("WhatsApp Image 2025-03-05 at 11.21.21 AM.jpeg")
+#     # print("\n=== IMAGE TEXT ===")
+#     # print(image_result)
     
-    # # Example with PDF
-    pdf_result = ocr.extract_text_to_string("1707899453.pdf")
-    print("\n=== PDF TEXT ===")
-    print(pdf_result)
+#     # # Example with PDF
+#     pdf_result = ocr.extract_text_to_string("CamScanner 02-27-2025 09.11.pdf")
+#     print("\n=== PDF TEXT ===")
+#     print(pdf_result)

@@ -1,14 +1,12 @@
 from fastapi import APIRouter, File, UploadFile, HTTPException
 from fastapi.responses import FileResponse,JSONResponse
-from routes.utils import ChatGroqVisionOCR
-from routes.utils import extract_image_drving_license, extract_image_info, extract_image_mulkiya, extract_pdf_drving_license, extract_pdf_info, extract_pdf_mulkiya
+from routes.utils import extract_image_driving_license,extract_image_info1, extract_image_mulkiya, extract_pdf_driving_license,extract_pdf_info1, extract_pdf_mulkiya
 from typing import List, Optional
-
 from fastapi import APIRouter, File, UploadFile, HTTPException, Form
 import os
 import tempfile
 import asyncio
-
+import logging
 
 # Initialize Route
 router = APIRouter()
@@ -50,7 +48,7 @@ async def upload_pdf(file: UploadFile = File(...), user_id: str = Form(...)):
             temp_file.flush()
 
             # Process the PDF and extract information
-            result = await extract_pdf_info(temp_file.name)
+            result = await extract_pdf_info1(temp_file.name)
             
             return result
 
@@ -62,27 +60,44 @@ async def upload_pdf(file: UploadFile = File(...), user_id: str = Form(...)):
             os.unlink(temp_file.name)
             
 @router.post("/extract-image/", tags=["Image Processing"])
-async def upload_image(file: UploadFile = File(...), user_id: str = Form(...)):
+async def upload_mulkiya_document(
+    file: UploadFile = File(...),
+    user_id: str = Form(...)
+):
+    """
+    Upload a PDF or image file and extract licence information from it.
+    Supports PDF, JPG, JPEG, and PNG formats.
+    """
     user_id = user_id.strip()
-    print("image",user_id)
+    
     # Initialize user state if not already present
     if user_id not in user_states:
         user_states[user_id] = {
-            "document_name": file
+            "document_name": file.filename
         }
-    """
-    Upload an image file and extract information from it.
-    """
-    # Check for valid image extensions
-    valid_extensions = ('.jpg', '.jpeg', '.png')
-    if not file.filename.lower().endswith(valid_extensions):
+    
+    # Get file extension and convert to lowercase
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    
+    # Validate file type
+    valid_extensions = {
+        'pdf': ['.pdf'],
+        'image': ['.jpg', '.jpeg', '.png']
+    }
+    
+    # Check if extension is valid
+    if file_extension in valid_extensions['pdf']:
+        file_type = 'pdf'
+    elif file_extension in valid_extensions['image']:
+        file_type = 'image'
+    else:
+        valid_all = valid_extensions['pdf'] + valid_extensions['image']
         raise HTTPException(
-            status_code=400, 
-            detail=f"Only image files ({', '.join(valid_extensions)}) are allowed"
+            status_code=400,
+            detail=f"Only these file types are allowed: {', '.join(valid_all)}"
         )
-
-    # Create a temporary file with correct image extension
-    file_extension = os.path.splitext(file.filename)[1]
+    
+    # Create a temporary file with correct extension
     with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
         try:
             # Write the uploaded file content to temporary file
@@ -90,8 +105,12 @@ async def upload_image(file: UploadFile = File(...), user_id: str = Form(...)):
             temp_file.write(content)
             temp_file.flush()
             
-            # Process the image and extract information
-            result = await extract_image_info(temp_file.name)
+            # Process the file based on its type
+            if file_type == 'pdf':
+                result = await extract_pdf_mulkiya(temp_file.name)
+            else:  # file_type == 'image'
+                result = await extract_image_info1(temp_file.name)
+                
             return result
             
         except Exception as e:
@@ -100,8 +119,67 @@ async def upload_image(file: UploadFile = File(...), user_id: str = Form(...)):
             # Clean up the temporary file
             os.unlink(temp_file.name)
             
-
-
+            
+@router.post("/extract-emirate/", tags=["Image Processing"])
+async def upload_emirate_document(
+    file: UploadFile = File(...),
+    user_id: str = Form(...)
+):
+    """
+    Upload a PDF or image file and extract licence information from it.
+    Supports PDF, JPG, JPEG, and PNG formats.
+    """
+    user_id = user_id.strip()
+    
+    # Initialize user state if not already present
+    if user_id not in user_states:
+        user_states[user_id] = {
+            "document_name": file.filename
+        }
+    
+    # Get file extension and convert to lowercase
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    
+    # Validate file type
+    valid_extensions = {
+        'pdf': ['.pdf'],
+        'image': ['.jpg', '.jpeg', '.png']
+    }
+    
+    # Check if extension is valid
+    if file_extension in valid_extensions['pdf']:
+        file_type = 'pdf'
+    elif file_extension in valid_extensions['image']:
+        file_type = 'image'
+    else:
+        valid_all = valid_extensions['pdf'] + valid_extensions['image']
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only these file types are allowed: {', '.join(valid_all)}"
+        )
+    
+    # Create a temporary file with correct extension
+    with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
+        try:
+            # Write the uploaded file content to temporary file
+            content = await file.read()
+            temp_file.write(content)
+            temp_file.flush()
+            
+            # Process the file based on its type
+            if file_type == 'pdf':
+                result = await extract_pdf_info1(temp_file.name)
+            else:  # file_type == 'image'
+                result = await extract_image_info1(temp_file.name)
+                
+            return result
+            
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+        finally:
+            # Clean up the temporary file
+            os.unlink(temp_file.name)
+            
 #Get the pdf document
  
 @router.get("/pdf/{document_name}")
@@ -128,66 +206,47 @@ def get_all_pdfs():
     
     
     
-@router.post("/extract-pdf-licence/", tags=["PDF Processing"])
-async def upload_lience_pdf(file: UploadFile = File(...),user_id: str = Form(...)):
+
+
+@router.post("/extract-licence/", tags=["Document Processing"])
+async def upload_licence_document(
+    file: UploadFile = File(...),
+    user_id: str = Form(...)
+):
+    """
+    Upload a PDF or image file and extract licence information from it.
+    Supports PDF, JPG, JPEG, and PNG formats.
+    """
     user_id = user_id.strip()
+    
     # Initialize user state if not already present
     if user_id not in user_states:
         user_states[user_id] = {
-            "document_name": file
+            "document_name": file.filename
         }
-    """
-    Upload a PDF file and extract information from it.
-    """
-    if not file.filename.endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
-
-    # Create a temporary file to store the uploaded PDF
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
-        try:
-            # Write the uploaded file content to temporary file
-            content = await file.read()
-            temp_file.write(content)
-            temp_file.flush()
-
-            # Process the PDF and extract information
-            result = await extract_pdf_drving_license(temp_file.name)
-            
-            return result
-
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
-        
-        finally:
-            # Clean up the temporary file
-            os.unlink(temp_file.name)
-            
-
-
-
-
-
-@router.post("/extract-image-licence/", tags=["Image Processing"])
-async def upload_liences_image(file: UploadFile = File(...),user_id: str = Form(...)):
-    user_id = user_id.strip()
-    # Initialize user state if not already present
-    if user_id not in user_states:
-        user_states[user_id] = {
-            "document_name": file
-        }
-    """
-    Upload an image file and extract information from it.
-    """
-    # Check for valid image extensions
-    valid_extensions = ('.jpg', '.jpeg', '.png')
-    if not file.filename.lower().endswith(valid_extensions):
+    
+    # Get file extension and convert to lowercase
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    
+    # Validate file type
+    valid_extensions = {
+        'pdf': ['.pdf'],
+        'image': ['.jpg', '.jpeg', '.png']
+    }
+    
+    # Check if extension is valid
+    if file_extension in valid_extensions['pdf']:
+        file_type = 'pdf'
+    elif file_extension in valid_extensions['image']:
+        file_type = 'image'
+    else:
+        valid_all = valid_extensions['pdf'] + valid_extensions['image']
         raise HTTPException(
-            status_code=400, 
-            detail=f"Only image files ({', '.join(valid_extensions)}) are allowed"
+            status_code=400,
+            detail=f"Only these file types are allowed: {', '.join(valid_all)}"
         )
-
-    # Create a temporary file with correct image extension
-    file_extension = os.path.splitext(file.filename)[1]
+    
+    # Create a temporary file with correct extension
     with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
         try:
             # Write the uploaded file content to temporary file
@@ -195,8 +254,12 @@ async def upload_liences_image(file: UploadFile = File(...),user_id: str = Form(
             temp_file.write(content)
             temp_file.flush()
             
-            # Process the image and extract information
-            result = await extract_image_drving_license(temp_file.name)
+            # Process the file based on its type
+            if file_type == 'pdf':
+                result = await extract_pdf_driving_license(temp_file.name)
+            else:  # file_type == 'image'
+                result = await extract_image_driving_license(temp_file.name)
+                
             return result
             
         except Exception as e:
@@ -205,106 +268,64 @@ async def upload_liences_image(file: UploadFile = File(...),user_id: str = Form(
             # Clean up the temporary file
             os.unlink(temp_file.name)
             
-            
-       
- 
-   
-@router.post("/extract-pdf-mulkiya/", tags=["PDF Processing"])
-async def upload_lience_pdf(file: UploadFile = File(...),user_id: str = Form(...)):
+
+@router.post("/extract-mulkiya/", tags=["Mulkiya Document Processing"])
+async def upload_mulkiya_document(
+    file: UploadFile = File(...),
+    user_id: str = Form(...)
+):
+    """
+    Upload a PDF or image file and extract licence information from it.
+    Supports PDF, JPG, JPEG, and PNG formats.
+    """
     user_id = user_id.strip()
+    
     # Initialize user state if not already present
     if user_id not in user_states:
         user_states[user_id] = {
-            "document_name": file
+            "document_name": file.filename
         }
-    """
-    Upload a PDF file and extract information from it.
-    """
-    if not file.filename.endswith('.pdf'):
-        raise HTTPException(status_code=400, detail="Only PDF files are allowed")
-
-    # Create a temporary file to store the uploaded PDF
-    with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
+    
+    # Get file extension and convert to lowercase
+    file_extension = os.path.splitext(file.filename)[1].lower()
+    
+    # Validate file type
+    valid_extensions = {
+        'pdf': ['.pdf'],
+        'image': ['.jpg', '.jpeg', '.png']
+    }
+    
+    # Check if extension is valid
+    if file_extension in valid_extensions['pdf']:
+        file_type = 'pdf'
+    elif file_extension in valid_extensions['image']:
+        file_type = 'image'
+    else:
+        valid_all = valid_extensions['pdf'] + valid_extensions['image']
+        raise HTTPException(
+            status_code=400,
+            detail=f"Only these file types are allowed: {', '.join(valid_all)}"
+        )
+    
+    # Create a temporary file with correct extension
+    with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
         try:
             # Write the uploaded file content to temporary file
             content = await file.read()
             temp_file.write(content)
             temp_file.flush()
-
-            # Process the PDF and extract information
-            result = await extract_pdf_mulkiya(temp_file.name)
             
+            # Process the file based on its type
+            if file_type == 'pdf':
+                result = await extract_pdf_mulkiya(temp_file.name)
+            else:  # file_type == 'image'
+                result = await extract_image_mulkiya(temp_file.name)
+                
             return result
-
+            
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
-        
         finally:
             # Clean up the temporary file
             os.unlink(temp_file.name)
             
-
-
-
-
-@router.post("/extract-image-mulkiya/", tags=["Image Processing"])
-async def upload_licence_images(files: List[UploadFile] = File(...),user_id: str = Form(...)):
-    user_id = user_id.strip()
-    # Initialize user state if not already present
-    if user_id not in user_states:
-        user_states[user_id] = {
-            "document_name": file
-        }
-    """
-    Upload multiple image files and extract information from them.
-    
-    Args:
-        files (List[UploadFile]): List of image files to process
-    
-    Returns:
-        List[dict]: Extracted information from each image
-    """
-    # Check for valid image extensions
-    valid_extensions = ('.jpg', '.jpeg', '.png')
-    
-    # List to store results
-    extraction_results = []
-    
-    # Process each file
-    for file in files:
-        # Validate file extension
-        if not file.filename.lower().endswith(valid_extensions):
-            raise HTTPException(
-                status_code=400,
-                detail=f"Invalid file type for {file.filename}. Only {', '.join(valid_extensions)} are allowed."
-            )
-        
-        # Create a temporary file with correct image extension
-        file_extension = os.path.splitext(file.filename)[1]
-        with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
-            try:
-                # Write the uploaded file content to temporary file
-                content = await file.read()
-                temp_file.write(content)
-                temp_file.flush()
-                ocr_client = ChatGroqVisionOCR()
-                # Process the image and extract information
-                result = ocr_client.extract_and_fill_schema(temp_file.name)
-                
-                # Add filename to the result for reference
-                result['filename'] = file.filename
-                extraction_results.append(result)
-            
-            except Exception as e:
-                # Log the error and continue processing other files
-                print(f"Error processing {file.filename}: {str(e)}")
-                extraction_results.append({
-                    'filename': file.filename,
-                    'error': str(e)
-                })
-            
-            finally:
-                # Clean up the temporary file
-                os.unlink(temp_file.name)
-    
-    return extraction_results
