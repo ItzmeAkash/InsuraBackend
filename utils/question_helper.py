@@ -277,7 +277,7 @@ def handle_validate_name(question, user_message, conversation_state, questions, 
             }
 def handle_gender(user_message,conversation_state,questions,responses,question):
     valid_options = [ "Male","Female"]
-    member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
+    # member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
     if user_message in valid_options:
         responses[question] = user_message
         conversation_state["current_question_index"] += 1
