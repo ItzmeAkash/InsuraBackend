@@ -288,9 +288,10 @@ def handle_gender(user_message,conversation_state,questions,responses,question):
                 options = ", ".join(next_question["options"])
                 next_questions = next_question["question"]
                 
+                
                 return {
                 #    "response": f"Thank you,{next_questions} {member_name}",
-                   "response": f"Thank you,{next_questions}",
+                   "response": f"Thank you,Now let's move on to: {next_questions}",
                    
                     "options": options
                 }
