@@ -773,7 +773,7 @@ async def extract_image_mulkiya(file_path: str) -> Dict:
         Extract ALL English text from this driving license or mulkiya.
         Pay special attention to:
         - Owner
-        - Traffic Plate No  (this is like a for example 11/3780)
+        - Traffic Plate No 
         - T.C. No.
         - Place of Issue
         - Nationality
@@ -929,7 +929,7 @@ async def extract_pdf_mulkiya(file_path: str) -> Dict:
         Extract ALL English text from this driving license or mulkiya.
         Pay special attention to:
         - Owner
-        - Traffic Plate No  (this is like a for example 11/3780)
+        - Traffic Plate No  
         - T.C. No.
         - Place of Issue
         - Nationality

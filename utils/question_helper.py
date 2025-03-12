@@ -277,6 +277,7 @@ def handle_validate_name(question, user_message, conversation_state, questions, 
             }
 def handle_gender(user_message,conversation_state,questions,responses,question):
     valid_options = [ "Male","Female"]
+    member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
     if user_message in valid_options:
         responses[question] = user_message
         conversation_state["current_question_index"] += 1
@@ -286,14 +287,16 @@ def handle_gender(user_message,conversation_state,questions,responses,question):
             if "options" in next_question:
                 options = ", ".join(next_question["options"])
                 next_questions = next_question["question"]
-                member_name = responses.get("Next, we need the details of the member for whom the policy is being purchased. Please provide Name")
+                
                 return {
-                   "response": f"Thank you,{next_questions} {member_name}",
+                #    "response": f"Thank you,{next_questions} {member_name}",
+                   "response": f"Thank you,{next_questions}",
                    
                     "options": options
                 }
             return {
-                "response": f"Thank you,{next_question} {member_name}"
+                # "response": f"Thank you,{next_question} {member_name}"
+                "response": f"Thank you,{next_question}"
                 }
         else:
             with open("user_responses.json", "w") as file:
