@@ -43,18 +43,19 @@ class DocumentVisionOCR:
         )
         logging.info(f"Initialized DocumentVisionOCR with model: {self.model}")
         
-    def encode_image(self, image):
-        """
-        Encode image to base64
+    def encode_image(self, image, max_size=(1000, 1000), quality=85):
+        """Encode image to base64 with resizing if needed"""
+        # Resize if image is too large
+        if image.width > max_size[0] or image.height > max_size[1]:
+            image = image.resize(
+                (min(image.width, max_size[0]), 
+                min(image.height, max_size[1])),
+                Image.LANCZOS
+            )
         
-        Args:
-            image (PIL.Image): PIL Image object
-            
-        Returns:
-            str: Base64 encoded image
-        """
+        # Save with compression
         buffered = io.BytesIO()
-        image.save(buffered, format="PNG")
+        image.save(buffered, format="JPEG", quality=quality)
         return base64.b64encode(buffered.getvalue()).decode('utf-8')
         
     def extract_text_from_image(self, image, prompt=None):
