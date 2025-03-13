@@ -245,6 +245,7 @@ async def extract_image_info1(file_path: str) -> Dict:
         - Issuing Place
         
         Capture all text exactly as shown, preserving numbers and codes precisely.
+        If any mentioned information is missing, recheck and extract everything accurately.
         """
         
         # Use the extract_text_from_image method with the preprocessed image
@@ -364,27 +365,30 @@ async def extract_pdf_info1(file_path: str) -> Dict:
         vision_model = DocumentVisionOCR()
         
         # Create a specialized prompt for license documents
-        license_prompt = """
-        Extract ALL English text from this license.
-        Pay special attention to:
-        - Name
-        - Id Number (make sure the id number will be start from 784-YYYY-123456-9 this is the example ) 
-        - Date of Birth
-        - Nationality
-        - Issuing Date
-        - Expiry Date
-        - Sex
-        - Card Number 
-        - Occupation
-        - Employer
-        - Issuing Place
-        
-        Capture all text exactly as shown, preserving numbers and codes precisely.
-        make sure to extract all provided information in the give document
+        emirate_prompt = """
+        Extract all English text from this license. 
+
+        Pay special attention to the following details:
+        - Name  
+        - ID Number (Ensure the ID number starts in the format: 784-YYYY-123456-9. This is an example.)  
+        - Date of Birth  
+        - Nationality  
+        - Issuing Date  
+        - Expiry Date  
+        - Sex  
+        - Card Number  
+        - Occupation  
+        - Employer  
+        - Issuing Place  
+
+        Capture all text exactly as shown, preserving numbers and codes precisely.  
+        Ensure that all the listed details are extracted from the given document.  
+        If any mentioned information is missing, recheck and extract everything accurately.
         """
+
         
         # Use the extract_text_from_image method with the preprocessed image
-        vision_text = vision_model.extract_text_to_string(file_path, prompt=license_prompt)
+        vision_text = vision_model.extract_text_to_string(file_path, prompt=emirate_prompt)
         logging.info("Extracted text from license document")
         
         # Initialize LLM and create extraction chain
@@ -396,7 +400,7 @@ async def extract_pdf_info1(file_path: str) -> Dict:
         
         # Enhanced extraction prompt to ensure structured JSON output
         extraction_prompt = f"""
-        Extract the following information from this Driving License.
+        Extract the following information from this Emirate document
         Respond with ONLY a valid JSON object - no explanations, no markdown formatting.
         
         For dates, use format DD-MM-YYYY if possible.
@@ -518,6 +522,7 @@ async def extract_image_driving_license(file_path: str) -> Dict:
         - Permitted Vehicles
         
         Capture all text exactly as shown, preserving numbers and codes precisely.
+        If any mentioned information is missing, recheck and extract everything accurately.
         """
         
         # Use the extract_text_from_image method with the preprocessed image
@@ -650,6 +655,7 @@ async def extract_pdf_driving_license(file_path: str) -> Dict:
         
         Capture all text exactly as shown, preserving numbers and codes precisely.
         make sure to extract all provided information in the give document
+        If any mentioned information is missing, recheck and extract everything accurately.
         """
         
         # Use the extract_text_from_image method with the preprocessed image
@@ -795,6 +801,7 @@ async def extract_image_mulkiya(file_path: str) -> Dict:
         - Chassis No
         
         Capture all text exactly as shown, preserving numbers and codes precisely.
+        If any mentioned information is missing, recheck and extract everything accurately.
         """
         
         # Use the extract_text_from_image method with the preprocessed image
@@ -951,6 +958,7 @@ async def extract_pdf_mulkiya(file_path: str) -> Dict:
         - Chassis No
         
         Capture all text exactly as shown, preserving numbers and codes precisely.
+        If any mentioned information is missing, recheck and extract everything accurately.
         """
         
         # Use the extract_text_from_image method with the preprocessed image
