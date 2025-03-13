@@ -528,8 +528,9 @@ def process_user_input(user_input: UserInput):
         elif question == "Next, we need the details of the car owner. Would you like to upload their Emirates ID or manually enter the information?":
               return handle_emirate_upload_document_car_insurance(user_message, conversation_state, questions, responses, question)
         
-        elif question == "Have you recently been preparing or planning for pregnancy?":
-            valid_options = ["Yes","No"]
+        elif question == "You Wish to Buy":
+            valid_options = ["Comprehensive (Full Cover)",
+        "Third Party"]
             if user_message in valid_options:
                 responses[question] = user_message
                 conversation_state["current_question_index"] += 1
@@ -550,8 +551,9 @@ def process_user_input(user_input: UserInput):
                 else:
                     with open("user_responses.json", "w") as file:
                         json.dump(responses, file, indent=4)
+                    del user_states[user_id]
                     return {
-                    "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                    "response": "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae.",
                     "final_responses": responses
                         }
             else:

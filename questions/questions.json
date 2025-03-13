@@ -126,7 +126,14 @@
       ]
     },
     "Please Upload Your Driving license",
-    "Please Upload Mulkiya"
+    "Please Upload Mulkiya",
+    {
+      "question": "You Wish to Buy",
+      "options":[
+        "Comprehensive (Full Cover)",
+        "Third Party"
+      ]
+    }
     
     
       

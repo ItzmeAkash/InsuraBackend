@@ -251,16 +251,16 @@ class DocumentVisionOCR:
 
 
 # # Example usage
-# if __name__ == "__main__":
-#     # Initialize the OCR processor
-#     ocr = DocumentVisionOCR()
+if __name__ == "__main__":
+    # Initialize the OCR processor
+    ocr = DocumentVisionOCR()
     
-#     # Example with image
-#     # image_result = ocr.extract_text("WhatsApp Image 2025-03-05 at 11.21.21 AM.jpeg")
-#     # print("\n=== IMAGE TEXT ===")
-#     # print(image_result)
+    # Example with image
+    # image_result = ocr.extract_text("WhatsApp Image 2025-03-05 at 11.21.21 AM.jpeg")
+    # print("\n=== IMAGE TEXT ===")
+    # print(image_result)
     
-#     # # Example with PDF
-#     pdf_result = ocr.extract_text_to_string("CamScanner 02-27-2025 09.11.pdf")
-#     print("\n=== PDF TEXT ===")
-#     print(pdf_result)
+    # # Example with PDF
+    pdf_result = ocr.extract_text_to_string("ID 2023.pdf")
+    print("\n=== PDF TEXT ===")
+    print(pdf_result)

@@ -479,6 +479,9 @@ async def extract_pdf_info1(file_path: str) -> Dict:
     except Exception as e:
         logging.error(f"Error in extract_image_driving_license: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+
+
+
 #Todo
 async def extract_image_driving_license(file_path: str) -> Dict:
     """
