@@ -10,6 +10,7 @@
     }
   ],
   "medical_questions": [
+    "Please Enter Your PassKey",
     {"question":"Let's start with your Medical insurance details. Choose your Visa issued Emirate?",
     "options":[
 
@@ -105,6 +106,7 @@
     }
   ],
   "car_questions": [
+    "Please Enter Your PassKey",
     {
         "question": "Let's start with your motor insurance details. Select the city of registration",
         "options": [
@@ -140,6 +142,7 @@
 ]
 ,
   "bike_questions": [
+    "Please Enter Your PassKey",
     {
     "question": "Let's start with your motor insurance details. Select the city of registration",
     "options": [

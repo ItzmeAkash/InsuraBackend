@@ -129,11 +129,20 @@ def process_user_input(user_input: UserInput):
                 if user_message == "Purchase a Medical Insurance":
                     conversation_state["current_flow"] = "medical_insurance"
                     conversation_state["current_question_index"] = 0
-                    next_options = medical_questions[0].get("options", [])
                     
-                    return {
-                        "response": f"Great choice! {medical_questions[0]['question']}","options": ', '.join(next_options)
-                    }
+                    # Check if medical_questions is a list of dictionaries
+                    if isinstance(medical_questions[0], dict):
+                        next_options = medical_questions[0].get("options", [])
+                        return {
+                            "response": f"Great choice! {medical_questions[0]['question']}",
+                            "options": ", ".join(next_options)
+                        }
+                    # If medical_questions is a list of strings
+                    else:
+                        return {
+                            "response": f"Great choice! {medical_questions[0]}",
+                            
+                        }
                 elif user_message == "Purchase a Motor Insurance":
                     conversation_state["current_flow"] = "motor_insurance"
                     conversation_state["current_question_index"] = 0
@@ -144,19 +153,36 @@ def process_user_input(user_input: UserInput):
                 elif user_message == "Purchase a Car Insurance":
                     conversation_state["current_flow"] = "car_questions"
                     conversation_state["current_question_index"] = 0
-                    next_options = car_questions[0].get("options", [])
-                    
-                    return {
-                        "response": f"Great choice! {car_questions[0]['question']}","options": ', '.join(next_options)
+                    # Check if medical_questions is a list of dictionaries
+                    if isinstance(medical_questions[0], dict):
+                        next_options = medical_questions[0].get("options", [])
+                        return {
+                            "response": f"Great choice! {medical_questions[0]['question']}",
+                            "options": ", ".join(next_options)
+                        }
+                    # If medical_questions is a list of strings
+                    else:
+                        return {
+                            "response": f"Great choice! {medical_questions[0]}",
+                            
                         }
 
                 elif user_message == "Purchase a Bike Insurance":
                     conversation_state["current_flow"] = "bike_questions"
                     conversation_state["current_question_index"] = 0
-                    next_options = bike_questions[0].get("options", [])
-                    return {
-                        "response": f"Great choice! {bike_questions[0]['question']}","options": ', '.join(next_options)
-                    }                    
+                    # Check if medical_questions is a list of dictionaries
+                    if isinstance(medical_questions[0], dict):
+                        next_options = medical_questions[0].get("options", [])
+                        return {
+                            "response": f"Great choice! {medical_questions[0]['question']}",
+                            "options": ", ".join(next_options)
+                        }
+                    # If medical_questions is a list of strings
+                    else:
+                        return {
+                            "response": f"Great choice! {medical_questions[0]}",
+                            
+                        }                  
                 # elif user_message == "Purchase a new policy":
                 #     conversation_state["current_flow"] = "new_policy"
                 #     conversation_state["current_question_index"] = 0
@@ -166,15 +192,35 @@ def process_user_input(user_input: UserInput):
                 elif user_message == "Renew my existing policy":
                     conversation_state["current_flow"] = "existing_policy"
                     conversation_state["current_question_index"] = 0
-                    return {
-                        "response": f"Great choice! {existing_policy_questions[0]}"
-                    }
+                    # Check if medical_questions is a list of dictionaries
+                    if isinstance(medical_questions[0], dict):
+                        next_options = medical_questions[0].get("options", [])
+                        return {
+                            "response": f"Great choice! {medical_questions[0]['question']}",
+                            "options": ", ".join(next_options)
+                        }
+                    # If medical_questions is a list of strings
+                    else:
+                        return {
+                            "response": f"Great choice! {medical_questions[0]}",
+                            
+                        }
                 elif user_message == "Claim a Motor Insurance":
                     conversation_state["current_flow"] = "motor_claim"
                     conversation_state["current_question_index"] = 0
-                    return {
-                        "response": f"Great choice! {motor_claim[0]}"
-                    }
+                    # Check if medical_questions is a list of dictionaries
+                    if isinstance(medical_questions[0], dict):
+                        next_options = medical_questions[0].get("options", [])
+                        return {
+                            "response": f"Great choice! {medical_questions[0]['question']}",
+                            "options": ", ".join(next_options)
+                        }
+                    # If medical_questions is a list of strings
+                    else:
+                        return {
+                            "response": f"Great choice! {medical_questions[0]}",
+                            
+                        }
        
            
         
@@ -183,6 +229,39 @@ def process_user_input(user_input: UserInput):
         
         elif "emaf" in user_message.lower() or "from" in user_message.lower():
             return handle_emaf_document(question, user_message, responses, conversation_state, questions)
+        
+        elif question == "Please Enter Your PassKey":
+            responses[question] = user_message
+            
+            if user_message == "6893554":
+                conversation_state["current_question_index"] += 1
+                if conversation_state["current_question_index"] < len(questions):
+                    next_question = questions[conversation_state["current_question_index"]]
+                    next_question = questions[conversation_state["current_question_index"]]
+            
+                    if "options" in next_question:
+                        options = ", ".join(next_question["options"])
+                        next_question = questions[conversation_state["current_question_index"]]
+                        next_questions = next_question["question"]
+                        return {
+                            "response": f"Great choice!{next_questions}",
+                            "options": options
+                        }
+                    else:
+                        return {
+                            "response": f"Great choice!{next_question}"
+                        }
+                else:
+                    with open("user_responses.json", "w") as file:
+                        json.dump(responses, file, indent=4)
+                    return {
+                        "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                        "final_responses": responses
+                    }
+            else:
+                return {
+                    "response": "Incorrect passkey. Please try again. Please Enter Your PassKey"
+                }
         
         elif question == "May I know your name, please?":
             responses[question] =  user_message
