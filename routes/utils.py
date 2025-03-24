@@ -346,7 +346,255 @@ async def extract_image_info1(file_path: str) -> Dict:
         logging.error(f"Error in extract_image_driving_license: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
        
+
+async def extract_front_page_emirate(file_path: str) -> Dict:
+    """
+    Extract information from  document and return as JSON
     
+    Args:
+        file_path (str): Path to the image file
+        
+    Returns:
+        Dict: Structured information extracted from the document
+    """
+    try:
+        # Preprocess the image
+        image = Image.open(file_path)
+        image = image.convert('L')  # Convert to grayscale
+        image = image.resize((image.width * 2, image.height * 2))  # Resize to improve OCR accuracy
+        image = image.filter(ImageFilter.SHARPEN)  # Sharpen the image to improve OCR accuracy
+        
+        # Extract text from JPG image
+        vision_model = DocumentVisionOCR()
+        
+        # Create a specialized prompt for license documents
+        license_prompt = """
+        Extract ALL English text from this license.
+        Pay special attention to:
+        - Name
+        - Id Number
+        - Date of Birth
+        - Nationality
+        - Issuing Date
+        - Expiry Date
+        - Sex
+       
+        
+        Capture all text exactly as shown, preserving numbers and codes precisely.
+        If any mentioned information is missing, recheck and extract everything accurately.
+        """
+        
+        # Use the extract_text_from_image method with the preprocessed image
+        vision_text = vision_model.extract_text_from_image(image, prompt=license_prompt)
+        logging.info("Extracted text from license document")
+        
+        # Initialize LLM and create extraction chain
+        llm = ChatGroq(
+            model=os.getenv('LLM_MODEL'),
+            temperature=0,
+            api_key=os.getenv('GROQ_API_KEY')
+        )
+        
+        # Enhanced extraction prompt to ensure structured JSON output
+        extraction_prompt = f"""
+        Extract the following information from this document.
+        Respond with ONLY a valid JSON object - no explanations, no markdown formatting.
+        
+        For dates, use format DD-MM-YYYY if possible.
+        For numbers and codes, preserve exact formatting including any special characters.
+        If a piece of information is not found, use an empty string.
+        
+        Text to extract from:
+        {vision_text}
+        
+        JSON format:
+        {{
+                "name": "",
+                "id_number": "",
+                "date_of_birth": "",
+                "nationality": "",
+                "issue_date": "",
+                "expiry_date": "",
+                "gender": "",
+              
+            }}
+        
+        
+        IMPORTANT: Return ONLY the JSON object with no additional text, code blocks, or explanations.
+        """
+        
+        # Directly use the LLM to extract structured information
+        extraction_response = llm.invoke(extraction_prompt)
+        extracted_content = extraction_response.content
+        logging.info("LLM extraction completed")
+        
+        # Create default empty result structure
+        default_result = {
+                "name": "",
+                "id_number": "",
+                "date_of_birth": "",
+                "nationality": "",
+                "issue_date": "",
+                "expiry_date": "",
+                "gender": "",
+
+            }
+        
+        # Try to parse the response as JSON
+        try:
+            # First, attempt to parse as a JSON string
+            result = json.loads(extracted_content)
+            logging.info("Successfully parsed JSON response")
+        except json.JSONDecodeError as e:
+            logging.warning(f"Direct JSON parsing failed: {e}")
+            try:
+                # Find JSON-like content between curly braces
+                start = extracted_content.find('{')
+                end = extracted_content.rfind('}') + 1
+                
+                if start >= 0 and end > start:
+                    cleaned_content = extracted_content[start:end]
+                    # Replace potential newlines, tabs and fix common JSON format issues
+                    cleaned_content = cleaned_content.replace('\n', ' ').replace('\t', ' ')
+                    cleaned_content = re.sub(r',\s*}', '}', cleaned_content)  # Remove trailing commas
+                    
+                    result = json.loads(cleaned_content)
+                    logging.info("Successfully parsed JSON after cleaning")
+                else:
+                    raise ValueError("No valid JSON structure found")
+            except (ValueError, json.JSONDecodeError) as e:
+                logging.warning(f"JSON parsing failed: {e}. Creating empty structure.")
+                result = default_result
+        
+        # Ensure all expected keys are present in the result
+        for key in default_result:
+            if key not in result:
+                result[key] = ""
+        
+        return result
+    except Exception as e:
+        logging.error(f"Error in extract_image_driving_license: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+       
+       
+async def extract_back_page_emirate(file_path: str) -> Dict:
+    """
+    Extract information from back page document and return as JSON
+    
+    Args:
+        file_path (str): Path to the image file
+        
+    Returns:
+        Dict: Structured information extracted from the document
+    """
+    try:
+        # Preprocess the image
+        image = Image.open(file_path)
+        image = image.convert('L')  # Convert to grayscale
+        image = image.resize((image.width * 2, image.height * 2))  # Resize to improve OCR accuracy
+        image = image.filter(ImageFilter.SHARPEN)  # Sharpen the image to improve OCR accuracy
+        
+        # Extract text from JPG image
+        vision_model = DocumentVisionOCR()
+        
+        # Create a specialized prompt for license documents
+        license_prompt = """
+        Extract ALL English text from this license.
+        Pay special attention to:
+        - Card Number
+        - Occupation
+        - Employer
+        - Issuing Place
+        
+        Capture all text exactly as shown, preserving numbers and codes precisely.
+        If any mentioned information is missing, recheck and extract everything accurately.
+        """
+        
+        # Use the extract_text_from_image method with the preprocessed image
+        vision_text = vision_model.extract_text_from_image(image, prompt=license_prompt)
+        logging.info("Extracted text from license document")
+        
+        # Initialize LLM and create extraction chain
+        llm = ChatGroq(
+            model=os.getenv('LLM_MODEL'),
+            temperature=0,
+            api_key=os.getenv('GROQ_API_KEY')
+        )
+        
+        # Enhanced extraction prompt to ensure structured JSON output
+        extraction_prompt = f"""
+        Extract the following information from this document.
+        Respond with ONLY a valid JSON object - no explanations, no markdown formatting.
+        
+        For dates, use format DD-MM-YYYY if possible.
+        For numbers and codes, preserve exact formatting including any special characters.
+        If a piece of information is not found, use an empty string.
+        
+        Text to extract from:
+        {vision_text}
+        
+        JSON format:
+        {{
+                "card_number": "",
+                "occupation": "",
+                "employer": "",
+                "issuing_place": "",
+            }}
+        
+        
+        IMPORTANT: Return ONLY the JSON object with no additional text, code blocks, or explanations.
+        """
+        
+        # Directly use the LLM to extract structured information
+        extraction_response = llm.invoke(extraction_prompt)
+        extracted_content = extraction_response.content
+        logging.info("LLM extraction completed")
+        
+        # Create default empty result structure
+        default_result = {
+
+                "card_number": "",
+                "occupation": "",
+                "employer": "",
+                "issuing_place": "",
+            }
+        
+        # Try to parse the response as JSON
+        try:
+            # First, attempt to parse as a JSON string
+            result = json.loads(extracted_content)
+            logging.info("Successfully parsed JSON response")
+        except json.JSONDecodeError as e:
+            logging.warning(f"Direct JSON parsing failed: {e}")
+            try:
+                # Find JSON-like content between curly braces
+                start = extracted_content.find('{')
+                end = extracted_content.rfind('}') + 1
+                
+                if start >= 0 and end > start:
+                    cleaned_content = extracted_content[start:end]
+                    # Replace potential newlines, tabs and fix common JSON format issues
+                    cleaned_content = cleaned_content.replace('\n', ' ').replace('\t', ' ')
+                    cleaned_content = re.sub(r',\s*}', '}', cleaned_content)  # Remove trailing commas
+                    
+                    result = json.loads(cleaned_content)
+                    logging.info("Successfully parsed JSON after cleaning")
+                else:
+                    raise ValueError("No valid JSON structure found")
+            except (ValueError, json.JSONDecodeError) as e:
+                logging.warning(f"JSON parsing failed: {e}. Creating empty structure.")
+                result = default_result
+        
+        # Ensure all expected keys are present in the result
+        for key in default_result:
+            if key not in result:
+                result[key] = ""
+        
+        return result
+    except Exception as e:
+        logging.error(f"Error in extract_image_driving_license: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
+           
 
 async def extract_pdf_info1(file_path: str) -> Dict:
     """
