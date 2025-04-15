@@ -229,7 +229,6 @@ def process_user_input(user_input: UserInput):
         
         elif "emaf" in user_message.lower() or "from" in user_message.lower():
             return handle_emaf_document(question, user_message, responses, conversation_state, questions)
-        
         elif "post a review" in user_message.lower():
             user_message = user_message.lower()  # Convert user_message to lowercase
             if "post a review" in user_message:
@@ -264,7 +263,61 @@ def process_user_input(user_input: UserInput):
                     return {
                         "response": f"{general_assistant_response.content.strip()}",
                         "question": "It seems we have reached the end of the questions."
-                    }
+                    }       
+        # elif "post a review" in user_message.lower():
+        #     user_message = user_message.lower()  # Convert user_message to lowercase
+        #     next_question = questions[conversation_state["current_question_index"]]
+        #     if "post a review" in user_message:
+        #         if "options" in next_question:
+        #             options = ", ".join(next_question["options"])
+        #             return {
+        #                 return {
+        #             "review_message": "If you are satisfied with Wehbe(Broker) services, please leave a review for sharing happiness to others!!😊",
+        #             "review_link": "https://www.google.com/search?client=ms-android-samsung-ss&sca_esv=4eb717e6f42bf628&sxsrf=AHTn8zprabdPVFL3C2gXo4guY8besI3jqQ:1744004771562&q=wehbe+insurance+services+llc+reviews&uds=ABqPDvy-z0dcsfm2PY76_gjn-YWou9-AAVQ4iWjuLR6vmDV0vf3KpBMNjU5ZkaHGmSY0wBrWI3xO9O55WuDmXbDq6a3SqlwKf2NJ5xQAjebIw44UNEU3t4CpFvpLt9qFPlVh2F8Gfv8sMuXXSo2Qq0M_ZzbXbg2c323G_bE4tVi7Ue7d_sW0CrnycpJ1CvV-OyrWryZw_TeQ3gLGDgzUuHD04MpSHquYZaSQ0_mIHLWjnu7fu8c7nb6_aGDb_H1Q-86fD2VmWluYA5jxRkC9U2NsSwSSXV4FPW9w1Q2T_Wjt6koJvLgtikd66MqwYiJPX2x9MwLhoGYlpTbKtkJuHwE9eM6wQgieChskow6tJCVjQ75I315dT8n3tUtasGdBkprOlUK9ibPrYr9HqRz4AwzEQaxAq9_EDcsSG_XW0CHuqi2lRKHw592MlGlhjyQibXKSZJh-v3KW4wIVqa-2x0k1wfbZdpaO3BZaKYCacLOxwUKTnXPbQqDPLQDeYgDBwaTLvaCN221H&si=APYL9bvoDGWmsM6h2lfKzIb8LfQg_oNQyUOQgna9TyfQHAoqUvvaXjJhb-NHEJtDKiWdK3OqRhtZNP2EtNq6veOxTLUq88TEa2J8JiXE33-xY1b8ohiuDLBeOOGhuI1U6V4mDc9jmZkDoxLC9b6s6V8MAjPhY-EC_g%3D%3D&sa=X&sqi=2&ved=2ahUKEwi05JSHnMWMAxUw8bsIHRRCDd0Qk8gLegQIHxAB&ictx=1&stq=1&cs=0&lei=o2bzZ_SGIrDi7_UPlIS16A0#ebo=1"
+        #         }
+        #                 "question": f"Let's Move Back {question}",
+        #                 "options": options
+        #             }
+
+
+        #         else:
+        #                 return {
+        #                 return {
+        #             "review_message": "If you are satisfied with Wehbe(Broker) services, please leave a review for sharing happiness to others!!😊",
+        #             "review_link": "https://www.google.com/search?client=ms-android-samsung-ss&sca_esv=4eb717e6f42bf628&sxsrf=AHTn8zprabdPVFL3C2gXo4guY8besI3jqQ:1744004771562&q=wehbe+insurance+services+llc+reviews&uds=ABqPDvy-z0dcsfm2PY76_gjn-YWou9-AAVQ4iWjuLR6vmDV0vf3KpBMNjU5ZkaHGmSY0wBrWI3xO9O55WuDmXbDq6a3SqlwKf2NJ5xQAjebIw44UNEU3t4CpFvpLt9qFPlVh2F8Gfv8sMuXXSo2Qq0M_ZzbXbg2c323G_bE4tVi7Ue7d_sW0CrnycpJ1CvV-OyrWryZw_TeQ3gLGDgzUuHD04MpSHquYZaSQ0_mIHLWjnu7fu8c7nb6_aGDb_H1Q-86fD2VmWluYA5jxRkC9U2NsSwSSXV4FPW9w1Q2T_Wjt6koJvLgtikd66MqwYiJPX2x9MwLhoGYlpTbKtkJuHwE9eM6wQgieChskow6tJCVjQ75I315dT8n3tUtasGdBkprOlUK9ibPrYr9HqRz4AwzEQaxAq9_EDcsSG_XW0CHuqi2lRKHw592MlGlhjyQibXKSZJh-v3KW4wIVqa-2x0k1wfbZdpaO3BZaKYCacLOxwUKTnXPbQqDPLQDeYgDBwaTLvaCN221H&si=APYL9bvoDGWmsM6h2lfKzIb8LfQg_oNQyUOQgna9TyfQHAoqUvvaXjJhb-NHEJtDKiWdK3OqRhtZNP2EtNq6veOxTLUq88TEa2J8JiXE33-xY1b8ohiuDLBeOOGhuI1U6V4mDc9jmZkDoxLC9b6s6V8MAjPhY-EC_g%3D%3D&sa=X&sqi=2&ved=2ahUKEwi05JSHnMWMAxUw8bsIHRRCDd0Qk8gLegQIHxAB&ictx=1&stq=1&cs=0&lei=o2bzZ_SGIrDi7_UPlIS16A0#ebo=1"
+        #         }
+        #                 "question": f"Let's Move Back {question}",
+        #                 }    
+            
+                
+        #     else:
+        #         general_assistant_prompt = f"user response: {user_message}. Please assist."
+        #         general_assistant_response = llm.invoke([
+        #             SystemMessage(content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."),
+        #             HumanMessage(content=general_assistant_prompt)
+        #         ])
+                
+        #         # Safely access the next question
+        #         if conversation_state["current_question_index"] < len(questions):
+        #             next_question = questions[conversation_state["current_question_index"]]
+        #             if isinstance(next_question, dict) and "options" in next_question:
+        #                 options = ", ".join(next_question["options"])
+        #                 return {
+        #                     "response": f"{general_assistant_response.content.strip()}",
+        #                     "question": f"Let's try again: {next_question['question']}",
+        #                     "options": options
+        #                 }
+        #             else:
+        #                 question_text = next_question["question"] if isinstance(next_question, dict) else next_question
+        #                 return {
+        #                     "response": f"{general_assistant_response.content.strip()}",
+        #                     "question": f"Let's try again: {question_text}"
+        #                 }
+        #         else:
+        #             return {
+        #                 "response": f"{general_assistant_response.content.strip()}",
+        #                 "question": "It seems we have reached the end of the questions."
+        #             }
             
         elif question == "Please Enter Your PassKey":
             responses[question] = user_message
