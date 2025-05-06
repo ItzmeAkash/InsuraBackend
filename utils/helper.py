@@ -18,6 +18,9 @@ from PIL import Image
 from dotenv import load_dotenv
 import os
 import tempfile
+from deepgram import Deepgram
+import asyncio
+
 load_dotenv()
 def get_user_name(user_id: str) -> str:
 
@@ -402,3 +405,34 @@ def emaf_document(response_dict):
              
              
 
+
+
+DEEPGRAM_API_KEY = os.getenv('DEEPGRAM_API_KEY')
+
+
+async def transcribe_audio(audio_data: bytes, mime_type: str = "audio/ogg") -> str:
+    dg_client = Deepgram(DEEPGRAM_API_KEY)
+    
+    try:
+        options = {
+            "model": "nova-2",
+            "language": "en",
+            "punctuate": True,
+            "diarize": False
+        }
+        
+        print(f"Sending audio data to Deepgram, size: {len(audio_data)} bytes, mime_type: {mime_type}")
+        response = await dg_client.transcription.prerecorded(
+            {"buffer": audio_data, "mimetype": mime_type},
+            options
+        )
+        
+        print(f"Deepgram response: {response}")
+        transcript = response["results"]["channels"][0]["alternatives"][0]["transcript"]
+        if not transcript:
+            print("Transcript is empty")
+            return None
+        return transcript
+    except Exception as e:
+        print(f"Error transcribing audio with Deepgram: {str(e)}")
+        return None
