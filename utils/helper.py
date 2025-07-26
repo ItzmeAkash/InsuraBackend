@@ -608,11 +608,7 @@ def is_valid_country(user_input):
 
 import requests
 
-<<<<<<< HEAD
-#Updateded
-=======
 
->>>>>>> 8bdb8801a78c0891fb767d0a630b20d67d049153
 def fetching_medical_detail(responses_dict):
     def convert_date_format(date_str):
         try:
