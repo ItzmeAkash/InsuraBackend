@@ -7,11 +7,13 @@ import os
 import tempfile
 import asyncio
 import logging
+from cachetools import TTLCache
 
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 # Initialize Route
 router = APIRouter()
 
-user_states = {}
+user_states = TTLCache(maxsize=1000, ttl=3600)
 
 async def clear_user_states():
     while True:
@@ -43,6 +45,9 @@ async def upload_pdf(file: UploadFile = File(...), user_id: str = Form(...)):
     with tempfile.NamedTemporaryFile(delete=False, suffix='.pdf') as temp_file:
         try:
             # Write the uploaded file content to temporary file
+            if len(await file.read()) > MAX_FILE_SIZE:
+                raise HTTPException(status_code=413, detail="File too large")
+            file.file.seek(0)
             content = await file.read()
             temp_file.write(content)
             temp_file.flush()
