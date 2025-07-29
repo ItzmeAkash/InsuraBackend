@@ -76,7 +76,7 @@
         "options":["ADE","USD"]
       },
        {
-        "question":"Now, let’s move to the sponsor details, Could you let me know the sponsor's type?",
+        "question":"Now, let's move to the sponsor details, Could you let me know the sponsor's type?",
         "options":["Employee","Investors"]
       },
        "May I have the sponsor's mobile number, please?",

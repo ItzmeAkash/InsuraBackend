@@ -3097,7 +3097,7 @@ def process_user_input(user_input: UserInput):
 
         elif (
             question
-            == "Now, let's move to the sponsor details, Could you let me know the sponsor's type?"
+            == "Now, let’s move to the sponsor details, Could you let me know the sponsor's type?"
         ):
             valid_options = ["Employee", "Investors"]
             if user_message in valid_options:

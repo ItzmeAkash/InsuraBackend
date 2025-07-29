@@ -685,7 +685,7 @@ def fetching_medical_detail(responses_dict):
         res = requests.post(api, json=payload, timeout=10)
         res.raise_for_status()
         id = res.json()["id"]
-        print(payload)
+        print("payload",payload)
         return id
     except requests.exceptions.RequestException as e:
         return "There are some issues with the request. Please wait for a moment and try again. If the problem persists, contact support@insurca.com."
