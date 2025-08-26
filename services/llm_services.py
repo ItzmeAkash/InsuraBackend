@@ -187,7 +187,7 @@ def process_user_input(user_input: UserInput):
         # Check if user has already asked about Takaful Emarat Silver
         if conversation_state.get("takaful_emarat_asked", False):
             conversation_state["awaiting_takaful_followup"] = True
-            # Generate a more natural response using LLM
+            # Generate a more natural response using LLMs
             medicine_prompt = "Rewrite this exact information about annual medicine limit in a friendly, conversational way as if a real insurance agent is speaking to a customer. Keep the same content but make it sound natural and warm. Use only 1-3 lines maximum: This is the content(answer)'AED 5,000'"
             medicine_response = llm.invoke([
                 SystemMessage(
