@@ -101,10 +101,305 @@ def process_user_input(user_input: UserInput):
             "welcome_shown": False,
             "awaiting_document_name": False,
             "document_name": "",
+            "last_takaful_query_time": None,
+            "awaiting_takaful_followup": False,
+            "last_chronic_conditions_time": None,
+            "awaiting_chronic_conditions_followup": False,
+            "takaful_emarat_asked": False,
         }
 
     conversation_state = user_states[user_id]
     user_name = get_user_name(user_id)
+    # Handle Takaful Emarat Silver query
+    if "takaful emarat silver" in user_message.lower():
+        conversation_state["last_takaful_query_time"] = datetime.now()
+        conversation_state["awaiting_takaful_followup"] = True
+        conversation_state["takaful_emarat_asked"] = (
+            True  # Set flag to indicate Takaful Emarat was asked
+        )
+        # Generate a more natural welcome response using LLM
+        welcome_prompt = "Rewrite this welcome message in a friendly, conversational way as if a real insurance agent is greeting a customer. Keep the same content but make it sound natural and warm. Use only 1-3 lines maximum: 'Welcome to the Takaful Emarat Silver plan! What do you need to know about the Takaful Emarat Silver plan? Please let me know, I am here to help you!'"
+        welcome_response = llm.invoke([
+            SystemMessage(
+                content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to greet customers warmly and make them feel welcome and comfortable. Keep responses short (1-3 lines) and maintain the exact same information while making it sound natural."
+            ),
+            HumanMessage(content=welcome_prompt),
+        ])
+        return {
+            "response": f"{welcome_response.content.strip()}",
+        }
+
+    # Handle Pre-existing & Chronic conditions query (only if Takaful Emarat Silver was asked first)
+    if "pre existing & chronic conditions" in user_message.lower():
+        # Check if user has already asked about Takaful Emarat Silver
+        if conversation_state.get("takaful_emarat_asked", False):
+            conversation_state["last_chronic_conditions_time"] = datetime.now()
+            conversation_state["awaiting_chronic_conditions_followup"] = True
+            conversation_state["chronic_conditions_shown"] = (
+                True  # Flag to track that response was shown
+            )
+            # Generate a more natural response using LLM
+            chronic_conditions_prompt = "Rewrite this exact information about pre-existing and chronic conditions coverage in a friendly, conversational way as if a real insurance agent is speaking to a customer. Keep the same content but make it sound natural and warm. Use only 1-3 lines maximum: This is the content(answer)'Covered only if declared in the Application Form and the terms, and additional premium to be agreed.'"
+            chronic_conditions_response = llm.invoke([
+                SystemMessage(
+                    content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to explain insurance terms in a warm, conversational manner. Keep responses short (1-3 lines) and maintain the exact same information while making it sound natural."
+                ),
+                HumanMessage(content=chronic_conditions_prompt),
+            ])
+            return {
+                "response": f"{chronic_conditions_response.content.strip()}",
+                "pdf_link": "/pdf-view/",
+            }
+        else:
+            # If Takaful Emarat Silver wasn't asked first, provide a general response
+            return {
+                "response": "I'd be happy to help you with information about pre-existing and chronic conditions. However, to provide you with the most accurate and specific information, could you please first ask about the Takaful Emarat Silver plan? This will help me give you the most relevant details for your situation."
+            }
+
+    # Handle Area of Coverage query (only if Takaful Emarat Silver was asked first)
+    if "area of coverage" in user_message.lower():
+        # Check if user has already asked about Takaful Emarat Silver
+        if conversation_state.get("takaful_emarat_asked", False):
+            conversation_state["awaiting_takaful_followup"] = True
+            # Generate a more natural response using LLM
+            coverage_prompt = "Rewrite this exact information about area of coverage in a friendly, conversational way as if a real insurance agent is speaking to a customer. Keep the same content but make it sound natural and warm. Use only 1-3 lines maximum: This is the content(answer)'Worldwide'"
+            coverage_response = llm.invoke([
+                SystemMessage(
+                    content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to explain insurance terms in a warm, conversational manner. Keep responses short (1-3 lines) and maintain the exact same information while making it sound natural."
+                ),
+                HumanMessage(content=coverage_prompt),
+            ])
+            return {
+                "response": f"{coverage_response.content.strip()}.",
+                "pdf_link": "/pdf-view/",
+            }
+        else:
+            # If Takaful Emarat Silver wasn't asked first, provide a general response
+            return {
+                "response": "I'd be happy to help you with information about area of coverage. However, to provide you with the most accurate and specific information, could you please first ask about the Takaful Emarat Silver plan? This will help me give you the most relevant details for your situation."
+            }
+
+    # Handle Annual Medicine Limit query (only if Takaful Emarat Silver was asked first)
+    if (
+        "annual medicine limit" in user_message.lower()
+        or "medicine limit" in user_message.lower()
+    ):
+        # Check if user has already asked about Takaful Emarat Silver
+        if conversation_state.get("takaful_emarat_asked", False):
+            conversation_state["awaiting_takaful_followup"] = True
+            # Generate a more natural response using LLM
+            medicine_prompt = "Rewrite this exact information about annual medicine limit in a friendly, conversational way as if a real insurance agent is speaking to a customer. Keep the same content but make it sound natural and warm. Use only 1-3 lines maximum: This is the content(answer)'AED 5,000'"
+            medicine_response = llm.invoke([
+                SystemMessage(
+                    content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to explain insurance terms in a warm, conversational manner. Keep responses short (1-3 lines) and maintain the exact same information while making it sound natural."
+                ),
+                HumanMessage(content=medicine_prompt),
+            ])
+            return {
+                "response": f"{medicine_response.content.strip()}.",
+                "pdf_link": "/pdf-view/",
+            }
+        else:
+            # If Takaful Emarat Silver wasn't asked first, provide a general response
+            return {
+                "response": "I'd be happy to help you with information about annual medicine limit. However, to provide you with the most accurate and specific information, could you please first ask about the Takaful Emarat Silver plan? This will help me give you the most relevant details for your situation."
+            }
+
+    # Handle Consultation Fee query (only if Takaful Emarat Silver was asked first)
+    if "consultation fee" in user_message.lower() or "fee" in user_message.lower():
+        # Check if user has already asked about Takaful Emarat Silver
+        if conversation_state.get("takaful_emarat_asked", False):
+            conversation_state["awaiting_takaful_followup"] = True
+            # Generate a more natural response using LLM
+            consultation_prompt = "Rewrite this exact information about consultation fee in a friendly, conversational way as if a real insurance agent is speaking to a customer. Keep the same content but make it sound natural and warm. Use only 1-3 lines maximum: This is the content(answer)'AED 50'"
+            consultation_response = llm.invoke([
+                SystemMessage(
+                    content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to explain insurance terms in a warm, conversational manner. Keep responses short (1-3 lines) and maintain the exact same information while making it sound natural."
+                ),
+                HumanMessage(content=consultation_prompt),
+            ])
+            return {
+                "response": f"{consultation_response.content.strip()}.",
+                "pdf_link": "/pdf-view/",
+            }
+        else:
+            # If Takaful Emarat Silver wasn't asked first, provide a general response
+            return {
+                "response": "I'd be happy to help you with information about consultation fee. However, to provide you with the most accurate and specific information, could you please first ask about the Takaful Emarat Silver plan? This will help me give you the most relevant details for your situation."
+            }
+
+    # Handle Network query (only if Takaful Emarat Silver was asked first)
+    if "network" in user_message.lower():
+        # Check if user has already asked about Takaful Emarat Silver
+        if conversation_state.get("takaful_emarat_asked", False):
+            conversation_state["awaiting_takaful_followup"] = True
+            # Generate a more natural response using LLM
+            network_prompt = "Rewrite this exact information about network in a friendly, conversational way as if a real insurance agent is speaking to a customer. Keep the same content but make it sound natural and warm. Use only 1-3 lines maximum: This is the content(answer)'Nextcare'"
+            network_response = llm.invoke([
+                SystemMessage(
+                    content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to explain insurance terms in a warm, conversational manner. Keep responses short (1-3 lines) and maintain the exact same information while making it sound natural."
+                ),
+                HumanMessage(content=network_prompt),
+            ])
+            return {
+                "response": f"{network_response.content.strip()}.",
+                "pdf_link": "/pdf-view/",
+            }
+        else:
+            # If Takaful Emarat Silver wasn't asked first, provide a general response
+            return {
+                "response": "I'd be happy to help you with information about the network. However, to provide you with the most accurate and specific information, could you please first ask about the Takaful Emarat Silver plan? This will help me give you the most relevant details for your situation."
+            }
+
+    # Handle Dental Treatment query (only if Takaful Emarat Silver was asked first)
+    if "dental treatment" in user_message.lower() or "dental" in user_message.lower():
+        # Check if user has already asked about Takaful Emarat Silver
+        if conversation_state.get("takaful_emarat_asked", False):
+            conversation_state["awaiting_takaful_followup"] = True
+            # Generate a more natural response using LLM
+            dental_prompt = "Rewrite this exact information about dental treatment coverage in a friendly, conversational way as if a real insurance agent is speaking to a customer. Keep the same content but make it sound natural and warm. Use only 1-3 lines maximum: This is the content(answer)'Routine Dental is not covered. Cover only Emergency, injury cases & surgeries.'"
+            dental_response = llm.invoke([
+                SystemMessage(
+                    content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to explain insurance terms in a warm, conversational manner. Keep responses short (1-3 lines) and maintain the exact same information while making it sound natural."
+                ),
+                HumanMessage(content=dental_prompt),
+            ])
+            return {
+                "response": f"{dental_response.content.strip()}.",
+                "pdf_link": "/pdf-view/",
+            }
+        else:
+            # If Takaful Emarat Silver wasn't asked first, provide a general response
+            return {
+                "response": "I'd be happy to help you with information about dental treatment coverage. However, to provide you with the most accurate and specific information, could you please first ask about the Takaful Emarat Silver plan? This will help me give you the most relevant details for your situation."
+            }
+
+    # Handle Direct Access to Hospital query (only if Takaful Emarat Silver was asked first)
+    if (
+        "direct access" in user_message.lower()
+        or "hospital access" in user_message.lower()
+    ):
+        # Check if user has already asked about Takaful Emarat Silver
+        if conversation_state.get("takaful_emarat_asked", False):
+            conversation_state["awaiting_takaful_followup"] = True
+            # Generate a more natural response using LLM
+            access_prompt = "Rewrite this exact information about direct access to hospital in a friendly, conversational way as if a real insurance agent is speaking to a customer. Keep the same content but make it sound natural and warm. Use only 1-3 lines maximum: This is the content(answer)'Yes'"
+            access_response = llm.invoke([
+                SystemMessage(
+                    content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to explain insurance terms in a warm, conversational manner. Keep responses short (1-3 lines) and maintain the exact same information while making it sound natural."
+                ),
+                HumanMessage(content=access_prompt),
+            ])
+            return {
+                "response": f"{access_response.content.strip()}.",
+                "pdf_link": "/pdf-view/",
+            }
+        else:
+            # If Takaful Emarat Silver wasn't asked first, provide a general response
+            return {
+                "response": "I'd be happy to help you with information about direct access to hospital. However, to provide you with the most accurate and specific information, could you please first ask about the Takaful Emarat Silver plan? This will help me give you the most relevant details for your situation."
+            }
+
+    # Check for Takaful questions follow-up (show options after response)
+    if (
+        conversation_state.get("awaiting_takaful_followup")
+        and not user_message.lower() in ["yes", "no"]
+        and any(
+            keyword in user_message.lower()
+            for keyword in [
+                "area of coverage",
+                "annual medicine limit",
+                "medicine limit",
+                "consultation fee",
+                "fee",
+                "network",
+                "dental treatment",
+                "dental",
+                "direct access",
+                "hospital access",
+            ]
+        )
+    ):
+        # This means user just got a Takaful question response, show follow-up options
+        return {
+            "response": "Is there anything else you want me to help you with related to Takaful Emarat Silver?",
+            "options": "Yes, No",
+        }
+
+    # Handle Yes/No response for Chronic conditions follow-up
+    if conversation_state.get(
+        "awaiting_chronic_conditions_followup"
+    ) and user_message.lower() in ["yes", "no"]:
+        if user_message.lower() == "yes":
+            conversation_state["awaiting_chronic_conditions_followup"] = False
+            conversation_state["awaiting_takaful_followup"] = True
+            conversation_state["chronic_conditions_shown"] = False  # Reset the flag
+            return {
+                "response": "Great! Please ask your question about the Takaful Emarat Silver plan, and I'll assist you."
+            }
+        else:
+            conversation_state["awaiting_chronic_conditions_followup"] = False
+            conversation_state["current_flow"] = "initial"
+            conversation_state["current_question_index"] = 0
+            conversation_state["chronic_conditions_shown"] = False  # Reset the flag
+            first_question = initial_questions[0]
+            next_options = first_question.get("options", [])
+            return {
+                "response": f"Alright, let's go back to the main menu. {first_question['question']}",
+                "options": ", ".join(next_options),
+            }
+
+    # Check for Chronic conditions follow-up (show options after response)
+    if (
+        conversation_state.get("awaiting_chronic_conditions_followup")
+        and conversation_state.get("chronic_conditions_shown", False)
+        and not user_message.lower() in ["yes", "no"]
+    ):
+        # This means user just got the chronic conditions response, show follow-up options
+        conversation_state["chronic_conditions_shown"] = False  # Reset the flag
+        return {
+            "response": "Is there anything else you want me to help you with?",
+            "options": "Yes, No",
+        }
+
+    # Handle Yes/No response for Takaful follow-up
+    if conversation_state.get("awaiting_takaful_followup") and user_message.lower() in [
+        "yes",
+        "no",
+    ]:
+        if user_message.lower() == "yes":
+            conversation_state["awaiting_takaful_followup"] = True
+            return {
+                "response": "Is there anything else Please ask, I am here to help you. realted to Takaful Emarat Silver",
+            }
+        else:
+            conversation_state["awaiting_takaful_followup"] = False
+            conversation_state["current_flow"] = "initial"
+            conversation_state["current_question_index"] = 0
+            first_question = initial_questions[0]
+            next_options = first_question.get("options", [])
+            return {
+                "response": f"Alright, let's move on. {first_question['question']}",
+                "options": ", ".join(next_options),
+            }
+
+    # Check for Takaful follow-up (handle questions after initial response)
+    if conversation_state.get(
+        "awaiting_takaful_followup"
+    ) and not user_message.lower() in ["yes", "no"]:
+        # User is asking a question after the initial Takaful response
+        # Generate a more natural response using LLM
+        takaful_prompt = "Rewrite this response in a friendly, conversational way as if a real insurance agent is speaking to a customer. Keep the same content but make it sound natural and warm. Use only 1-3 lines maximum: 'I'm here to help with any questions about the Takaful Emarat Silver plan. Please ask your specific question and I'll provide you with the most accurate information.'"
+        takaful_response = llm.invoke([
+            SystemMessage(
+                content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to communicate in a warm, conversational manner that makes customers feel comfortable and well-cared for. Keep responses short (1-3 lines) and maintain the exact same information while making it sound natural."
+            ),
+            HumanMessage(content=takaful_prompt),
+        ])
+        return {
+            "response": f"{takaful_response.content.strip()} Do you need to know anything else related Takaful Emarat Silver plan?",
+            "options": "Yes, No",
+        }
 
     # Show welcome message with the first question if not already shown
     if not conversation_state["welcome_shown"]:
