@@ -114,6 +114,46 @@ def process_user_input(user_input: UserInput):
 
     conversation_state = user_states[user_id]
     user_name = get_user_name(user_id)
+
+    # Handle cancel command - reset everything and start fresh
+    if user_message.lower() in ["cancel", "restart", "reset", "start over"]:
+        # Reset the entire conversation state
+        user_states[user_id] = {
+            "current_question_index": 0,
+            "responses": {},
+            "current_flow": "initial",
+            "welcome_shown": True,  # Set to True to prevent duplicate greeting
+            "awaiting_document_name": False,
+            "document_name": "",
+            "last_takaful_query_time": None,
+            "awaiting_takaful_followup": False,
+            "last_chronic_conditions_time": None,
+            "awaiting_chronic_conditions_followup": False,
+            "takaful_emarat_asked": False,
+        }
+
+        # Return the first initial question
+        first_question = initial_questions[0]
+        if isinstance(first_question, dict):
+            question_text = first_question["question"]
+            options = first_question.get("options", [])
+            if options:
+                return {
+                    "response": "Your conversation has been reset. Let's start fresh! "
+                    + question_text,
+                    "options": ", ".join(options),
+                }
+            else:
+                return {
+                    "response": "Your conversation has been reset. Let's start fresh! "
+                    + question_text
+                }
+        else:
+            return {
+                "response": "Your conversation has been reset. Let's start fresh! "
+                + first_question
+            }
+
     # Handle Takaful Emarat Silver query
     if "takaful emarat silver" in user_message.lower():
         conversation_state["last_takaful_query_time"] = datetime.now()

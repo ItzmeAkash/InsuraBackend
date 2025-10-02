@@ -688,15 +688,8 @@ def fetching_medical_detail(responses_dict):
     print("Payload being sent:", payload)
     print("Response dict keys:", list(responses_dict.keys()))
 
-    # Add proper headers to avoid WAF/Mod_Security blocking
-    headers = {
-        "Content-Type": "application/json",
-        "Accept": "application/json",
-        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-    }
-
     try:
-        res = requests.post(api, json=payload, headers=headers, timeout=10)
+        res = requests.post(api, json=payload, timeout=10)
         print(f"API Response Status Code: {res.status_code}")
         print(f"API Response Body: {res.text}")
         res.raise_for_status()
