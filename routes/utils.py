@@ -1317,3 +1317,76 @@ async def extract_pdf_mulkiya(file_path: str) -> Dict:
         logging.error(f"Error in extract_image_driving_license: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
     
+
+
+async def extract_excel_sme_census(file_path: str) -> dict:
+    """
+    Extract information from SME Census Excel sheet and return as JSON
+
+    Args:
+        file_path (str): Path to the Excel file
+
+    Returns:
+        Dict: Structured information extracted from the Excel sheet with list of employee records
+    """
+    try:
+        import pandas as pd
+        import logging
+
+        # Read the Excel file
+        df = pd.read_excel(file_path)
+        logging.info(
+            f"Successfully read Excel file with {len(df)} rows and {len(df.columns)} columns"
+        )
+
+        # Convert DataFrame to list of dictionaries
+        employees_list = []
+
+        for index, row in df.iterrows():
+            employee_record = {
+                "sr_no": str(row.get("SR No.", "")).strip()
+                if pd.notna(row.get("SR No."))
+                else "",
+                "first_name": str(row.get("First Name ", "")).strip()
+                if pd.notna(row.get("First Name "))
+                else "",
+                "gender": str(row.get("Gender", "")).strip()
+                if pd.notna(row.get("Gender"))
+                else "",
+                "date_of_birth": str(row.get("Date Of Birth ", "")).strip()
+                if pd.notna(row.get("Date Of Birth "))
+                else "",
+                "nationality": str(row.get("Nationality", "")).strip()
+                if pd.notna(row.get("Nationality"))
+                else "",
+                "marital_status": str(row.get("Marital Status", "")).strip()
+                if pd.notna(row.get("Marital Status"))
+                else "",
+                "relation": str(row.get("Relation", "")).strip()
+                if pd.notna(row.get("Relation"))
+                else "",
+                "visa_issued_location": str(row.get("Visa Issued Location", "")).strip()
+                if pd.notna(row.get("Visa Issued Location"))
+                else "",
+            }
+            employees_list.append(employee_record)
+
+        # Create the final result structure
+        result = {
+            "total_employees": len(employees_list),
+            "employees": employees_list,
+            "columns_found": df.columns.tolist(),
+            "file_processed": True,
+        }
+
+        logging.info(
+            f"Successfully extracted {len(employees_list)} employee records from Excel file"
+        )
+        return result
+
+    except Exception as e:
+        import logging
+        from fastapi import HTTPException
+
+        logging.error(f"Error in extract_excel_sme_census: {e}")
+        raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")

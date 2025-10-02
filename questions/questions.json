@@ -11,91 +11,149 @@
   ],
   "medical_questions": [
     "Please Enter Your PassKey",
-    {"question":"Let's start with your Medical insurance details. Choose your Visa issued Emirate?",
-    "options":[
-
-            "Abudhabi",
-            "Ajman",
-            "Dubai",
-            "Fujairah",
-            "Ras Al Khaimah",
-            "Sharjah",
-            "Umm Al Quwain"
-        
-    ]
+    {
+      "question": "Please choose which one would you like to",
+      "options": [
+        "Individual",
+        "SME"
+      ]
+    }
+  ],
+  "individual_questions": [
+    {
+      "question": "Let's start with your Medical insurance details. Choose your Visa issued Emirate?",
+      "options": [
+        "Abudhabi",
+        "Ajman",
+        "Dubai",
+        "Fujairah",
+        "Ras Al Khaimah",
+        "Sharjah",
+        "Umm Al Quwain"
+      ]
     },
-    {"question":"What type of plan are you looking for?",
-    "options":[
+    {
+      "question": "What type of plan are you looking for?",
+      "options": [
         "Basic Plan",
         "Enhanced Plan",
         "Enhanced Plan Standalone",
         "Flexi Plan"
-    ]
-   },
-   {
-    "question":"Now, let's move to the sponsor details, Could you let me know the sponsor's type?",
-    "options":["Employee","Investors"]
-  },
-
+      ]
+    },
+    {
+      "question": "Now, let's move to the sponsor details, Could you let me know the sponsor's type?",
+      "options": [
+        "Employee",
+        "Investors"
+      ]
+    },
     "Could you please tell me your monthly salary?",
     "May I have the sponsor's mobile number, please?",
     "May I have the sponsor's Email Address, please?",
     {
       "question": "Next, we need the details of the member. Would you like to upload their Emirates ID or manually enter the information?",
-      "options":[
+      "options": [
         "Yes",
         "No"
       ]
     },
-    {"question": "Please Confirm the marital status of",
-    "options": ["Single", "Married"]},
+    {
+      "question": "Please Confirm the marital status of",
+      "options": [
+        "Single",
+        "Married"
+      ]
+    },
     {
       "question": "Could you kindly share your relationship with the sponsor?",
-      "options": ["Investor", "Employee", "Spouse", "Child", "4th Child", "Parent", "Domestic"]
-  },
-     {
-      "question":"Do you have an Insurance Advisor code?",
-      "options":[
-          "Yes",
-          "No"
+      "options": [
+        "Investor",
+        "Employee",
+        "Spouse",
+        "Child",
+        "4th Child",
+        "Parent",
+        "Domestic"
       ]
-     } 
+    },
+    {
+      "question": "Do you have an Insurance Advisor code?",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    }
   ],
-
+  "sma_questions": [
+    {
+      "question": "Let's start with your Medical insurance details. Choose your Visa issued Emirate?",
+      "options": [
+        "Abudhabi",
+        "Ajman",
+        "Dubai",
+        "Fujairah",
+        "Ras Al Khaimah",
+        "Sharjah",
+        "Umm Al Quwain"
+      ]
+    },
+    {
+      "question": "What type of plan are you looking for?",
+      "options": [
+        "Basic Plan",
+        "Enhanced Plan",
+        "Enhanced Plan Standalone",
+        "Flexi Plan"
+      ]
+    },
+    "May I have the Client Name, please?",
+    "May I have the Client mobile number, please?",
+    "May I have the Client Email Address, please?"
+  ],
   "existing_policy_questions": [
-     {
-       "question":"Your policy is up for renewal. Would you like to proceed with renewing it?",
-       "options":[
-           "Yes",
-           "No"
-       ]
-       },
-       "Could you please tell me your monthly salary?",
-       {
-        "question":"May I kindly ask you to tell me the currency?",
-        "options":["ADE","USD"]
-      },
-       {
-        "question":"Now, let's move to the sponsor details, Could you let me know the sponsor's type?",
-        "options":["Employee","Investors"]
-      },
-       "May I have the sponsor's mobile number, please?",
-       "May I have the sponsor's Email Address, please?",
-
-       "Next, Please provide the member's details.Please tell me the Name",
-       "Date of Birth (DOB)",
-       { "question":"May I know your marital status?",
-       "options":["Single", "Married"]},
-
-       "Tell your relationship with the Sponsor",
-        {
-          "question":"Do you have an Insurance Advisor code?",
-          "options":[
-              "Yes",
-              "No"
-          ]
-         }  
-     ],
+    {
+      "question": "Your policy is up for renewal. Would you like to proceed with renewing it?",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    "Could you please tell me your monthly salary?",
+    {
+      "question": "May I kindly ask you to tell me the currency?",
+      "options": [
+        "ADE",
+        "USD"
+      ]
+    },
+    {
+      "question": "Now, let's move to the sponsor details, Could you let me know the sponsor's type?",
+      "options": [
+        "Employee",
+        "Investors"
+      ]
+    },
+    "May I have the sponsor's mobile number, please?",
+    "May I have the sponsor's Email Address, please?",
+    "Next, Please provide the member's details.Please tell me the Name",
+    "Date of Birth (DOB)",
+    {
+      "question": "May I know your marital status?",
+      "options": [
+        "Single",
+        "Married"
+      ]
+    },
+    "Tell your relationship with the Sponsor",
+    {
+      "question": "Do you have an Insurance Advisor code?",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    }
+  ],
   "motor_insurance_questions": [
     {
       "question": "What would you like to do today?",
@@ -108,21 +166,20 @@
   "car_questions": [
     "Please Enter Your PassKey",
     {
-        "question": "Let's start with your motor insurance details. Select the city of registration",
-        "options": [
-            "Abudhabi",
-            "Ajman",
-            "Dubai",
-            "Fujairah",
-            "Ras Al Khaimah",
-            "Sharjah",
-            "Umm Al Quwain"
-        ]
-       
+      "question": "Let's start with your motor insurance details. Select the city of registration",
+      "options": [
+        "Abudhabi",
+        "Ajman",
+        "Dubai",
+        "Fujairah",
+        "Ras Al Khaimah",
+        "Sharjah",
+        "Umm Al Quwain"
+      ]
     },
     {
       "question": "Next, we need the details of the car owner. Would you like to upload their Emirates ID or manually enter the information?",
-      "options":[
+      "options": [
         "Yes",
         "No"
       ]
@@ -131,21 +188,17 @@
     "Please Upload Mulkiya",
     {
       "question": "You Wish to Buy",
-      "options":[
+      "options": [
         "Comprehensive (Full Cover)",
         "Third Party"
       ]
     }
-    
-    
-      
-]
-,
+  ],
   "bike_questions": [
     "Please Enter Your PassKey",
     {
-    "question": "Let's start with your motor insurance details. Select the city of registration",
-    "options": [
+      "question": "Let's start with your motor insurance details. Select the city of registration",
+      "options": [
         "Abudhabi",
         "Ajman",
         "Dubai",
@@ -153,12 +206,9 @@
         "Ras Al Khaimah",
         "Sharjah",
         "Umm Al Quwain"
-    ]
-}
-      
-    
-    
-],
+      ]
+    }
+  ],
   "greeting_templates": [
     "Hey {user_name}, nice to know you! Let's dive in: {first_question}",
     "Hello {user_name}! really great to work on your request{first_question}",
@@ -166,7 +216,7 @@
     "Hi {user_name},excited to work on your requirements {first_question}",
     "Hi {user_name},great to chat! Let start with {first_question}"
   ],
-  "motor_claim":[
+  "motor_claim": [
     "Could you please provide your full name",
     "Please enter your policy number",
     "Please upload photos of your driving license Front side",
@@ -175,8 +225,8 @@
     "Please upload photos of your vehicle registration (Mulkiya)  Back side",
     "Please upload a copy of the police report related to the incident",
     {
-      "question":"In which emirate would you prefer your vehicle to be repaired?",
-        "options": [
+      "question": "In which emirate would you prefer your vehicle to be repaired?",
+      "options": [
         "Abudhabi",
         "Ajman",
         "Dubai",
@@ -184,9 +234,8 @@
         "Ras Al Khaimah",
         "Sharjah",
         "Umm Al Quwain"
-    ]
+      ]
     },
     "Which area you prefer for the vehicle repair? Please type the name of the area"
-    
   ]
 }

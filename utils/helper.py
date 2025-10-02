@@ -671,7 +671,9 @@ def fetching_medical_detail(responses_dict):
                 "dob": convert_date_format(
                     responses_dict.get("Date of Birth (DOB)", "")
                 ),
-                "gender": convert_gender(responses_dict.get("Please confirm this gender of", "")),
+                "gender": convert_gender(
+                    responses_dict.get("Please confirm this gender of", "")
+                ),
                 "marital_status": marital_status_member_question,
                 "relation": responses_dict.get(
                     "Could you kindly share your relationship with the sponsor?", ""
@@ -680,14 +682,31 @@ def fetching_medical_detail(responses_dict):
         ],
     }
 
-    api = "https://www.insuranceclub.ae/Api/medical_insert"
+    api = "https://insurancelab.ae/Api/medical_insert"
+
+    # Print payload before sending for debugging
+    print("Payload being sent:", payload)
+    print("Response dict keys:", list(responses_dict.keys()))
+
+    # Add proper headers to avoid WAF/Mod_Security blocking
+    headers = {
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+        "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
+    }
+
     try:
-        res = requests.post(api, json=payload, timeout=10)
+        res = requests.post(api, json=payload, headers=headers, timeout=10)
+        print(f"API Response Status Code: {res.status_code}")
+        print(f"API Response Body: {res.text}")
         res.raise_for_status()
         id = res.json()["id"]
-        print("payload",payload)
+        print(f"Successfully created medical detail with ID: {id}")
         return id
     except requests.exceptions.RequestException as e:
+        print(f"API Request Error: {str(e)}")
+        if hasattr(e.response, "text"):
+            print(f"API Error Response: {e.response.text}")
         return "There are some issues with the request. Please wait for a moment and try again. If the problem persists, contact support@insurca.com."
 
 

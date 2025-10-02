@@ -14,12 +14,14 @@ from utils.helper import (
 )
 from utils.question_helper import (
     handle_adiviosr_code,
+    handle_client_name_question,
     handle_date_question,
     handle_emaf_document,
     handle_emirate_question,
     handle_emirate_upload_document,
     handle_emirate_upload_document_car_insurance,
     handle_gender,
+    handle_individual_sma_choice,
     handle_job_title_question,
     handle_marital_status,
     handle_type_plan_question,
@@ -80,6 +82,8 @@ questions_data = load_questions()
 # Access questions in your logic
 initial_questions = questions_data["initial_questions"]
 medical_questions = questions_data["medical_questions"]
+individual_questions = questions_data["individual_questions"]
+sma_questions = questions_data["sma_questions"]
 # new_policy_questions = questions_data["new_policy_questions"]
 existing_policy_questions = questions_data["existing_policy_questions"]
 motor_insurance_questions = questions_data["motor_insurance_questions"]
@@ -417,6 +421,10 @@ def process_user_input(user_input: UserInput):
         questions = initial_questions
     elif current_flow == "medical_insurance":
         questions = medical_questions
+    elif current_flow == "individual":
+        questions = individual_questions
+    elif current_flow == "sma":
+        questions = sma_questions
     elif current_flow == "motor_insurance":
         questions = motor_insurance_questions
     elif current_flow == "car_questions":
@@ -1762,8 +1770,72 @@ def process_user_input(user_input: UserInput):
                         "question": f"Let's Move Back {question}",
                     }
 
+        elif question == "May I have the Client Name, please?":
+            return handle_client_name_question(
+                question,
+                user_message,
+                conversation_state,
+                questions,
+                responses,
+                is_valid_name,
+            )
+
+        elif question == "May I have the Client mobile number, please?":
+            is_mobile_number = is_valid_mobile_number(user_message)
+
+            if is_mobile_number:
+                # Store the mobile number
+                responses[question] = user_message
+                conversation_state["current_question_index"] += 1
+
+                # Check if there are more questions
+                if conversation_state["current_question_index"] < len(questions):
+                    next_question = questions[
+                        conversation_state["current_question_index"]
+                    ]
+                    return {
+                        "response": f"Thank you for providing the mobile number. Now, let's move on to: {next_question}"
+                    }
+                else:
+                    with open("user_responses.json", "w") as file:
+                        json.dump(responses, file, indent=4)
+                    return {
+                        "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                        "final_responses": responses,
+                    }
+            else:
+                general_assistant_prompt = (
+                    f"The user entered '{user_message}', . Please assist."
+                )
+                general_assistant_response = llm.invoke([
+                    SystemMessage(
+                        content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                    ),
+                    HumanMessage(content=general_assistant_prompt),
+                ])
+                next_question = questions[conversation_state["current_question_index"]]
+                if "options" in next_question:
+                    next_question = next_question["question"]
+                    options = ", ".join(next_question["options"])
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's Move Back {next_question}",
+                        "options": options,
+                    }
+
+                else:
+                    return {
+                        "response": f"{general_assistant_response.content.strip()}",
+                        "question": f"Let's Move Back {question}",
+                    }
+
         elif question == "What would you like to do today?":
             return handle_what_would_you_do_today_question(
+                user_message, conversation_state, questions, responses, question
+            )
+
+        elif question == "Please choose which one would you like to":
+            return handle_individual_sma_choice(
                 user_message, conversation_state, questions, responses, question
             )
 
@@ -2657,7 +2729,7 @@ def process_user_input(user_input: UserInput):
                             if isinstance(medical_detail_response, int):
                                 return {
                                     "response": f"Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please find the link below to view your quotation:",
-                                    "link": f"https://insuranceclub.ae/customer_plan/{medical_detail_response}",
+                                    "link": f"https://insurancelab.ae/customer_plan/{medical_detail_response}",
                                     "review_message": "If you are satisfied with Wehbe(Broker) services, please leave a review for sharing happiness to others!!😊",
                                     "review_link": "https://www.google.com/search?client=ms-android-samsung-ss&sca_esv=4eb717e6f42bf628&sxsrf=AHTn8zprabdPVFL3C2gXo4guY8besI3jqQ:1744004771562&q=wehbe+insurance+services+llc+reviews&uds=ABqPDvy-z0dcsfm2PY76_gjn-YWou9-AAVQ4iWjuLR6vmDV0vf3KpBMNjU5ZkaHGmSY0wBrWI3xO9O55WuDmXbDq6a3SqlwKf2NJ5xQAjebIw44UNEU3t4CpFvpLt9qFPlVh2F8Gfv8sMuXXSo2Qq0M_ZzbXbg2c323G_bE4tVi7Ue7d_sW0CrnycpJ1CvV-OyrWryZw_TeQ3gLGDgzUuHD04MpSHquYZaSQ0_mIHLWjnu7fu8c7nb6_aGDb_H1Q-86fD2VmWluYA5jxRkC9U2NsSwSSXV4FPW9w1Q2T_Wjt6koJvLgtikd66MqwYiJPX2x9MwLhoGYlpTbKtkJuHwE9eM6wQgieChskow6tJCVjQ75I315dT8n3tUtasGdBkprOlUK9ibPrYr9HqRz4AwzEQaxAq9_EDcsSG_XW0CHuqi2lRKHw592MlGlhjyQibXKSZJh-v3KW4wIVqa-2x0k1wfbZdpaO3BZaKYCacLOxwUKTnXPbQqDPLQDeYgDBwaTLvaCN221H&si=APYL9bvoDGWmsM6h2lfKzIb8LfQg_oNQyUOQgna9TyfQHAoqUvvaXjJhb-NHEJtDKiWdK3OqRhtZNP2EtNq6veOxTLUq88TEa2J8JiXE33-xY1b8ohiuDLBeOOGhuI1U6V4mDc9jmZkDoxLC9b6s6V8MAjPhY-EC_g%3D%3D&sa=X&sqi=2&ved=2ahUKEwi05JSHnMWMAxUw8bsIHRRCDd0Qk8gLegQIHxAB&ictx=1&stq=1&cs=0&lei=o2bzZ_SGIrDi7_UPlIS16A0#ebo=1",
                                 }
@@ -3018,6 +3090,7 @@ def process_user_input(user_input: UserInput):
         elif question in [
             "May I have the sponsor's Email Address, please?",
             "May i know your Email address",
+            "May I have the Client Email Address, please?",
         ]:
             # Regex pattern for validating email address
             email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
@@ -3030,22 +3103,34 @@ def process_user_input(user_input: UserInput):
                     next_question = questions[
                         conversation_state["current_question_index"]
                     ]
+
+                    # Determine appropriate response based on current flow and question
+                    if (
+                        current_flow == "sma"
+                        and question == "May I have the Client Email Address, please?"
+                    ):
+                        thank_you_message = "Thank you for providing the client's email"
+                    else:
+                        thank_you_message = (
+                            "Thank you for providing the sponsor's email"
+                        )
+
                     if "options" in next_question:
                         options = ", ".join(next_question["options"])
                         next_questions = next_question["question"]
                         return {
-                            "response": f"Thank you for providing the sponsor's email. Now, let's move on to: {next_questions}",
+                            "response": f"{thank_you_message}. Now, let's move on to: {next_questions}",
                             "options": options,
                         }
                     else:
                         return {
-                            "response": f"Thank you for providing the sponsor's email. Now, let's move on to: {next_question}"
+                            "response": f"{thank_you_message}. Now, let's move on to: {next_question}"
                         }
                 else:
                     with open("user_responses.json", "w") as file:
                         json.dump(responses, file, indent=4)
                     return {
-                        "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                        "response": "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae",
                         "final_responses": responses,
                     }
             else:
@@ -3064,6 +3149,57 @@ def process_user_input(user_input: UserInput):
                     "question": f"Let's move back to: {question}",
                     "example": "The email address should be in this format: example@gmail.com",
                 }
+        elif (
+            question
+            == "Please upload an Excel file to get your medical insurance details"
+        ):
+            if conversation_state["current_question_index"] == questions.index(
+                question
+            ):
+                # Enhanced file path validation for Excel files
+                upload_pattern = re.compile(
+                    r"^uploads\/(?:[\w\s-]+\/)*[\w\s-]+\.(xlsx|xls)$",
+                    re.IGNORECASE,
+                )
+
+                if upload_pattern.match(user_message):
+                    # Valid Excel file format
+                    responses[question] = user_message
+
+                    # Store the Excel file path for processing
+                    responses["excel_file_path"] = user_message
+
+                    conversation_state["current_question_index"] += 1
+
+                    # Check if there are more questions
+                    if conversation_state["current_question_index"] < len(questions):
+                        next_question = questions[
+                            conversation_state["current_question_index"]
+                        ]
+                        if "options" in next_question:
+                            options = ", ".join(next_question["options"])
+                            next_questions = next_question["question"]
+                            return {
+                                "response": f"Thank you for uploading the Excel file. I've received your employee data. Now, let's move on to: {next_questions}",
+                                "options": options,
+                            }
+                        else:
+                            return {
+                                "response": f"Thank you for uploading the Excel file. I've received your employee data. Now, let's move on to: {next_question}"
+                            }
+                    else:
+                        # Save responses and end the conversation
+                        with open("user_responses.json", "w") as file:
+                            json.dump(responses, file, indent=4)
+                        return {
+                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "final_responses": responses,
+                        }
+                else:
+                    # Invalid file format
+                    return {
+                        "response": "The file format seems incorrect. Please upload a valid Excel file (xlsx or xls format)."
+                    }
         elif question == "Do you have an Insurance Advisor code?":
             return handle_adiviosr_code(
                 question, user_message, responses, conversation_state, questions
