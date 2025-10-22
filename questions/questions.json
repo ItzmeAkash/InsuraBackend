@@ -109,7 +109,8 @@
     },
     "May I have the Client Name, please?",
     "May I have the Client mobile number, please?",
-    "May I have the Client Email Address, please?"
+    "May I have the Client Email Address, please?",
+    "Please upload an Excel file to get your medical insurance details"
   ],
   "existing_policy_questions": [
     {

@@ -1,7 +1,14 @@
 from re import search
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from routes import chat, searchInternet, upload, pdf2text, excel_upload
+from routes import (
+    chat,
+    searchInternet,
+    upload,
+    pdf2text,
+    excel_upload,
+    language_detection,
+)
 from routes.pdf2text import get_pdf
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from utils.helper import transcribe_audio
@@ -65,4 +72,5 @@ app.include_router(searchInternet.router)
 app.include_router(pdf2text.router)
 app.include_router(upload.router)
 app.include_router(excel_upload.router)
+app.include_router(language_detection.router)
 # app.include_router(livekitToken.router)

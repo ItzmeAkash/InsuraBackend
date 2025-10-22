@@ -56,6 +56,410 @@ llm = ChatGroq(
 )
 
 
+# ==================== MULTI-LANGUAGE SUPPORT FUNCTIONS ====================
+
+
+def get_language_code(language_name: str) -> str:
+    """
+    Map language name to ISO 639-1 language code.
+
+    Args:
+        language_name: Language name (e.g., 'Arabic', 'English', 'Hindi')
+
+    Returns:
+        Language code (e.g., 'ar', 'en', 'hi')
+    """
+    language_map = {
+        "english": "en",
+        "arabic": "ar",
+        "hindi": "hi",
+        "urdu": "ur",
+        "french": "fr",
+        "spanish": "es",
+        "german": "de",
+        "italian": "it",
+        "portuguese": "pt",
+        "russian": "ru",
+        "chinese": "zh",
+        "japanese": "ja",
+        "korean": "ko",
+    }
+
+    # Normalize to lowercase and get code, default to 'en' if not found
+    return language_map.get(language_name.lower(), "en")
+
+
+def detect_language(text: str) -> dict:
+    """
+    Detect the language of the user's input using LLM.
+    Returns a dict with 'language' (e.g., 'Arabic', 'English') and 'code' (e.g., 'ar', 'en')
+    """
+    # Skip language detection for numeric inputs, very short text, or common responses
+    text_clean = text.strip()
+    if (
+        text_clean.isdigit()
+        or len(text_clean) <= 2
+        or text_clean.lower()
+        in ["yes", "no", "y", "n", "ok", "okay", "1", "2", "3", "4", "5"]
+    ):
+        print(
+            f"[Language Detection] Skipping detection for numeric/short input: '{text_clean}'"
+        )
+        return {"language": "English", "code": "en"}
+
+    detection_prompt = f"""Detect the language of this text: "{text}"
+
+Respond ONLY in this exact JSON format:
+{{
+    "language": "Language Name",
+    "code": "language_code"
+}}
+
+Examples:
+- For English: {{"language": "English", "code": "en"}}
+- For Arabic: {{"language": "Arabic", "code": "ar"}}
+- For Hindi: {{"language": "Hindi", "code": "hi"}}
+- For Urdu: {{"language": "Urdu", "code": "ur"}}
+- For French: {{"language": "French", "code": "fr"}}
+
+If mixed languages, identify the dominant one.
+If the text is mostly numbers or very short, default to English."""
+
+    try:
+        response = llm.invoke([
+            SystemMessage(
+                content="You are a language detection expert. Respond ONLY with valid JSON as instructed. For numeric inputs or very short text, default to English."
+            ),
+            HumanMessage(content=detection_prompt),
+        ])
+
+        # Parse the response
+        result = json.loads(response.content.strip())
+        return result
+    except (json.JSONDecodeError, Exception) as e:
+        # Default to English if detection fails
+        print(f"[Language Detection] Error: {e}. Defaulting to English.")
+        return {"language": "English", "code": "en"}
+
+
+def translate_text(
+    text: str, target_language: str, source_language: str = "auto"
+) -> str:
+    """
+    Translate text to the target language using LLM.
+
+    Args:
+        text: The text to translate
+        target_language: Target language (e.g., 'Arabic', 'English', 'Hindi')
+        source_language: Source language (default 'auto' for auto-detection)
+
+    Returns:
+        Translated text
+    """
+    if source_language == "auto":
+        translation_prompt = f"""Translate this text to {target_language}. Maintain the same tone and meaning.
+
+Text to translate: "{text}"
+
+Respond ONLY with the translated text, nothing else."""
+    else:
+        translation_prompt = f"""Translate this text from {source_language} to {target_language}. Maintain the same tone and meaning.
+
+Text to translate: "{text}"
+
+Respond ONLY with the translated text, nothing else."""
+
+    try:
+        response = llm.invoke([
+            SystemMessage(
+                content=f"You are a professional translator. Translate accurately while maintaining the original meaning and tone. For insurance and technical terms, use appropriate terminology in {target_language}."
+            ),
+            HumanMessage(content=translation_prompt),
+        ])
+
+        return response.content.strip()
+    except Exception as e:
+        # Return original text if translation fails
+        print(f"[Translation] Error: {e}. Returning original text.")
+        return text
+
+
+def validate_response_multilingual(
+    user_response: str, expected_values: list, user_language: str
+) -> dict:
+    """
+    Validate user response against expected values, supporting multiple languages.
+
+    Args:
+        user_response: The user's response in any language
+        expected_values: List of expected values in English
+        user_language: The language the user is speaking
+
+    Returns:
+        dict with 'is_valid' (bool), 'matched_value' (English version), 'explanation' (str)
+    """
+    validation_prompt = f"""You are validating a user's response for an insurance chatbot.
+
+User's response: "{user_response}"
+User's language: {user_language}
+
+Expected valid values (in English): {", ".join(expected_values)}
+
+Determine if the user's response matches any of the expected values. Consider:
+1. The response might be in {user_language}, so check for translations
+2. Consider synonyms and variations
+3. Be flexible but ensure accuracy
+
+Respond ONLY in this exact JSON format:
+{{
+    "is_valid": true/false,
+    "matched_value": "English version of the matched option" or null,
+    "explanation": "Brief explanation"
+}}"""
+
+    try:
+        response = llm.invoke([
+            SystemMessage(
+                content="You are a validation expert for a multilingual insurance chatbot. Be accurate and consider language variations."
+            ),
+            HumanMessage(content=validation_prompt),
+        ])
+
+        result = json.loads(response.content.strip())
+        return result
+    except Exception as e:
+        return {
+            "is_valid": False,
+            "matched_value": None,
+            "explanation": f"Validation error: {str(e)}",
+        }
+
+
+def format_response_in_language(
+    response_text: str,
+    options: list,
+    user_language: str,
+    message_type: str = None,
+    document_type: str = None,
+) -> dict:
+    """
+    Format the bot's response in the user's preferred language.
+
+    Args:
+        response_text: The response text in English
+        options: List of options in English (if any)
+        user_language: The target language
+        message_type: Optional metadata indicating message type (e.g., 'document_upload_request', 'confirmation', 'question')
+        document_type: Optional metadata indicating document type (e.g., 'emirates_id_front', 'driving_license', 'mulkiya', 'emirates_id_back', 'excel')
+
+    Returns:
+        dict with 'response' and optionally 'options', 'message_type', 'document_type'
+    """
+    print(f"[DEBUG format_response_in_language] User language: {user_language}")
+    print(f"[DEBUG format_response_in_language] Response text: {response_text}")
+    print(f"[DEBUG format_response_in_language] Options: {options}")
+    print(f"[DEBUG format_response_in_language] Message type: {message_type}")
+    print(f"[DEBUG format_response_in_language] Document type: {document_type}")
+
+    if user_language.lower() in ["english", "en"]:
+        result = {"response": response_text}
+        if options:
+            result["options"] = ", ".join(options)
+        if message_type:
+            result["message_type"] = message_type
+        if document_type:
+            result["document_type"] = document_type
+        # Always include language information for frontend
+        result["language"] = "English"
+        result["language_code"] = "en"
+        print(f"[DEBUG format_response_in_language] English result: {result}")
+        return result
+
+    # Translate response
+    translated_response = translate_text(response_text, user_language)
+    print(
+        f"[DEBUG format_response_in_language] Translated response: {translated_response}"
+    )
+    result = {"response": translated_response}
+
+    # Translate options if present
+    if options:
+        translated_options = [translate_text(opt, user_language) for opt in options]
+        result["options"] = ", ".join(translated_options)
+        print(
+            f"[DEBUG format_response_in_language] Translated options: {translated_options}"
+        )
+
+    # Add metadata (not translated - used for routing/logic)
+    if message_type:
+        result["message_type"] = message_type
+    if document_type:
+        result["document_type"] = document_type
+
+    # Always include language information for frontend
+    result["language"] = user_language
+    result["language_code"] = get_language_code(user_language)
+
+    print(f"[DEBUG format_response_in_language] Final result: {result}")
+    return result
+
+
+def translate_to_english_for_storage(text: str, detected_language: str) -> str:
+    """
+    Translate user's response to English for storage if not already in English.
+
+    Args:
+        text: The user's response
+        detected_language: The detected language of the text
+
+    Returns:
+        Text in English
+    """
+    if detected_language.lower() in ["english", "en"]:
+        return text
+
+    # Translate to English
+    return translate_text(text, "English", detected_language)
+
+
+def detect_document_type_from_question(question_text: str) -> tuple:
+    """
+    Detect message type and document type from question text.
+
+    Args:
+        question_text: The question text (English)
+
+    Returns:
+        tuple: (message_type, document_type) or (None, None) if not a document question
+    """
+    question_lower = question_text.lower()
+
+    # Document upload requests
+    if "front page" in question_lower and (
+        "document" in question_lower or "emirates" in question_lower
+    ):
+        return ("document_upload_request", "emirates_id_front")
+    elif "back page" in question_lower and (
+        "document" in question_lower or "emirates" in question_lower
+    ):
+        return ("document_upload_request", "emirates_id_back")
+    elif "driving license" in question_lower or "driving licence" in question_lower:
+        return ("document_upload_request", "driving_license")
+    elif "mulkiya" in question_lower:
+        return ("document_upload_request", "mulkiya")
+    elif "excel" in question_lower and "upload" in question_lower:
+        return ("document_upload_request", "excel")
+    elif "upload" in question_lower and "document" in question_lower:
+        return ("document_upload_request", "emirates_id")
+
+    # Not a document upload question
+    return (None, None)
+
+
+# ==================== END MULTI-LANGUAGE SUPPORT ====================
+
+
+def handle_option_validation_multilingual(
+    user_message: str,
+    valid_options: list,
+    question: str,
+    user_language: str,
+    conversation_state: dict,
+    questions: list,
+    responses: dict,
+    user_id: str,
+) -> dict:
+    """
+    Generic handler for option-based questions with multilingual support.
+
+    Args:
+        user_message: User's response
+        valid_options: List of valid options in English
+        question: The current question being asked
+        user_language: User's preferred language
+        conversation_state: Current conversation state
+        questions: List of all questions
+        responses: User's responses so far
+        user_id: User identifier
+
+    Returns:
+        Response dictionary
+    """
+    # Validate using multilingual validation
+    validation_result = validate_response_multilingual(
+        user_message, valid_options, user_language
+    )
+
+    if validation_result["is_valid"]:
+        # Store the English version
+        english_value = validation_result["matched_value"]
+        responses[question] = english_value
+        conversation_state["current_question_index"] += 1
+
+        # Check if there are more questions
+        if conversation_state["current_question_index"] < len(questions):
+            next_question = questions[conversation_state["current_question_index"]]
+
+            if isinstance(next_question, dict):
+                next_question_text = next_question["question"]
+                next_options = next_question.get("options", [])
+                response_message = (
+                    f"Thank you! Now, let's move on to: {next_question_text}"
+                )
+                # Detect document type from question
+                msg_type, doc_type = detect_document_type_from_question(
+                    next_question_text
+                )
+                return format_response_in_language(
+                    response_message, next_options, user_language, msg_type, doc_type
+                )
+            else:
+                response_message = f"Thank you! Now, let's move on to: {next_question}"
+                # Detect document type from question
+                msg_type, doc_type = detect_document_type_from_question(next_question)
+                return format_response_in_language(
+                    response_message, [], user_language, msg_type, doc_type
+                )
+        else:
+            # Save responses
+            with open("user_responses.json", "w") as file:
+                json.dump(responses, file, indent=4)
+            if user_id in user_states:
+                del user_states[user_id]
+
+            final_message = "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask."
+            result = format_response_in_language(final_message, [], user_language)
+            result["final_responses"] = responses
+            return result
+    else:
+        # Invalid response - provide helpful error
+        error_prompt = (
+            f"The user said '{user_message}' but needs to choose from: {', '.join(valid_options)}. "
+            "Provide a brief, helpful message explaining they need to select a valid option."
+        )
+        error_response = llm.invoke([
+            SystemMessage(
+                content=f"You are Insura, a friendly insurance assistant. Respond in {user_language}. "
+                "Be brief and helpful."
+            ),
+            HumanMessage(content=error_prompt),
+        ])
+
+        retry_message = f"Let's try again: {question}"
+        retry_translated = translate_text(retry_message, user_language)
+
+        # Translate options for display
+        translated_options = [
+            translate_text(opt, user_language) for opt in valid_options
+        ]
+
+        return {
+            "response": error_response.content.strip(),
+            "question": retry_translated,
+            "options": ", ".join(translated_options),
+        }
+
+
 def list_pdfs(directory="pdf"):
     """List all PDF file names (without extension) in the specified directory."""
     return [os.path.splitext(f)[0] for f in os.listdir(directory) if f.endswith(".pdf")]
@@ -110,13 +514,183 @@ def process_user_input(user_input: UserInput):
             "last_chronic_conditions_time": None,
             "awaiting_chronic_conditions_followup": False,
             "takaful_emarat_asked": False,
+            "preferred_language": "English",  # Default language
+            "language_code": "en",
+            "language_explicitly_set": False,  # Track if user explicitly set language
         }
 
     conversation_state = user_states[user_id]
     user_name = get_user_name(user_id)
 
+    # ==================== LANGUAGE DETECTION ====================
+    # Check for explicit language requests first
+    language_requests = {
+        "say in arabic": {"language": "Arabic", "code": "ar"},
+        "arabic": {"language": "Arabic", "code": "ar"},
+        "عربي": {"language": "Arabic", "code": "ar"},
+        "بالعربية": {"language": "Arabic", "code": "ar"},
+        "say in hindi": {"language": "Hindi", "code": "hi"},
+        "hindi": {"language": "Hindi", "code": "hi"},
+        "हिंदी": {"language": "Hindi", "code": "hi"},
+        "say in urdu": {"language": "Urdu", "code": "ur"},
+        "urdu": {"language": "Urdu", "code": "ur"},
+        "اردو": {"language": "Urdu", "code": "ur"},
+        "say in english": {"language": "English", "code": "en"},
+        "english": {"language": "English", "code": "en"},
+    }
+
+    # Check if this is a document upload success message (define this before the if/else block)
+    is_document_upload_success = (
+        "document upload successfully" in user_message.lower()
+        or "upload successfully" in user_message.lower()
+        or "file uploaded" in user_message.lower()
+        or "document uploaded" in user_message.lower()
+    )
+
+    # Check if user is making an explicit language request
+    user_message_lower = user_message.lower().strip()
+    if user_message_lower in language_requests:
+        requested_lang = language_requests[user_message_lower]
+        conversation_state["preferred_language"] = requested_lang["language"]
+        conversation_state["language_code"] = requested_lang["code"]
+        conversation_state["language_explicitly_set"] = True  # Mark as explicitly set
+        print(
+            f"[Language Request] User {user_id} explicitly requested {requested_lang['language']}"
+        )
+        user_language = requested_lang["language"]
+    else:
+        # Only detect language for the first few messages or when user explicitly changes language
+        # Don't change language for numeric inputs, short responses, or when already in a flow
+        current_flow = conversation_state.get("current_flow", "initial")
+        current_question_index = conversation_state.get("current_question_index", 0)
+
+        # Check if this is a numeric input, very short response, or document upload success message
+        is_numeric_or_short = (
+            user_message.strip().isdigit()
+            or len(user_message.strip()) <= 3
+            or user_message.strip().lower() in ["yes", "no", "y", "n", "ok", "okay"]
+        )
+
+        # Only detect language if:
+        # 1. Language was not explicitly set by user
+        # 2. We're still in initial flow (first few questions)
+        # 3. User hasn't established a language preference yet
+        # 4. The input is not numeric/short
+        # 5. The input is not a document upload success message (regardless of current language)
+        should_detect_language = (
+            not conversation_state.get("language_explicitly_set", False)
+            and current_flow == "initial"
+            and current_question_index < 3
+            and not is_numeric_or_short
+            and not is_document_upload_success  # This prevents language detection for document upload messages in ANY language
+            and conversation_state.get("preferred_language", "English") == "English"
+        )
+
+        if should_detect_language:
+            detected_lang = detect_language(user_message)
+            print(f"[DEBUG] Detected language: {detected_lang}")
+
+            # Update the user's preferred language if it's different
+            if detected_lang["language"] != conversation_state.get(
+                "preferred_language", "English"
+            ):
+                conversation_state["preferred_language"] = detected_lang["language"]
+                conversation_state["language_code"] = detected_lang["code"]
+                print(
+                    f"[Language Detection] User {user_id} switched to {detected_lang['language']}"
+                )
+        else:
+            reason = "unknown"
+            if conversation_state.get("language_explicitly_set", False):
+                reason = "language explicitly set by user"
+            elif current_flow != "initial":
+                reason = "not in initial flow"
+            elif current_question_index >= 3:
+                reason = "beyond initial questions"
+            elif is_numeric_or_short:
+                reason = "numeric or short input"
+            elif is_document_upload_success:
+                reason = "document upload success message"
+            elif conversation_state.get("preferred_language", "English") != "English":
+                reason = "language already established"
+
+            print(
+                f"[DEBUG] Skipping language detection ({reason}) - preserving current language: {conversation_state.get('preferred_language', 'English')}"
+            )
+
+        user_language = conversation_state.get("preferred_language", "English")
+
+    print(f"[DEBUG] Final user language: {user_language}")
+    # ==================== END LANGUAGE DETECTION ====================
+
+    # Handle document upload success messages - maintain current language flow
+    if is_document_upload_success:
+        print(
+            f"[DEBUG] Document upload success detected - maintaining current language: {user_language}"
+        )
+        # Continue with the current flow without changing language
+        # The system will proceed to the next question in the same language
+
+    # Handle language requests - present current question in new language
+    if user_message_lower in language_requests:
+        # Get current question
+        current_question_index = conversation_state.get("current_question_index", 0)
+        current_flow = conversation_state.get("current_flow", "initial")
+
+        # Get the appropriate questions list based on current flow
+        if current_flow == "initial":
+            questions_list = initial_questions
+        elif current_flow == "medical" or current_flow == "medical_insurance":
+            questions_list = medical_questions
+        elif current_flow == "individual":
+            questions_list = individual_questions
+        elif current_flow == "sma":
+            questions_list = sma_questions
+        elif current_flow == "motor" or current_flow == "motor_insurance":
+            questions_list = motor_insurance_questions
+        elif current_flow == "car" or current_flow == "car_questions":
+            questions_list = car_questions
+        elif current_flow == "bike" or current_flow == "bike_questions":
+            questions_list = bike_questions
+        elif current_flow == "existing_policy":
+            questions_list = existing_policy_questions
+        elif current_flow == "motor_claim":
+            questions_list = motor_claim
+        else:
+            questions_list = initial_questions
+
+        # Present current question in new language
+        if current_question_index < len(questions_list):
+            current_question = questions_list[current_question_index]
+            if isinstance(current_question, dict):
+                question_text = current_question["question"]
+                options = current_question.get("options", [])
+                return format_response_in_language(
+                    question_text, options, user_language
+                )
+            else:
+                return format_response_in_language(current_question, [], user_language)
+        else:
+            # No current question, show welcome
+            first_question = initial_questions[0]
+            if isinstance(first_question, dict):
+                question_text = first_question["question"]
+                options = first_question.get("options", [])
+                return format_response_in_language(
+                    question_text, options, user_language
+                )
+            else:
+                return format_response_in_language(first_question, [], user_language)
+
     # Handle cancel command - reset everything and start fresh
     if user_message.lower() in ["cancel", "restart", "reset", "start over"]:
+        # Save the language preference before resetting
+        saved_language = conversation_state.get("preferred_language", "English")
+        saved_language_code = conversation_state.get("language_code", "en")
+        saved_language_explicitly_set = conversation_state.get(
+            "language_explicitly_set", False
+        )
+
         # Reset the entire conversation state
         user_states[user_id] = {
             "current_question_index": 0,
@@ -130,6 +704,9 @@ def process_user_input(user_input: UserInput):
             "last_chronic_conditions_time": None,
             "awaiting_chronic_conditions_followup": False,
             "takaful_emarat_asked": False,
+            "preferred_language": saved_language,  # Preserve language
+            "language_code": saved_language_code,
+            "language_explicitly_set": saved_language_explicitly_set,  # Preserve explicit setting
         }
 
         # Return the first initial question
@@ -137,22 +714,17 @@ def process_user_input(user_input: UserInput):
         if isinstance(first_question, dict):
             question_text = first_question["question"]
             options = first_question.get("options", [])
-            if options:
-                return {
-                    "response": "Your conversation has been reset. Let's start fresh! "
-                    + question_text,
-                    "options": ", ".join(options),
-                }
-            else:
-                return {
-                    "response": "Your conversation has been reset. Let's start fresh! "
-                    + question_text
-                }
+            reset_message = (
+                "Your conversation has been reset. Let's start fresh! " + question_text
+            )
+
+            # Format response in user's language
+            return format_response_in_language(reset_message, options, saved_language)
         else:
-            return {
-                "response": "Your conversation has been reset. Let's start fresh! "
-                + first_question
-            }
+            reset_message = (
+                "Your conversation has been reset. Let's start fresh! " + first_question
+            )
+            return format_response_in_language(reset_message, [], saved_language)
 
     # Handle Takaful Emarat Silver query
     if "takaful emarat silver" in user_message.lower():
@@ -388,10 +960,14 @@ def process_user_input(user_input: UserInput):
             conversation_state["chronic_conditions_shown"] = False  # Reset the flag
             first_question = initial_questions[0]
             next_options = first_question.get("options", [])
-            return {
-                "response": f"Alright, let's go back to the main menu. {first_question['question']}",
-                "options": ", ".join(next_options),
-            }
+            response_message = (
+                f"Alright, let's go back to the main menu. {first_question['question']}"
+            )
+
+            # Translate to user's language
+            return format_response_in_language(
+                response_message, next_options, user_language
+            )
 
     # Check for Chronic conditions follow-up (show options after response)
     if (
@@ -422,10 +998,12 @@ def process_user_input(user_input: UserInput):
             conversation_state["current_question_index"] = 0
             first_question = initial_questions[0]
             next_options = first_question.get("options", [])
-            return {
-                "response": f"Alright, let's move on. {first_question['question']}",
-                "options": ", ".join(next_options),
-            }
+            response_message = f"Alright, let's move on. {first_question['question']}"
+
+            # Translate to user's language
+            return format_response_in_language(
+                response_message, next_options, user_language
+            )
 
     # Check for Takaful follow-up (handle questions after initial response)
     if conversation_state.get(
@@ -453,7 +1031,9 @@ def process_user_input(user_input: UserInput):
         greeting = choice(greeting_templates).format(
             user_name=user_name, first_question=first_question["question"]
         )
-        return {"response": greeting, "options": ", ".join(next_options)}
+
+        # Translate greeting and options to user's language
+        return format_response_in_language(greeting, next_options, user_language)
 
     # Determine the current flow and questions
     current_flow = conversation_state["current_flow"]
@@ -496,108 +1076,168 @@ def process_user_input(user_input: UserInput):
 
         # Handle options
         if options:
-            # Validate user response against options
-            if user_message in options:
-                responses[question] = user_message
-                if user_message == "Purchase a Medical Insurance":
+            # Validate user response against options using multilingual validation
+            validation_result = validate_response_multilingual(
+                user_message, options, user_language
+            )
+
+            if validation_result["is_valid"]:
+                # Store the English version
+                matched_option = validation_result["matched_value"]
+                responses[question] = matched_option
+
+                if matched_option == "Purchase a Medical Insurance":
                     conversation_state["current_flow"] = "medical_insurance"
                     conversation_state["current_question_index"] = 0
 
                     # Check if medical_questions is a list of dictionaries
                     if isinstance(medical_questions[0], dict):
                         next_options = medical_questions[0].get("options", [])
-                        return {
-                            "response": f"Great choice! {medical_questions[0]['question']}",
-                            "options": ", ".join(next_options),
-                        }
+                        response_message = (
+                            f"Great choice! {medical_questions[0]['question']}"
+                        )
+                        # Translate to user's language
+                        return format_response_in_language(
+                            response_message, next_options, user_language
+                        )
                     # If medical_questions is a list of strings
                     else:
-                        return {
-                            "response": f"Great choice! {medical_questions[0]}",
-                        }
-                elif user_message == "Purchase a Motor Insurance":
+                        response_message = f"Great choice! {medical_questions[0]}"
+                        return format_response_in_language(
+                            response_message, [], user_language
+                        )
+                elif matched_option == "Purchase a Motor Insurance":
                     conversation_state["current_flow"] = "motor_insurance"
                     conversation_state["current_question_index"] = 0
                     next_options = motor_insurance_questions[0].get("options", [])
+                    response_message = (
+                        f"Great choice! {motor_insurance_questions[0]['question']}"
+                    )
 
-                    return {
-                        "response": f"Great choice! {motor_insurance_questions[0]['question']}",
-                        "options": ", ".join(next_options),
-                    }
-                elif user_message == "Purchase a Car Insurance":
+                    # Translate to user's language
+                    return format_response_in_language(
+                        response_message, next_options, user_language
+                    )
+                elif matched_option == "Purchase a Car Insurance":
                     conversation_state["current_flow"] = "car_questions"
                     conversation_state["current_question_index"] = 0
-                    # Check if medical_questions is a list of dictionaries
-                    if isinstance(medical_questions[0], dict):
-                        next_options = medical_questions[0].get("options", [])
-                        return {
-                            "response": f"Great choice! {medical_questions[0]['question']}",
-                            "options": ", ".join(next_options),
-                        }
-                    # If medical_questions is a list of strings
+                    # Check if car_questions is a list of dictionaries
+                    if isinstance(car_questions[0], dict):
+                        next_options = car_questions[0].get("options", [])
+                        response_message = (
+                            f"Great choice! {car_questions[0]['question']}"
+                        )
                     else:
-                        return {
-                            "response": f"Great choice! {medical_questions[0]}",
-                        }
+                        next_options = []
+                        response_message = f"Great choice! {car_questions[0]}"
 
-                elif user_message == "Purchase a Bike Insurance":
+                    # Translate to user's language
+                    return format_response_in_language(
+                        response_message, next_options, user_language
+                    )
+
+                elif matched_option == "Purchase a Bike Insurance":
                     conversation_state["current_flow"] = "bike_questions"
                     conversation_state["current_question_index"] = 0
-                    # Check if medical_questions is a list of dictionaries
-                    if isinstance(medical_questions[0], dict):
-                        next_options = medical_questions[0].get("options", [])
-                        return {
-                            "response": f"Great choice! {medical_questions[0]['question']}",
-                            "options": ", ".join(next_options),
-                        }
-                    # If medical_questions is a list of strings
+                    # Check if bike_questions is a list of dictionaries
+                    if isinstance(bike_questions[0], dict):
+                        next_options = bike_questions[0].get("options", [])
+                        response_message = (
+                            f"Great choice! {bike_questions[0]['question']}"
+                        )
                     else:
-                        return {
-                            "response": f"Great choice! {medical_questions[0]}",
-                        }
-                # elif user_message == "Purchase a new policy":
+                        next_options = []
+                        response_message = f"Great choice! {bike_questions[0]}"
+
+                    # Translate to user's language
+                    return format_response_in_language(
+                        response_message, next_options, user_language
+                    )
+                # elif matched_option == "Purchase a new policy":
                 #     conversation_state["current_flow"] = "new_policy"
                 #     conversation_state["current_question_index"] = 0
                 #     return {
                 #         "response": f"Great choice! {new_policy_questions[0]}"
                 #     }
-                elif user_message == "Renew my existing policy":
+                elif matched_option == "Renew my existing policy":
                     conversation_state["current_flow"] = "existing_policy"
                     conversation_state["current_question_index"] = 0
-                    # Check if medical_questions is a list of dictionaries
-                    if isinstance(medical_questions[0], dict):
-                        next_options = medical_questions[0].get("options", [])
-                        return {
-                            "response": f"Great choice! {medical_questions[0]['question']}",
-                            "options": ", ".join(next_options),
-                        }
-                    # If medical_questions is a list of strings
+                    # Check if existing_policy_questions is a list of dictionaries
+                    if isinstance(existing_policy_questions[0], dict):
+                        next_options = existing_policy_questions[0].get("options", [])
+                        response_message = (
+                            f"Great choice! {existing_policy_questions[0]['question']}"
+                        )
                     else:
-                        return {
-                            "response": f"Great choice! {medical_questions[0]}",
-                        }
-                elif user_message == "Claim a Motor Insurance":
+                        next_options = []
+                        response_message = (
+                            f"Great choice! {existing_policy_questions[0]}"
+                        )
+
+                    # Translate to user's language
+                    return format_response_in_language(
+                        response_message, next_options, user_language
+                    )
+                elif matched_option == "Claim a Motor Insurance":
                     conversation_state["current_flow"] = "motor_claim"
                     conversation_state["current_question_index"] = 0
-                    # Check if medical_questions is a list of dictionaries
-                    if isinstance(medical_questions[0], dict):
-                        next_options = medical_questions[0].get("options", [])
-                        return {
-                            "response": f"Great choice! {medical_questions[0]['question']}",
-                            "options": ", ".join(next_options),
-                        }
-                    # If medical_questions is a list of strings
+                    # Get the first motor_claim question
+                    if isinstance(motor_claim[0], dict):
+                        next_options = motor_claim[0].get("options", [])
+                        response_message = f"Great choice! {motor_claim[0]['question']}"
                     else:
-                        return {
-                            "response": f"Great choice! {medical_questions[0]}",
-                        }
+                        next_options = []
+                        response_message = f"Great choice! {motor_claim[0]}"
+
+                    # Translate to user's language
+                    return format_response_in_language(
+                        response_message, next_options, user_language
+                    )
+            else:
+                # Invalid option - provide helpful error in user's language
+                error_prompt = f"The user said '{user_message}' but needs to choose from: {', '.join(options)}. Provide a brief, helpful message."
+                error_response = llm.invoke([
+                    SystemMessage(
+                        content=f"You are Insura, a friendly insurance assistant. Respond in {user_language}. Be brief and helpful."
+                    ),
+                    HumanMessage(content=error_prompt),
+                ])
+
+                retry_message = f"Let's try again: {question}"
+                retry_translated = translate_text(retry_message, user_language)
+                translated_options = [
+                    translate_text(opt, user_language) for opt in options
+                ]
+
+                return {
+                    "response": error_response.content.strip(),
+                    "question": retry_translated,
+                    "options": ", ".join(translated_options),
+                }
 
         if question in [
             "Let's start with your Medical insurance details. Choose your Visa issued Emirate?",
             "Tell me your Emirate sponsor located in?",
         ]:
-            return handle_visa_issued_emirate_question(
-                user_message, conversation_state, questions, responses, question
+            # Use multilingual validation for emirate selection
+            valid_options = [
+                "Abudhabi",
+                "Ajman",
+                "Dubai",
+                "Fujairah",
+                "Ras Al Khaimah",
+                "Sharjah",
+                "Umm Al Quwain",
+            ]
+            return handle_option_validation_multilingual(
+                user_message,
+                valid_options,
+                question,
+                user_language,
+                conversation_state,
+                questions,
+                responses,
+                user_id,
             )
 
         elif "emaf" in user_message.lower() or "from" in user_message.lower():
@@ -711,33 +1351,38 @@ def process_user_input(user_input: UserInput):
                     next_question = questions[
                         conversation_state["current_question_index"]
                     ]
-                    next_question = questions[
-                        conversation_state["current_question_index"]
-                    ]
 
                     if "options" in next_question:
-                        options = ", ".join(next_question["options"])
-                        next_question = questions[
-                            conversation_state["current_question_index"]
-                        ]
-                        next_questions = next_question["question"]
-                        return {
-                            "response": f"Great choice!{next_questions}",
-                            "options": options,
-                        }
+                        options = next_question["options"]
+                        next_question_text = next_question["question"]
+                        response_message = f"Great choice! {next_question_text}"
+                        return format_response_in_language(
+                            response_message, options, user_language
+                        )
                     else:
-                        return {"response": f"Great choice!{next_question}"}
+                        next_question_text = (
+                            next_question["question"]
+                            if isinstance(next_question, dict)
+                            else next_question
+                        )
+                        response_message = f"Great choice! {next_question_text}"
+                        return format_response_in_language(
+                            response_message, [], user_language
+                        )
                 else:
                     with open("user_responses.json", "w") as file:
                         json.dump(responses, file, indent=4)
-                    return {
-                        "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                        "final_responses": responses,
-                    }
+                    final_message = "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask."
+                    result = format_response_in_language(
+                        final_message, [], user_language
+                    )
+                    result["final_responses"] = responses
+                    return result
             else:
-                return {
-                    "response": "Incorrect passkey. Please try again. Please Enter Your PassKey"
-                }
+                error_message = (
+                    "Incorrect passkey. Please try again. Please Enter Your PassKey"
+                )
+                return format_response_in_language(error_message, [], user_language)
 
         elif question == "May I know your name, please?":
             responses[question] = user_message
@@ -877,18 +1522,33 @@ def process_user_input(user_input: UserInput):
                     }
 
         elif question == "What type of plan are you looking for?":
-            return handle_type_plan_question(
-                user_message, conversation_state, questions, responses, question
+            # Use multilingual validation for plan type selection
+            valid_options = [
+                "Basic Plan",
+                "Enhanced Plan",
+                "Enhanced Plan Standalone",
+                "Flexi Plan",
+            ]
+            return handle_option_validation_multilingual(
+                user_message,
+                valid_options,
+                question,
+                user_language,
+                conversation_state,
+                questions,
+                responses,
+                user_id,
             )
 
         elif question == "Please Upload Your Document":
             try:
+                # Try to parse as JSON first
                 document_data = json.loads(user_message)
+                print(f"Parsed document data: {document_data}")
 
                 # Store the document data
                 if isinstance(document_data, dict):
                     responses[question] = document_data
-                    print(document_data)
 
                 # Initialize flags if they don't exist
                 if "back_page_received" not in responses:
@@ -945,10 +1605,20 @@ def process_user_input(user_input: UserInput):
                         )
                         responses[back_page_question["question"]] = None
 
-                    return {
-                        "response": "We couldn't detect the Back Page in the uploaded document",
-                        "question": back_page_question["question"],
-                    }
+                    response_message = (
+                        "We couldn't detect the Back Page in the uploaded document"
+                    )
+                    result = format_response_in_language(
+                        response_message,
+                        [],
+                        user_language,
+                        message_type="document_upload_request",
+                        document_type="emirates_id_back",
+                    )
+                    result["question"] = translate_text(
+                        back_page_question["question"], user_language
+                    )
+                    return result
                 elif not responses["front_page_received"]:
                     # Need to ask for front page
                     if front_page_question not in questions:
@@ -958,10 +1628,20 @@ def process_user_input(user_input: UserInput):
                         )
                         responses[front_page_question["question"]] = None
 
-                    return {
-                        "response": "We couldn't detect the Front Page in the uploaded document",
-                        "question": front_page_question["question"],
-                    }
+                    response_message = (
+                        "We couldn't detect the Front Page in the uploaded document"
+                    )
+                    result = format_response_in_language(
+                        response_message,
+                        [],
+                        user_language,
+                        message_type="document_upload_request",
+                        document_type="emirates_id_front",
+                    )
+                    result["question"] = translate_text(
+                        front_page_question["question"], user_language
+                    )
+                    return result
 
                 # If both pages have been received, continue with normal flow
                 conversation_state["current_question_index"] += 1
@@ -977,56 +1657,79 @@ def process_user_input(user_input: UserInput):
                         conversation_state["current_question_index"]
                     ]
                     if isinstance(next_question, dict) and "options" in next_question:
-                        options = ", ".join(next_question["options"])
-                        next_questions = next_question["question"]
-                        return {
-                            "response": f"Thank you for uploading the document. Now, let's move on to: {next_questions}",
-                            "options": options,
-                        }
+                        options = next_question["options"]
+                        next_question_text = next_question["question"]
+                        response_message = f"Thank you for uploading the document. Now, let's move on to: {next_question_text}"
+                        # Detect document type from next question
+                        msg_type, doc_type = detect_document_type_from_question(
+                            next_question_text
+                        )
+                        return format_response_in_language(
+                            response_message, options, user_language, msg_type, doc_type
+                        )
                     else:
                         next_question_text = (
                             next_question["question"]
                             if isinstance(next_question, dict)
                             else next_question
                         )
-                        return {
-                            "response": f"Thank you for uploading the document. Now, let's move on to: {next_question_text}"
-                        }
+                        response_message = f"Thank you for uploading the document. Now, let's move on to: {next_question_text}"
+                        # Detect document type from next question
+                        msg_type, doc_type = detect_document_type_from_question(
+                            next_question_text
+                        )
+                        return format_response_in_language(
+                            response_message, [], user_language, msg_type, doc_type
+                        )
                 else:
                     with open("user_responses.json", "w") as file:
                         json.dump(responses, file, indent=4)
-                    return {
-                        "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                        "final_responses": responses,
-                    }
+                    final_message = "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask."
+                    result = format_response_in_language(
+                        final_message, [], user_language
+                    )
+                    result["final_responses"] = responses
+                    return result
 
             except json.JSONDecodeError:
                 # Handle invalid JSON input
-                general_assistant_prompt = (
-                    f"user response: {user_message}. Please assist."
-                )
+                general_assistant_prompt = f"user response: {user_message}. Please assist them in {user_language}."
                 general_assistant_response = llm.invoke([
                     SystemMessage(
-                        content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                        content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
                     ),
                     HumanMessage(content=general_assistant_prompt),
                 ])
+                retry_question = translate_text(
+                    f"Let's try again: {question}", user_language
+                )
+                example_message = translate_text(
+                    "Please ensure that the document is in JPEG format.", user_language
+                )
                 return {
                     "response": f"{general_assistant_response.content.strip()} \n\n",
-                    "example": "Please ensure that the document is in JPEG format.",
-                    "question": f"Let's try again: {question}",
+                    "example": example_message,
+                    "question": retry_question,
                 }
             except ValueError as e:
-                general_assistant_prompt = (
-                    f"user response: {user_message}. Please assist."
-                )
+                general_assistant_prompt = f"user response: {user_message}. Please assist them in {user_language}."
                 general_assistant_response = llm.invoke([
-                    HumanMessage(content=general_assistant_prompt)
+                    SystemMessage(
+                        content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                    ),
+                    HumanMessage(content=general_assistant_prompt),
                 ])
+                retry_question = translate_text(
+                    f"Let's try again: {question}", user_language
+                )
+                example_message = translate_text(
+                    "Please ensure the document is in the correct format and try uploading again.",
+                    user_language,
+                )
                 return {
                     "response": f"{general_assistant_response.content.strip()} \n\n",
-                    "example": "Please ensure the document is in the correct format and try uploading again.",
-                    "question": f"Let's try again: {question}",
+                    "example": example_message,
+                    "question": retry_question,
                 }
         elif question == "Please Upload Back Page of Your Document":
             try:
@@ -1045,54 +1748,86 @@ def process_user_input(user_input: UserInput):
                             conversation_state["current_question_index"]
                         ]
                         if "options" in next_question:
-                            options = ", ".join(next_question["options"])
-                            next_questions = next_question["question"]
-                            return {
-                                "response": f"Thank you for uploading the document. Now, let's move on to: {next_questions}",
-                                "options": options,
-                            }
+                            options = next_question["options"]
+                            next_question_text = next_question["question"]
+                            response_message = f"Thank you for uploading the document. Now, let's move on to: {next_question_text}"
+                            # Detect document type from next question
+                            msg_type, doc_type = detect_document_type_from_question(
+                                next_question_text
+                            )
+                            return format_response_in_language(
+                                response_message,
+                                options,
+                                user_language,
+                                msg_type,
+                                doc_type,
+                            )
                         else:
-                            return {
-                                "response": f"Thank you for uploading the document. Now, let's move on to: {next_question}"
-                            }
+                            next_question_text = (
+                                next_question["question"]
+                                if isinstance(next_question, dict)
+                                else next_question
+                            )
+                            response_message = f"Thank you for uploading the document. Now, let's move on to: {next_question_text}"
+                            # Detect document type from next question
+                            msg_type, doc_type = detect_document_type_from_question(
+                                next_question_text
+                            )
+                            return format_response_in_language(
+                                response_message, [], user_language, msg_type, doc_type
+                            )
                     else:
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
-                        return {
-                            "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                            "final_responses": responses,
-                        }
+                        final_message = "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask."
+                        result = format_response_in_language(
+                            final_message, [], user_language
+                        )
+                        result["final_responses"] = responses
+                        return result
                 else:
                     raise ValueError("Please Upload Again")
             except json.JSONDecodeError:
                 # Handle invalid JSON input
-                general_assistant_prompt = (
-                    f"user response: {user_message}. Please assist."
-                )
+                general_assistant_prompt = f"user response: {user_message}. Please assist them in {user_language}."
                 general_assistant_response = llm.invoke([
                     SystemMessage(
-                        content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                        content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
                     ),
                     HumanMessage(content=general_assistant_prompt),
                 ])
+                retry_question = translate_text(
+                    f"Let's try again: {question}", user_language
+                )
+                example_message = translate_text(
+                    "Please ensure that the document is in JPEG format.", user_language
+                )
 
                 return {
                     "response": (f"{general_assistant_response.content.strip()} \n\n"),
-                    "example": "Please ensure that the document is in JPEG format.",
-                    "question": f"Let's try again: {question}",
+                    "example": example_message,
+                    "question": retry_question,
                 }
             except ValueError as e:
-                general_assistant_prompt = (
-                    f"user response: {user_message}. Please assist."
-                )
+                general_assistant_prompt = f"user response: {user_message}. Please assist them in {user_language}."
                 general_assistant_response = llm.invoke([
-                    HumanMessage(content=general_assistant_prompt)
+                    SystemMessage(
+                        content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                    ),
+                    HumanMessage(content=general_assistant_prompt),
                 ])
+                retry_question = translate_text(
+                    f"Let's try again: {question}", user_language
+                )
+                example_message = translate_text(
+                    "Please ensure the document is in the correct format and try uploading again.",
+                    user_language,
+                )
 
                 return {
                     "response": (f"{general_assistant_response.content.strip()} \n\n"),
-                    "example": "Please ensure the document is in the correct format and try uploading again.",
-                    "question": f"Let's try again: {question}",
+                    "example": example_message,
+                    "question": retry_question,
                 }
         elif question == "Please Upload Front Page of Your Document":
             try:
@@ -1115,54 +1850,86 @@ def process_user_input(user_input: UserInput):
                             conversation_state["current_question_index"]
                         ]
                         if "options" in next_question:
-                            options = ", ".join(next_question["options"])
-                            next_questions = next_question["question"]
-                            return {
-                                "response": f"Thank you for uploading the document. Now, let's move on to: {next_questions}",
-                                "options": options,
-                            }
+                            options = next_question["options"]
+                            next_question_text = next_question["question"]
+                            response_message = f"Thank you for uploading the document. Now, let's move on to: {next_question_text}"
+                            # Detect document type from next question
+                            msg_type, doc_type = detect_document_type_from_question(
+                                next_question_text
+                            )
+                            return format_response_in_language(
+                                response_message,
+                                options,
+                                user_language,
+                                msg_type,
+                                doc_type,
+                            )
                         else:
-                            return {
-                                "response": f"Thank you for uploading the document. Now, let's move on to: {next_question}"
-                            }
+                            next_question_text = (
+                                next_question["question"]
+                                if isinstance(next_question, dict)
+                                else next_question
+                            )
+                            response_message = f"Thank you for uploading the document. Now, let's move on to: {next_question_text}"
+                            # Detect document type from next question
+                            msg_type, doc_type = detect_document_type_from_question(
+                                next_question_text
+                            )
+                            return format_response_in_language(
+                                response_message, [], user_language, msg_type, doc_type
+                            )
                     else:
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
-                        return {
-                            "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                            "final_responses": responses,
-                        }
+                        final_message = "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask."
+                        result = format_response_in_language(
+                            final_message, [], user_language
+                        )
+                        result["final_responses"] = responses
+                        return result
                 else:
                     raise ValueError("Please Upload Again")
             except json.JSONDecodeError:
                 # Handle invalid JSON input
-                general_assistant_prompt = (
-                    f"user response: {user_message}. Please assist."
-                )
+                general_assistant_prompt = f"user response: {user_message}. Please assist them in {user_language}."
                 general_assistant_response = llm.invoke([
                     SystemMessage(
-                        content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                        content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
                     ),
                     HumanMessage(content=general_assistant_prompt),
                 ])
+                retry_question = translate_text(
+                    f"Let's try again: {question}", user_language
+                )
+                example_message = translate_text(
+                    "Please ensure that the document is in JPEG format.", user_language
+                )
 
                 return {
                     "response": (f"{general_assistant_response.content.strip()} \n\n"),
-                    "example": "Please ensure that the document is in JPEG format.",
-                    "question": f"Let's try again: {question}",
+                    "example": example_message,
+                    "question": retry_question,
                 }
             except ValueError as e:
-                general_assistant_prompt = (
-                    f"user response: {user_message}. Please assist."
-                )
+                general_assistant_prompt = f"user response: {user_message}. Please assist them in {user_language}."
                 general_assistant_response = llm.invoke([
-                    HumanMessage(content=general_assistant_prompt)
+                    SystemMessage(
+                        content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                    ),
+                    HumanMessage(content=general_assistant_prompt),
                 ])
+                retry_question = translate_text(
+                    f"Let's try again: {question}", user_language
+                )
+                example_message = translate_text(
+                    "Please ensure the document is in the correct format and try uploading again.",
+                    user_language,
+                )
 
                 return {
                     "response": (f"{general_assistant_response.content.strip()} \n\n"),
-                    "example": "Please ensure the document is in the correct format and try uploading again.",
-                    "question": f"Let's try again: {question}",
+                    "example": example_message,
+                    "question": retry_question,
                 }
         elif question == "Please Upload Your Driving license":
             try:
@@ -1197,55 +1964,87 @@ def process_user_input(user_input: UserInput):
                             conversation_state["current_question_index"]
                         ]
                         if "options" in next_question:
-                            options = ", ".join(next_question["options"])
-                            next_questions = next_question["question"]
-                            return {
-                                "response": f"Thank you for uploading the document. Now, let's move on to: {next_questions}",
-                                "options": options,
-                            }
+                            options = next_question["options"]
+                            next_question_text = next_question["question"]
+                            response_message = f"Thank you for uploading the document. Now, let's move on to: {next_question_text}"
+                            # Detect document type from next question
+                            msg_type, doc_type = detect_document_type_from_question(
+                                next_question_text
+                            )
+                            return format_response_in_language(
+                                response_message,
+                                options,
+                                user_language,
+                                msg_type,
+                                doc_type,
+                            )
                         else:
-                            return {
-                                "response": f"Thank you for uploading the document. Now, let's move on to: {next_question}"
-                            }
+                            next_question_text = (
+                                next_question["question"]
+                                if isinstance(next_question, dict)
+                                else next_question
+                            )
+                            response_message = f"Thank you for uploading the document. Now, let's move on to: {next_question_text}"
+                            # Detect document type from next question
+                            msg_type, doc_type = detect_document_type_from_question(
+                                next_question_text
+                            )
+                            return format_response_in_language(
+                                response_message, [], user_language, msg_type, doc_type
+                            )
                     else:
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
                             del user_states[user_id]
-                        return {
-                            "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                            "final_responses": responses,
-                        }
+                        final_message = "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask."
+                        result = format_response_in_language(
+                            final_message, [], user_language
+                        )
+                        result["final_responses"] = responses
+                        return result
                 else:
                     raise ValueError("Please Upload Again")
             except json.JSONDecodeError:
                 # Handle invalid JSON input
-                general_assistant_prompt = (
-                    f"user response: {user_message}. Please assist."
-                )
+                general_assistant_prompt = f"user response: {user_message}. Please assist them in {user_language}."
                 general_assistant_response = llm.invoke([
                     SystemMessage(
-                        content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                        content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
                     ),
                     HumanMessage(content=general_assistant_prompt),
                 ])
+                retry_question = translate_text(
+                    f"Let's try again: {question}", user_language
+                )
+                example_message = translate_text(
+                    "Please ensure that the document is in JPEG format.", user_language
+                )
 
                 return {
                     "response": (f"{general_assistant_response.content.strip()} \n\n"),
-                    "example": "Please ensure that the document is in JPEG format.",
-                    "question": f"Let's try again: {question}",
+                    "example": example_message,
+                    "question": retry_question,
                 }
             except ValueError as e:
-                general_assistant_prompt = (
-                    f"user response: {user_message}. Please assist."
-                )
+                general_assistant_prompt = f"user response: {user_message}. Please assist them in {user_language}."
                 general_assistant_response = llm.invoke([
-                    HumanMessage(content=general_assistant_prompt)
+                    SystemMessage(
+                        content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                    ),
+                    HumanMessage(content=general_assistant_prompt),
                 ])
+                retry_question = translate_text(
+                    f"Let's try again: {question}", user_language
+                )
+                example_message = translate_text(
+                    "Please ensure the document is in the correct format and try uploading again.",
+                    user_language,
+                )
 
                 return {
                     "response": (f"{general_assistant_response.content.strip()} \n\n"),
-                    "example": "Please ensure the document is in the correct format and try uploading again.",
-                    "question": f"Let's try again: {question}",
+                    "example": example_message,
+                    "question": retry_question,
                 }
 
         elif question == "Please Upload Mulkiya":
@@ -1309,81 +2108,143 @@ def process_user_input(user_input: UserInput):
                             conversation_state["current_question_index"]
                         ]
                         if "options" in next_question:
-                            options = ", ".join(next_question["options"])
-                            next_questions = next_question["question"]
-                            return {
-                                "response": f"Thank you for uploading the document. Now, let's move on to: {next_questions}",
-                                "options": options,
-                            }
+                            options = next_question["options"]
+                            next_question_text = next_question["question"]
+                            response_message = f"Thank you for uploading the document. Now, let's move on to: {next_question_text}"
+                            # Detect document type from next question
+                            msg_type, doc_type = detect_document_type_from_question(
+                                next_question_text
+                            )
+                            return format_response_in_language(
+                                response_message,
+                                options,
+                                user_language,
+                                msg_type,
+                                doc_type,
+                            )
                         else:
-                            return {
-                                "response": f"Thank you for uploading the document. Now, let's move on to: {next_question}"
-                            }
+                            next_question_text = (
+                                next_question["question"]
+                                if isinstance(next_question, dict)
+                                else next_question
+                            )
+                            response_message = f"Thank you for uploading the document. Now, let's move on to: {next_question_text}"
+                            # Detect document type from next question
+                            msg_type, doc_type = detect_document_type_from_question(
+                                next_question_text
+                            )
+                            return format_response_in_language(
+                                response_message, [], user_language, msg_type, doc_type
+                            )
                     else:
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
                             del user_states[user_id]
-                        return {
-                            "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                            "final_responses": responses,
-                        }
+                        final_message = "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask."
+                        result = format_response_in_language(
+                            final_message, [], user_language
+                        )
+                        result["final_responses"] = responses
+                        return result
                 else:
                     raise ValueError("Please Upload Again")
             except json.JSONDecodeError:
                 # Handle invalid JSON input
-                general_assistant_prompt = (
-                    f"user response: {user_message}. Please assist."
-                )
+                general_assistant_prompt = f"user response: {user_message}. Please assist them in {user_language}."
                 general_assistant_response = llm.invoke([
                     SystemMessage(
-                        content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                        content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
                     ),
                     HumanMessage(content=general_assistant_prompt),
                 ])
+                retry_question = translate_text(
+                    f"Let's try again: {question}", user_language
+                )
+                example_message = translate_text(
+                    "Please ensure that the document is in JPEG format.", user_language
+                )
 
                 return {
                     "response": (f"{general_assistant_response.content.strip()} \n\n"),
-                    "example": "Please ensure that the document is in JPEG format.",
-                    "question": f"Let's try again: {question}",
+                    "example": example_message,
+                    "question": retry_question,
                 }
             except ValueError as e:
-                general_assistant_prompt = (
-                    f"user response: {user_message}. Please assist."
-                )
+                general_assistant_prompt = f"user response: {user_message}. Please assist them in {user_language}."
                 general_assistant_response = llm.invoke([
-                    HumanMessage(content=general_assistant_prompt)
+                    SystemMessage(
+                        content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                    ),
+                    HumanMessage(content=general_assistant_prompt),
                 ])
+                retry_question = translate_text(
+                    f"Let's try again: {question}", user_language
+                )
+                example_message = translate_text(
+                    "Please ensure the document is in the correct format and try uploading again.",
+                    user_language,
+                )
 
                 return {
                     "response": (f"{general_assistant_response.content.strip()} \n\n"),
-                    "example": "Please ensure the document is in the correct format and try uploading again.",
-                    "question": f"Let's try again: {question}",
+                    "example": example_message,
+                    "question": retry_question,
                 }
 
         elif question in ["Please confirm this gender of"]:
-            return handle_gender(
-                user_message, conversation_state, questions, responses, question
+            # Use multilingual validation for gender selection
+            valid_options = ["Male", "Female"]
+            return handle_option_validation_multilingual(
+                user_message,
+                valid_options,
+                question,
+                user_language,
+                conversation_state,
+                questions,
+                responses,
+                user_id,
             )
 
         elif (
             question
             == "Next, we need the details of the member. Would you like to upload their Emirates ID or manually enter the information?"
         ):
+            # Use the Emirates ID upload handler with multilingual support
             return handle_emirate_upload_document(
-                user_message, conversation_state, questions, responses, question
+                user_message,
+                conversation_state,
+                questions,
+                responses,
+                question,
+                user_language,
             )
         elif (
             question
             == "Next, we need the details of the car owner. Would you like to upload their Emirates ID or manually enter the information?"
         ):
+            # Use multilingual validation for Yes/No questions
+            valid_options = ["Yes", "No"]
             return handle_emirate_upload_document_car_insurance(
-                user_message, conversation_state, questions, responses, question
+                user_message,
+                conversation_state,
+                questions,
+                responses,
+                question,
+                user_language,
             )
 
         elif question == "You Wish to Buy":
             valid_options = ["Comprehensive (Full Cover)", "Third Party"]
-            if user_message in valid_options:
-                responses[question] = user_message
+
+            # Use multilingual validation
+            validation_result = validate_response_multilingual(
+                user_message, valid_options, user_language
+            )
+
+            if validation_result["is_valid"]:
+                # Store the English version of the response
+                english_value = validation_result["matched_value"]
+                responses[question] = english_value
                 conversation_state["current_question_index"] += 1
 
                 if conversation_state["current_question_index"] < len(questions):
@@ -1391,35 +2252,63 @@ def process_user_input(user_input: UserInput):
                         conversation_state["current_question_index"]
                     ]
                     if "options" in next_question:
-                        options = ", ".join(next_question["options"])
-                        next_questions = next_question["question"]
-                        return {
-                            "response": f"Thank you! Now, let's move on to: {next_questions}",
-                            "options": options,
-                        }
+                        next_questions_text = next_question["question"]
+                        next_options = next_question["options"]
+                        response_message = (
+                            f"Thank you! Now, let's move on to: {next_questions_text}"
+                        )
+
+                        # Format in user's language
+                        return format_response_in_language(
+                            response_message, next_options, user_language
+                        )
                     else:
-                        return {
-                            "response": f"Thank you. Now, let's move on to: {next_question}"
-                        }
+                        next_question_text = (
+                            next_question
+                            if isinstance(next_question, str)
+                            else next_question.get("question", "")
+                        )
+                        response_message = (
+                            f"Thank you. Now, let's move on to: {next_question_text}"
+                        )
+                        return format_response_in_language(
+                            response_message, [], user_language
+                        )
                 else:
                     with open("user_responses.json", "w") as file:
                         json.dump(responses, file, indent=4)
                     del user_states[user_id]
-                    return {
-                        "response": "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae.",
-                        "final_responses": responses,
-                    }
+
+                    final_message = "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae."
+
+                    result = format_response_in_language(
+                        final_message, [], user_language
+                    )
+                    result["final_responses"] = responses
+                    return result
             else:
                 # Handle invalid responses or unrelated queries
                 general_assistant_prompt = (
-                    f"user response: {user_message}. Please assist."
+                    f"user response: {user_message}. Please assist in a helpful manner. "
+                    f"Explain that they need to choose from: {', '.join(valid_options)}"
                 )
                 general_assistant_response = llm.invoke([
-                    HumanMessage(content=general_assistant_prompt)
+                    SystemMessage(
+                        content=f"You are Insura, a friendly insurance assistant. Respond in {user_language}. "
+                        "Help the user understand they need to select a valid option."
+                    ),
+                    HumanMessage(content=general_assistant_prompt),
                 ])
+
+                error_message = general_assistant_response.content.strip()
+                retry_question = translate_text(
+                    f"Let's try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}",
+                    user_language,
+                )
+
                 return {
-                    "response": f"{general_assistant_response.content.strip()}",
-                    "question": f"Let's try again: {question}\nPlease choose from the following options: {', '.join(valid_options)}",
+                    "response": error_message,
+                    "question": retry_question,
                 }
 
         elif question == "Let me know the make of the car":
@@ -1774,33 +2663,73 @@ def process_user_input(user_input: UserInput):
                     next_question = questions[
                         conversation_state["current_question_index"]
                     ]
+
+                    # Get the next question text
+                    next_question_text = (
+                        next_question["question"]
+                        if isinstance(next_question, dict)
+                        else next_question
+                    )
+
+                    # Translate response to user's language
+                    response_msg = translate_text(
+                        f"Thank you for providing the mobile number! 📱 Now, let's move on to: {next_question_text}",
+                        user_language,
+                    )
+
+                    # Handle options if they exist
+                    if isinstance(next_question, dict) and "options" in next_question:
+                        translated_options = [
+                            translate_text(opt, user_language)
+                            for opt in next_question["options"]
+                        ]
+                        return {
+                            "response": response_msg,
+                            "options": ", ".join(translated_options),
+                            "language": user_language,
+                            "language_code": get_language_code(user_language),
+                        }
+
                     return {
-                        "response": f"Thank you for providing the mobile number. Now, let's move on to: {next_question}"
+                        "response": response_msg,
+                        "language": user_language,
+                        "language_code": get_language_code(user_language),
                     }
                 else:
                     with open("user_responses.json", "w") as file:
                         json.dump(responses, file, indent=4)
+
+                    completion_msg = translate_text(
+                        "You're all set! 🎉 Thank you for providing your details. If you need further assistance, feel free to ask.",
+                        user_language,
+                    )
                     return {
-                        "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
+                        "response": completion_msg,
                         "final_responses": responses,
+                        "language": user_language,
+                        "language_code": get_language_code(user_language),
                     }
             else:
-                general_assistant_prompt = (
-                    f"The user entered '{user_message}', . Please assist."
-                )
+                general_assistant_prompt = f"The user entered '{user_message}'. Please assist them in {user_language}."
                 general_assistant_response = llm.invoke([
                     SystemMessage(
-                        content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                        content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
                     ),
                     HumanMessage(content=general_assistant_prompt),
                 ])
                 next_question = questions[conversation_state["current_question_index"]]
-                if "options" in next_question:
-                    next_question = next_question["question"]
-                    options = ", ".join(next_question["options"])
+                if isinstance(next_question, dict) and "options" in next_question:
+                    next_question_text = next_question["question"]
+                    translated_options = [
+                        translate_text(opt, user_language)
+                        for opt in next_question["options"]
+                    ]
+                    retry_msg = translate_text(
+                        f"Let's Move Back: {next_question_text}", user_language
+                    )
                     return {
                         "response": f"{general_assistant_response.content.strip()}",
-                        "question": f"Let's Move Back {next_question}",
+                        "question": retry_msg,
                         "options": options,
                     }
 
@@ -1871,17 +2800,36 @@ def process_user_input(user_input: UserInput):
 
         elif question == "What would you like to do today?":
             return handle_what_would_you_do_today_question(
-                user_message, conversation_state, questions, responses, question
+                user_message,
+                conversation_state,
+                questions,
+                responses,
+                question,
+                user_language,
             )
 
         elif question == "Please choose which one would you like to":
             return handle_individual_sma_choice(
-                user_message, conversation_state, questions, responses, question
+                user_message,
+                conversation_state,
+                questions,
+                responses,
+                question,
+                user_language,
             )
 
         elif question == "Please Confirm the marital status of":
-            return handle_marital_status(
-                user_message, conversation_state, questions, responses, question
+            # Use multilingual validation for marital status
+            valid_options = ["Single", "Married"]
+            return handle_option_validation_multilingual(
+                user_message,
+                valid_options,
+                question,
+                user_language,
+                conversation_state,
+                questions,
+                responses,
+                user_id,
             )
 
         elif question == "May I know sponsor's marital status?":
@@ -2694,12 +3642,22 @@ def process_user_input(user_input: UserInput):
 
         elif question == "Do you have a vehicle test passing certificate?":
             return handle_yes_or_no(
-                user_message, conversation_state, questions, responses, question
+                user_message,
+                conversation_state,
+                questions,
+                responses,
+                question,
+                user_language,
             )
 
         elif question == "Does your current policy have comprehensive cover?":
             return handle_yes_or_no(
-                user_message, conversation_state, questions, responses, question
+                user_message,
+                conversation_state,
+                questions,
+                responses,
+                question,
+                user_language,
             )
 
         elif question == "Does your policy include agency repair?":
@@ -2754,9 +3712,12 @@ def process_user_input(user_input: UserInput):
                     next_question = questions[
                         conversation_state["current_question_index"]
                     ]
-                    return {
-                        "response": f"Thank you! Now, let's move on to: {next_question}"
-                    }
+                    response_message = (
+                        f"Thank you! Now, let's move on to: {next_question}"
+                    )
+                    return format_response_in_language(
+                        response_message, [], user_language
+                    )
                 else:
                     try:
                         if (
@@ -2767,46 +3728,99 @@ def process_user_input(user_input: UserInput):
                             print(medical_detail_response)
                             del user_states[user_id]
                             if isinstance(medical_detail_response, int):
+                                # Translate the success response to user's language
+                                success_message = "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please find the link below to view your quotation:"
+                                review_message = "If you are satisfied with Wehbe(Broker) services, please leave a review for sharing happiness to others!!😊"
+
+                                translated_success = translate_text(
+                                    success_message, user_language
+                                )
+                                translated_review = translate_text(
+                                    review_message, user_language
+                                )
+
                                 return {
-                                    "response": f"Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please find the link below to view your quotation:",
+                                    "response": translated_success,
                                     "link": f"https://insurancelab.ae/customer_plan/{medical_detail_response}",
-                                    "review_message": "If you are satisfied with Wehbe(Broker) services, please leave a review for sharing happiness to others!!😊",
+                                    "review_message": translated_review,
                                     "review_link": "https://www.google.com/search?client=ms-android-samsung-ss&sca_esv=4eb717e6f42bf628&sxsrf=AHTn8zprabdPVFL3C2gXo4guY8besI3jqQ:1744004771562&q=wehbe+insurance+services+llc+reviews&uds=ABqPDvy-z0dcsfm2PY76_gjn-YWou9-AAVQ4iWjuLR6vmDV0vf3KpBMNjU5ZkaHGmSY0wBrWI3xO9O55WuDmXbDq6a3SqlwKf2NJ5xQAjebIw44UNEU3t4CpFvpLt9qFPlVh2F8Gfv8sMuXXSo2Qq0M_ZzbXbg2c323G_bE4tVi7Ue7d_sW0CrnycpJ1CvV-OyrWryZw_TeQ3gLGDgzUuHD04MpSHquYZaSQ0_mIHLWjnu7fu8c7nb6_aGDb_H1Q-86fD2VmWluYA5jxRkC9U2NsSwSSXV4FPW9w1Q2T_Wjt6koJvLgtikd66MqwYiJPX2x9MwLhoGYlpTbKtkJuHwE9eM6wQgieChskow6tJCVjQ75I315dT8n3tUtasGdBkprOlUK9ibPrYr9HqRz4AwzEQaxAq9_EDcsSG_XW0CHuqi2lRKHw592MlGlhjyQibXKSZJh-v3KW4wIVqa-2x0k1wfbZdpaO3BZaKYCacLOxwUKTnXPbQqDPLQDeYgDBwaTLvaCN221H&si=APYL9bvoDGWmsM6h2lfKzIb8LfQg_oNQyUOQgna9TyfQHAoqUvvaXjJhb-NHEJtDKiWdK3OqRhtZNP2EtNq6veOxTLUq88TEa2J8JiXE33-xY1b8ohiuDLBeOOGhuI1U6V4mDc9jmZkDoxLC9b6s6V8MAjPhY-EC_g%3D%3D&sa=X&sqi=2&ved=2ahUKEwi05JSHnMWMAxUw8bsIHRRCDd0Qk8gLegQIHxAB&ictx=1&stq=1&cs=0&lei=o2bzZ_SGIrDi7_UPlIS16A0#ebo=1",
+                                    "language": user_language,
+                                    "language_code": get_language_code(user_language),
                                 }
                             else:
+                                # Translate the fallback response to user's language
+                                fallback_message = "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae."
+                                translated_fallback = translate_text(
+                                    fallback_message, user_language
+                                )
                                 return {
-                                    "response": "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae."
+                                    "response": translated_fallback,
+                                    "language": user_language,
+                                    "language_code": get_language_code(user_language),
                                 }
                     except Exception as e:
+                        # Translate the error message to user's language
+                        error_message = f"An error occurred while fetching medical details: {str(e)}"
+                        translated_error = translate_text(error_message, user_language)
                         return {
-                            "response": f"An error occurred while fetching medical details: {str(e)}"
+                            "response": translated_error,
+                            "language": user_language,
+                            "language_code": get_language_code(user_language),
                         }
 
                     try:
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
+                        # Translate the no agent code message to user's language
+                        no_agent_message = "Since you don't have an agent code, we will arrange a callback from the next available agent to assist you further. Thank you!"
+                        translated_no_agent = translate_text(
+                            no_agent_message, user_language
+                        )
                         return {
-                            "response": "Since you don't have an agent code, we will arrange a callback from the next available agent to assist you further. Thank you!",
+                            "response": translated_no_agent,
                             "final_responses": responses,
+                            "language": user_language,
+                            "language_code": get_language_code(user_language),
                         }
                     except Exception as e:
+                        # Translate the save error message to user's language
+                        save_error_message = (
+                            f"An error occurred while saving your responses: {str(e)}"
+                        )
+                        translated_save_error = translate_text(
+                            save_error_message, user_language
+                        )
                         return {
-                            "response": f"An error occurred while saving your responses: {str(e)}"
+                            "response": translated_save_error,
+                            "language": user_language,
+                            "language_code": get_language_code(user_language),
                         }
             else:
                 # Handle invalid advisor code or unrelated query
-                # Here the `llm.invoke` and `HumanMessage` are placeholders, replace them with actual logic
                 general_assistant_prompt = (
-                    f"user response: {user_message}. Please assist."
+                    f"user response: {user_message}. Please assist in {user_language}."
                 )
                 general_assistant_response = llm.invoke([
-                    HumanMessage(content=general_assistant_prompt)
+                    SystemMessage(
+                        content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                    ),
+                    HumanMessage(content=general_assistant_prompt),
                 ])
 
+                # Translate the example message to user's language
+                example_message = "The Advisor code should be a 4-digit numeric value. Please enter a valid code"
+                translated_example = translate_text(example_message, user_language)
+
+                retry_question = translate_text(
+                    f"Let's try again: {question}", user_language
+                )
+
                 return {
-                    "response": (f"{general_assistant_response.content.strip()} \n\n"),
-                    "example": "The Advisor code should be a 4-digit numeric value. Please enter a valid code",
-                    "question": f"Let's try again: {question}",
+                    "response": f"{general_assistant_response.content.strip()}",
+                    "example": translated_example,
+                    "question": retry_question,
+                    "language": user_language,
+                    "language_code": get_language_code(user_language),
                 }
         elif question == "Could you please tell me the year your bike was made?":
             if conversation_state["current_question_index"] == questions.index(
@@ -3132,9 +4146,14 @@ def process_user_input(user_input: UserInput):
             "May i know your Email address",
             "May I have the Client Email Address, please?",
         ]:
-            # Regex pattern for validating email address
+            # Regex pattern for validating email address - also accept numbers
             email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-            if re.match(email_pattern, user_message):
+            # Check if it's an email or just numbers (accept both)
+            is_valid_input = (
+                re.match(email_pattern, user_message) or user_message.strip().isdigit()
+            )
+
+            if is_valid_input:
                 responses[question] = user_message
                 conversation_state["current_question_index"] += 1
 
@@ -3149,35 +4168,61 @@ def process_user_input(user_input: UserInput):
                         current_flow == "sma"
                         and question == "May I have the Client Email Address, please?"
                     ):
-                        thank_you_message = "Thank you for providing the client's email"
+                        thank_you_message = (
+                            "Thank you for providing the client's email! 📧"
+                        )
                     else:
                         thank_you_message = (
-                            "Thank you for providing the sponsor's email"
+                            "Thank you for providing the sponsor's email! 📧"
                         )
 
-                    if "options" in next_question:
-                        options = ", ".join(next_question["options"])
-                        next_questions = next_question["question"]
+                    # Get next question text
+                    next_question_text = (
+                        next_question["question"]
+                        if isinstance(next_question, dict)
+                        else next_question
+                    )
+
+                    # Translate response to user's language
+                    response_msg = translate_text(
+                        f"{thank_you_message} Now, let's move on to: {next_question_text}",
+                        user_language,
+                    )
+
+                    if isinstance(next_question, dict) and "options" in next_question:
+                        translated_options = [
+                            translate_text(opt, user_language)
+                            for opt in next_question["options"]
+                        ]
                         return {
-                            "response": f"{thank_you_message}. Now, let's move on to: {next_questions}",
-                            "options": options,
+                            "response": response_msg,
+                            "options": ", ".join(translated_options),
+                            "language": user_language,
+                            "language_code": get_language_code(user_language),
                         }
                     else:
                         return {
-                            "response": f"{thank_you_message}. Now, let's move on to: {next_question}"
+                            "response": response_msg,
+                            "language": user_language,
+                            "language_code": get_language_code(user_language),
                         }
                 else:
                     with open("user_responses.json", "w") as file:
                         json.dump(responses, file, indent=4)
+
+                    completion_msg = translate_text(
+                        "Thank you for sharing the details! 🎉 We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae",
+                        user_language,
+                    )
                     return {
-                        "response": "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae",
+                        "response": completion_msg,
                         "final_responses": responses,
+                        "language": user_language,
+                        "language_code": get_language_code(user_language),
                     }
             else:
                 # Handle invalid input
-                general_assistant_prompt = (
-                    f"The user entered '{user_message}'. Please assist."
-                )
+                general_assistant_prompt = f"The user entered '{user_message}'. Please assist them in {user_language}."
                 general_assistant_response = llm.invoke([
                     SystemMessage(
                         content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
@@ -3196,18 +4241,41 @@ def process_user_input(user_input: UserInput):
             if conversation_state["current_question_index"] == questions.index(
                 question
             ):
-                # Enhanced file path validation for Excel files
+                # Import user_states from excel_upload module
+                from routes.excel_upload import user_states as excel_user_states
+
+                # Check if user has uploaded Excel file via the upload-excel endpoint
+                excel_data_exists = (
+                    user_id in excel_user_states
+                    and "responses" in excel_user_states[user_id]
+                    and "excel_employee_data" in excel_user_states[user_id]["responses"]
+                )
+
+                # Also check for file path patterns (backwards compatibility)
                 upload_pattern = re.compile(
-                    r"^uploads\/(?:[\w\s-]+\/)*[\w\s-]+\.(xlsx|xls)$",
+                    r"^(?:uploads\/)?(?:[\w\s\-\.\/]+\/)*[\w\s\-\.]+\.(xlsx|xls)$",
                     re.IGNORECASE,
                 )
 
-                if upload_pattern.match(user_message):
-                    # Valid Excel file format
+                is_valid_file_path = (
+                    upload_pattern.match(user_message)
+                    or user_message.lower().endswith((".xlsx", ".xls"))
+                    or "uploaded" in user_message.lower()
+                    or "excel" in user_message.lower()
+                )
+
+                if excel_data_exists or is_valid_file_path:
+                    # Valid Excel file format or data exists
                     responses[question] = user_message
 
-                    # Store the Excel file path for processing
+                    # Store the Excel file path/confirmation for processing
                     responses["excel_file_path"] = user_message
+
+                    # If Excel data exists, store it in responses
+                    if excel_data_exists:
+                        responses["excel_employee_data"] = excel_user_states[user_id][
+                            "responses"
+                        ]["excel_employee_data"]
 
                     conversation_state["current_question_index"] += 1
 
@@ -3220,31 +4288,54 @@ def process_user_input(user_input: UserInput):
                             options = ", ".join(next_question["options"])
                             next_questions = next_question["question"]
                             return {
-                                "response": f"Thank you for uploading the Excel file. I've received your employee data. Now, let's move on to: {next_questions}",
+                                "response": f"Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Now, let's move on to: {next_questions}",
                                 "options": options,
                             }
                         else:
                             return {
-                                "response": f"Thank you for uploading the Excel file. I've received your employee data. Now, let's move on to: {next_question}"
+                                "response": f"Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Now, let's move on to: {next_question}"
                             }
                     else:
-                        # Save responses and end the conversation
+                        # Save responses and end the conversation - SMA flow completion
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
+
+                        # Reset conversation state to allow starting a new inquiry
+                        user_states[user_id] = {
+                            "current_question_index": 0,
+                            "responses": {},
+                            "current_flow": "initial",
+                            "welcome_shown": True,
+                            "awaiting_document_name": False,
+                            "document_name": "",
+                            "last_takaful_query_time": None,
+                            "awaiting_takaful_followup": False,
+                            "last_chronic_conditions_time": None,
+                            "awaiting_chronic_conditions_followup": False,
+                            "takaful_emarat_asked": False,
+                        }
+
                         return {
-                            "response": "Thank you for using Insuar. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                            "response": "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae",
                             "final_responses": responses,
                         }
                 else:
                     # Invalid file format
                     return {
-                        "response": "The file format seems incorrect. Please upload a valid Excel file (xlsx or xls format)."
+                        "response": "The file format seems incorrect. Please upload a valid Excel file (xlsx or xls format) using the upload button."
                     }
         elif question == "Do you have an Insurance Advisor code?":
+            # Use the advisor code handler with multilingual support
             return handle_adiviosr_code(
-                question, user_message, responses, conversation_state, questions
+                question,
+                user_message,
+                responses,
+                conversation_state,
+                questions,
+                user_language,
             )
         elif question == "Could you kindly share your relationship with the sponsor?":
+            # Use multilingual validation for relationship selection
             valid_options = [
                 "Investor",
                 "Employee",
@@ -3254,63 +4345,16 @@ def process_user_input(user_input: UserInput):
                 "Parent",
                 "Domestic",
             ]
-
-            if user_message in valid_options:
-                # Update the Response
-                responses[question] = user_message
-                conversation_state["current_question_index"] += 1
-
-                if conversation_state["current_question_index"] < len(questions):
-                    next_question = questions[
-                        conversation_state["current_question_index"]
-                    ]
-
-                    if "options" in next_question:
-                        options = ", ".join(next_question["options"])
-                        next_questions = next_question["question"]
-                        member_name = responses.get(
-                            "Next, we need the details of the member for whom the policy is being purchased. Please provide Name"
-                        )
-                        return {
-                            "response": f"Thank you for providing the relationship. let's proceed with: {next_questions}",
-                            "options": options,
-                        }
-                    else:
-                        member_name = responses.get(
-                            "Next, we need the details of the member for whom the policy is being purchased. Please provide Name"
-                        )
-                        return {
-                            "response": f"Thank you for providing the relationship.  Now, let's address: {next_question}"
-                        }
-
-                else:
-                    with open("user_responses.json", "w") as file:
-                        json.dump(responses, file, indent=4)
-                    return {
-                        "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                        "final_responses": responses,
-                    }
-            else:
-                general_assistant_prompt = (
-                    f"The user entered '{user_message}', . Please assist."
-                )
-                general_assistant_response = llm.invoke([
-                    HumanMessage(content=general_assistant_prompt)
-                ])
-                next_question = questions[conversation_state["current_question_index"]]
-                if "options" in next_question:
-                    options = ", ".join(next_question["options"])
-                    return {
-                        "response": f"{general_assistant_response.content.strip()}",
-                        "question": f"Let's Move Back {question}",
-                        "options": options,
-                    }
-
-                else:
-                    return {
-                        "response": f"{general_assistant_response.content.strip()}",
-                        "question": f"Let's Move Back {question}",
-                    }
+            return handle_option_validation_multilingual(
+                user_message,
+                valid_options,
+                question,
+                user_language,
+                conversation_state,
+                questions,
+                responses,
+                user_id,
+            )
         elif question == "Please upload photos of your driving license Front side":
             if conversation_state["current_question_index"] == questions.index(
                 question
@@ -3524,8 +4568,11 @@ def process_user_input(user_input: UserInput):
                 is_person_name = llm_response.content.strip().lower() == "yes"
 
                 if is_person_name:
-                    # Store the person's name
-                    responses[question] = user_message
+                    # Translate name to English for storage
+                    name_in_english = translate_to_english_for_storage(
+                        user_message, user_language
+                    )
+                    responses[question] = name_in_english
                     conversation_state["current_question_index"] += 1
 
                     # Check if there are more questions
@@ -3533,29 +4580,46 @@ def process_user_input(user_input: UserInput):
                         next_question = questions[
                             conversation_state["current_question_index"]
                         ]
-                        return {
-                            "response": f"Thank you for providing the name. Now, let's move on to: {next_question}"
-                        }
+                        response_message = f"Thank you for providing the name. Now, let's move on to: {next_question}"
+
+                        # Format in user's language
+                        if isinstance(next_question, dict):
+                            return format_response_in_language(
+                                f"Thank you for providing the name. Now, let's move on to: {next_question['question']}",
+                                next_question.get("options", []),
+                                user_language,
+                            )
+                        else:
+                            return format_response_in_language(
+                                response_message, [], user_language
+                            )
                     else:
                         # If all questions are completed, save responses and end conversation
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
-                        return {
-                            "response": "Thank you for using Insura. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
-                            "final_responses": responses,
-                        }
+
+                        final_message = "Thank you for using Insura. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!"
+                        result = format_response_in_language(
+                            final_message, [], user_language
+                        )
+                        result["final_responses"] = responses
+                        return result
                 else:
                     # Handle invalid or unrelated input
-                    general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a person's name. Please assist."
+                    general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a person's name. Please assist them in {user_language}."
                     general_assistant_response = llm.invoke([
                         SystemMessage(
-                            content="You are Insura, an AI assistant created by CloudSubset. Your role is to assist users with their inquiries. Your task here is to redirect or assist the user appropriately."
+                            content=f"You are Insura, an AI assistant created by CloudSubset. Respond in {user_language}. Your role is to assist users with their inquiries. Your task here is to redirect or assist the user appropriately."
                         ),
                         HumanMessage(content=general_assistant_prompt),
                     ])
+
+                    retry_question = translate_text(
+                        f"Let's move back to: {question}", user_language
+                    )
                     return {
                         "response": f"{general_assistant_response.content.strip()}",
-                        "question": f"Let's move back to: {question}",
+                        "question": retry_question,
                     }
 
         elif question in [
@@ -3563,7 +4627,12 @@ def process_user_input(user_input: UserInput):
             "Please provide us with the member job title.",
         ]:
             return handle_job_title_question(
-                question, user_message, conversation_state, questions, responses
+                question,
+                user_message,
+                conversation_state,
+                questions,
+                responses,
+                user_language,
             )
 
         elif (
@@ -3571,57 +4640,17 @@ def process_user_input(user_input: UserInput):
             == "Now, let's move to the sponsor details, Could you let me know the sponsor's type?"
         ):
             valid_options = ["Employee", "Investors"]
-            if user_message in valid_options:
-                responses[question] = user_message
-                conversation_state["current_question_index"] += 1
-
-                if conversation_state["current_question_index"] < len(questions):
-                    next_question = questions[
-                        conversation_state["current_question_index"]
-                    ]
-                    if "options" in next_question:
-                        options = ", ".join(next_question["options"])
-                        next_questions = next_question["question"]
-                        return {
-                            "response": f"Thank you! Now, let's move on to: {next_questions}",
-                            "options": options,
-                        }
-                    else:
-                        return {
-                            "response": f"Thank you. Now, let's move on to: {next_question}"
-                        }
-                else:
-                    with open("user_responses.json", "w") as file:
-                        json.dump(responses, file, indent=4)
-                    return {
-                        "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                        "final_responses": responses,
-                    }
-            else:
-                # Handle invalid responses or unrelated queries
-                general_assistant_prompt = (
-                    f"The user entered '{user_message}', . Please assist."
-                )
-                general_assistant_response = llm.invoke([
-                    SystemMessage(
-                        content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
-                    ),
-                    HumanMessage(content=general_assistant_prompt),
-                ])
-                next_question = questions[conversation_state["current_question_index"]]
-                if "options" in next_question:
-                    options = ", ".join(next_question["options"])
-                    return {
-                        "response": f"{general_assistant_response.content.strip()}",
-                        "question": f"Let's Move Back {question}",
-                        "options": options,
-                    }
-
-                else:
-                    return {
-                        "response": f"{general_assistant_response.content.strip()}",
-                        "question": f"Let's Move Back {question}",
-                    }
+            # Use generic multilingual handler
+            return handle_option_validation_multilingual(
+                user_message,
+                valid_options,
+                question,
+                user_language,
+                conversation_state,
+                questions,
+                responses,
+                user_id,
+            )
 
         elif question == "May I kindly ask you to tell me the currency?":
             valid_options = ["AED", "USD"]
@@ -3688,40 +4717,81 @@ def process_user_input(user_input: UserInput):
                             if "options" in next_question:
                                 options = ", ".join(next_question["options"])
                                 next_questions = next_question["question"]
+
+                                # Translate response to user's language
+                                thank_you_msg = translate_text(
+                                    f"Thank you! 😊 Now, let's move on to: {next_questions}",
+                                    user_language,
+                                )
+                                translated_options = [
+                                    translate_text(opt, user_language)
+                                    for opt in next_question["options"]
+                                ]
+
                                 return {
-                                    "response": f"Thank you! Now, let's move on to: {next_questions}",
-                                    "options": options,
+                                    "response": thank_you_msg,
+                                    "options": translated_options,
+                                    "language": user_language,
+                                    "language_code": get_language_code(user_language),
                                 }
                             else:
+                                # Translate response to user's language
+                                thank_you_msg = translate_text(
+                                    f"Thank you for providing your salary! 💰 Now, let's move on to: {next_question}",
+                                    user_language,
+                                )
                                 return {
-                                    "response": f"Thank you for providing your salary. Now, let's move on to: {next_question}"
+                                    "response": thank_you_msg,
+                                    "language": user_language,
+                                    "language_code": get_language_code(user_language),
                                 }
                         else:
                             # If all questions are completed, save responses and end conversation
                             with open("user_responses.json", "w") as file:
                                 json.dump(responses, file, indent=4)
+
+                            # Translate completion message to user's language
+                            completion_msg = translate_text(
+                                "Thank you for using Insura! 🎉 Your request has been processed. If you have any further questions, feel free to ask. Have a great day! 😊",
+                                user_language,
+                            )
                             return {
-                                "response": "Thank you for using Insura. Your request has been processed. If you have any further questions, feel free to ask. Have a great day!",
+                                "response": completion_msg,
                                 "final_responses": responses,
+                                "language": user_language,
+                                "language_code": get_language_code(user_language),
                             }
                     else:
                         # Handle invalid input for non-positive values
+                        error_msg = translate_text(
+                            "The salary must be a positive number. Could you please re-enter your monthly salary in AED?",
+                            user_language,
+                        )
+                        translated_question = translate_text(question, user_language)
                         return {
-                            "response": "The salary must be a positive number. Could you please re-enter your monthly salary in AED?",
-                            "question": question,
+                            "response": error_msg,
+                            "question": translated_question,
+                            "language": user_language,
+                            "language_code": get_language_code(user_language),
                         }
                 except ValueError:
                     # If invalid input, use the general assistant
-                    general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a valid monetary amount. Please assist."
+                    general_assistant_prompt = f"The user entered '{user_message}', which does not appear to be a valid monetary amount. Please assist them in {user_language}."
                     general_assistant_response = llm.invoke([
                         SystemMessage(
-                            content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                            content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
                         ),
                         HumanMessage(content=general_assistant_prompt),
                     ])
+
+                    retry_msg = translate_text(
+                        f"Let's move back to: {question}", user_language
+                    )
                     return {
                         "response": f"{general_assistant_response.content.strip()}",
-                        "question": f"Let's move back to: {question}",
+                        "question": retry_msg,
+                        "language": user_language,
+                        "language_code": get_language_code(user_language),
                     }
 
         elif question in [
@@ -3731,7 +4801,12 @@ def process_user_input(user_input: UserInput):
             "Let's start with your motor insurance details. Select the city of registration",
         ]:
             return handle_emirate_question(
-                question, user_message, conversation_state, questions, responses
+                question,
+                user_message,
+                conversation_state,
+                questions,
+                responses,
+                user_language,
             )
 
         elif (
@@ -3812,17 +4887,30 @@ def process_user_input(user_input: UserInput):
                     }
         elif question == "Date of Birth (DOB)":
             return handle_date_question(
-                question, user_message, responses, conversation_state, questions
+                question,
+                user_message,
+                responses,
+                conversation_state,
+                questions,
+                user_language,
             )
-        # For other free-text questions
+        # For other free-text questions - Use multilingual evaluation
 
-        evaluation_prompt = f"Is the user's response '{user_message}' correct for the question '{question}'? Answer 'yes' or 'no'."
-        evaluation_response = llm.invoke([HumanMessage(content=evaluation_prompt)])
+        evaluation_prompt = f"Is the user's response '{user_message}' correct for the question '{question}'? The user is responding in {user_language}. Answer 'yes' or 'no'."
+        evaluation_response = llm.invoke([
+            SystemMessage(
+                content=f"You are evaluating user responses in {user_language}. Consider language variations and cultural context."
+            ),
+            HumanMessage(content=evaluation_prompt),
+        ])
         evaluation = evaluation_response.content.strip().lower()
 
         if evaluation == "yes":
-            # Store the valid response
-            responses[question] = user_message
+            # Translate to English for storage if needed
+            english_response = translate_to_english_for_storage(
+                user_message, user_language
+            )
+            responses[question] = english_response
             conversation_state["current_question_index"] += 1
 
             # Check if there are more questions
@@ -3833,48 +4921,67 @@ def process_user_input(user_input: UserInput):
                 if isinstance(next_question_data, dict):
                     next_question = next_question_data["question"]
                     next_options = next_question_data.get("options", [])
-                    if next_options:
-                        return {
-                            "response": f"Thank you! That was helpful. Now, let's move on to: {next_question}.",
-                            "options": ", ".join(next_options),
-                        }
+                    response_message = f"Thank you! That was helpful. Now, let's move on to: {next_question}"
+
+                    # Translate to user's language
+                    return format_response_in_language(
+                        response_message, next_options, user_language
+                    )
                 else:
                     next_question = next_question_data
-                return {
-                    "response": f"Thank you! That was helpful. Now, let's move on to: {next_question}"
-                }
+                    response_message = f"Thank you! That was helpful. Now, let's move on to: {next_question}"
+
+                    # Translate to user's language
+                    return format_response_in_language(
+                        response_message, [], user_language
+                    )
             else:
                 # All questions answered
-                # save_file = "claim.json" if conversation_state["current_flow"] in ["existing_policy", "claim"] else "user_responses.json"
-
                 with open("user_responses.json", "w") as file:
                     json.dump(responses, file, indent=4)
-                return {
-                    "response": "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
-                    "final_responses": responses,
-                }
+
+                final_message = "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask."
+                result = format_response_in_language(final_message, [], user_language)
+                result["final_responses"] = responses
+                return result
         else:
-            # Redirect to general assistant for help
-            general_assistant_prompt = f"User response: {user_message}. Please assist."
+            # Redirect to general assistant for help in user's language
+            general_assistant_prompt = (
+                f"User response: {user_message}. Please assist them in {user_language}."
+            )
             general_assistant_response = llm.invoke([
                 SystemMessage(
-                    content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                    content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
                 ),
                 HumanMessage(content=general_assistant_prompt),
             ])
+
+            retry_question = translate_text(
+                f"Let's Move back to {question}", user_language
+            )
             return {
                 "response": f"{general_assistant_response.content.strip()}",
-                "question": f"Let's Move back to {question}",
+                "question": retry_question,
+                "language": user_language,
+                "language_code": get_language_code(user_language),
             }
     else:
+        # Get user language for general queries
+        user_language = conversation_state.get("preferred_language", "English")
+
         general_assistant_prompt = f"General query: {user_message}."
         general_assistant_response = llm.invoke([
             SystemMessage(
-                content="You are Insura, a friendly Insurance assistant created by CloudSubset. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
+                content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
             ),
             HumanMessage(content=general_assistant_prompt),
         ])
-        return {"response": f"{general_assistant_response.content.strip()}"}
+
+        return {
+            "response": f"{general_assistant_response.content.strip()}",
+            "language": user_language,
+            "language_code": get_language_code(user_language),
+        }
 
 
 async def clear_user_states_task():

@@ -50,7 +50,7 @@ async def upload_excel_file(file: UploadFile = File(...), user_id: str = Form(..
 
             # Process the Excel file
             result = await extract_excel_sme_census(temp_file.name)
-    
+
             # Update user state with extracted data
             user_states[user_id]["responses"]["excel_employee_data"] = result
 
@@ -58,6 +58,8 @@ async def upload_excel_file(file: UploadFile = File(...), user_id: str = Form(..
                 "message": "Excel file processed successfully",
                 "data": result,
                 "user_id": user_id,
+                "file_path": f"uploads/{file.filename}",  # Return a file path for the chatbot
+                "file_name": file.filename,
             }
 
         except Exception as e:
