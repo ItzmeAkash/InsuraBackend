@@ -526,6 +526,8 @@ def process_user_input(user_input: UserInput):
     # Check for explicit language requests first
     language_requests = {
         "say in arabic": {"language": "Arabic", "code": "ar"},
+        "speak in  arabic": {"language": "Arabic", "code": "ar"},
+        "change language to arabic": {"language": "Arabic", "code": "ar"},
         "arabic": {"language": "Arabic", "code": "ar"},
         "عربي": {"language": "Arabic", "code": "ar"},
         "بالعربية": {"language": "Arabic", "code": "ar"},
@@ -537,6 +539,7 @@ def process_user_input(user_input: UserInput):
         "اردو": {"language": "Urdu", "code": "ur"},
         "say in english": {"language": "English", "code": "en"},
         "english": {"language": "English", "code": "en"},
+        
     }
 
     # Check if this is a document upload success message (define this before the if/else block)
