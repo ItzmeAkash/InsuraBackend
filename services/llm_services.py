@@ -526,7 +526,7 @@ def process_user_input(user_input: UserInput):
     # Check for explicit language requests first
     language_requests = {
         "say in arabic": {"language": "Arabic", "code": "ar"},
-        "speak in  arabic": {"language": "Arabic", "code": "ar"},
+        "speak in arabic": {"language": "Arabic", "code": "ar"},
         "change language to arabic": {"language": "Arabic", "code": "ar"},
         "arabic": {"language": "Arabic", "code": "ar"},
         "عربي": {"language": "Arabic", "code": "ar"},
