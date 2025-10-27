@@ -47,6 +47,12 @@ from cachetools import TTLCache
 
 load_dotenv()
 
+# API Configuration - Base URLs for InsuranceLab
+INSURANCE_LAB_BASE_URL = "https://insurancelab.ae"
+INSURANCE_LAB_API_BASE_URL = f"{INSURANCE_LAB_BASE_URL}/Api"
+INSURANCE_LAB_SME_ADD_API = f"{INSURANCE_LAB_API_BASE_URL}/sme_add/"
+INSURANCE_LAB_SME_PLAN_BASE = f"{INSURANCE_LAB_BASE_URL}/sme_plan"
+
 # Updated
 llm = ChatGroq(
     model="llama-3.3-70b-versatile",
@@ -539,7 +545,6 @@ def process_user_input(user_input: UserInput):
         "اردو": {"language": "Urdu", "code": "ur"},
         "say in english": {"language": "English", "code": "en"},
         "english": {"language": "English", "code": "en"},
-        
     }
 
     # Check if this is a document upload success message (define this before the if/else block)
@@ -3742,13 +3747,45 @@ def process_user_input(user_input: UserInput):
                                     review_message, user_language
                                 )
 
+                                # Build the customer plan link using the medical detail response ID
+                                customer_plan_link = f"{INSURANCE_LAB_BASE_URL}/customer_plan/{medical_detail_response}"
+
+                                # Reset conversation state to allow starting a new inquiry (same as SME flow)
+                                saved_language = conversation_state.get(
+                                    "preferred_language", "English"
+                                )
+                                saved_language_code = conversation_state.get(
+                                    "language_code", "en"
+                                )
+                                saved_language_explicitly_set = conversation_state.get(
+                                    "language_explicitly_set", False
+                                )
+
+                                user_states[user_id] = {
+                                    "current_question_index": 0,
+                                    "responses": {},
+                                    "current_flow": "initial",
+                                    "welcome_shown": False,  # Set to False to allow new greeting on restart
+                                    "awaiting_document_name": False,
+                                    "document_name": "",
+                                    "last_takaful_query_time": None,
+                                    "awaiting_takaful_followup": False,
+                                    "last_chronic_conditions_time": None,
+                                    "awaiting_chronic_conditions_followup": False,
+                                    "takaful_emarat_asked": False,
+                                    "preferred_language": saved_language,
+                                    "language_code": saved_language_code,
+                                    "language_explicitly_set": saved_language_explicitly_set,
+                                }
+
                                 return {
                                     "response": translated_success,
-                                    "link": f"https://insurancelab.ae/customer_plan/{medical_detail_response}",
+                                    "link": customer_plan_link,
                                     "review_message": translated_review,
                                     "review_link": "https://www.google.com/search?client=ms-android-samsung-ss&sca_esv=4eb717e6f42bf628&sxsrf=AHTn8zprabdPVFL3C2gXo4guY8besI3jqQ:1744004771562&q=wehbe+insurance+services+llc+reviews&uds=ABqPDvy-z0dcsfm2PY76_gjn-YWou9-AAVQ4iWjuLR6vmDV0vf3KpBMNjU5ZkaHGmSY0wBrWI3xO9O55WuDmXbDq6a3SqlwKf2NJ5xQAjebIw44UNEU3t4CpFvpLt9qFPlVh2F8Gfv8sMuXXSo2Qq0M_ZzbXbg2c323G_bE4tVi7Ue7d_sW0CrnycpJ1CvV-OyrWryZw_TeQ3gLGDgzUuHD04MpSHquYZaSQ0_mIHLWjnu7fu8c7nb6_aGDb_H1Q-86fD2VmWluYA5jxRkC9U2NsSwSSXV4FPW9w1Q2T_Wjt6koJvLgtikd66MqwYiJPX2x9MwLhoGYlpTbKtkJuHwE9eM6wQgieChskow6tJCVjQ75I315dT8n3tUtasGdBkprOlUK9ibPrYr9HqRz4AwzEQaxAq9_EDcsSG_XW0CHuqi2lRKHw592MlGlhjyQibXKSZJh-v3KW4wIVqa-2x0k1wfbZdpaO3BZaKYCacLOxwUKTnXPbQqDPLQDeYgDBwaTLvaCN221H&si=APYL9bvoDGWmsM6h2lfKzIb8LfQg_oNQyUOQgna9TyfQHAoqUvvaXjJhb-NHEJtDKiWdK3OqRhtZNP2EtNq6veOxTLUq88TEa2J8JiXE33-xY1b8ohiuDLBeOOGhuI1U6V4mDc9jmZkDoxLC9b6s6V8MAjPhY-EC_g%3D%3D&sa=X&sqi=2&ved=2ahUKEwi05JSHnMWMAxUw8bsIHRRCDd0Qk8gLegQIHxAB&ictx=1&stq=1&cs=0&lei=o2bzZ_SGIrDi7_UPlIS16A0#ebo=1",
                                     "language": user_language,
                                     "language_code": get_language_code(user_language),
+                                    "restart_conversation": True,  # Signal to frontend to restart
                                 }
                             else:
                                 # Translate the fallback response to user's language
@@ -4246,6 +4283,7 @@ def process_user_input(user_input: UserInput):
             ):
                 # Import user_states from excel_upload module
                 from routes.excel_upload import user_states as excel_user_states
+                import requests
 
                 # Check if user has uploaded Excel file via the upload-excel endpoint
                 excel_data_exists = (
@@ -4280,48 +4318,337 @@ def process_user_input(user_input: UserInput):
                             "responses"
                         ]["excel_employee_data"]
 
-                    conversation_state["current_question_index"] += 1
-
-                    # Check if there are more questions
-                    if conversation_state["current_question_index"] < len(questions):
-                        next_question = questions[
-                            conversation_state["current_question_index"]
+                        # Get the Excel employee data
+                        excel_data = excel_user_states[user_id]["responses"][
+                            "excel_employee_data"
                         ]
-                        if "options" in next_question:
-                            options = ", ".join(next_question["options"])
-                            next_questions = next_question["question"]
-                            return {
-                                "response": f"Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Now, let's move on to: {next_questions}",
-                                "options": options,
+                        employees_list = excel_data.get("employees", [])
+                        print(
+                            f"Excel Employees List: {json.dumps(employees_list, indent=2)}"
+                        )
+
+                        # Build the members array from Excel data
+                        members = []
+                        for emp in employees_list:
+                            member = {
+                                "mem_name": emp.get("first_name", ""),
+                                "mem_dob": emp.get("date_of_birth", ""),
+                                "mem_gender": emp.get("gender", ""),
+                                "mem_marital_status": emp.get("marital_status", ""),
+                                "mem_relation": emp.get("relation", ""),
+                                "mem_nationality": emp.get("nationality", ""),
+                                "mem_emirate": emp.get("visa_issued_location", ""),
                             }
-                        else:
+                            members.append(member)
+                        print(f"Built Members Array: {json.dumps(members, indent=2)}")
+
+                        # Get the other responses from the conversation
+                        visa_issued_emirates = ""
+                        plan = ""
+                        client_name = ""
+                        client_mobile = ""
+                        client_email = ""
+
+                        print(f"All Responses: {json.dumps(responses, indent=2)}")
+
+                        # Find these from the responses dictionary
+                        for key, value in responses.items():
+                            if (
+                                "Visa issued Emirate" in key
+                                or key
+                                == "Let's start with your Medical insurance details. Choose your Visa issued Emirate?"
+                            ):
+                                visa_issued_emirates = value
+                            elif (
+                                "type of plan" in key.lower()
+                                or key == "What type of plan are you looking for?"
+                            ):
+                                plan = value
+                            elif "Client Name" in key:
+                                client_name = value
+                            elif "Client mobile" in key:
+                                client_mobile = value
+                            elif "Client Email" in key:
+                                client_email = value
+
+                        print(f"Extracted Values:")
+                        print(f"  visa_issued_emirates: {visa_issued_emirates}")
+                        print(f"  plan: {plan}")
+                        print(f"  client_name: {client_name}")
+                        print(f"  client_mobile: {client_mobile}")
+                        print(f"  client_email: {client_email}")
+
+                        # Validate required fields
+                        if (
+                            not visa_issued_emirates
+                            or not plan
+                            or not client_name
+                            or not client_mobile
+                            or not client_email
+                        ):
+                            print("ERROR: Missing required fields!")
                             return {
-                                "response": f"Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Now, let's move on to: {next_question}"
+                                "response": "Thank you for uploading the Excel file. However, some required information is missing. Please provide all client details.",
+                                "missing_fields": {
+                                    "visa_issued_emirates": not visa_issued_emirates,
+                                    "plan": not plan,
+                                    "client_name": not client_name,
+                                    "client_mobile": not client_mobile,
+                                    "client_email": not client_email,
+                                },
                             }
+
+                        # Prepare the JSON payload
+                        payload = {
+                            "visa_issued_emirates": visa_issued_emirates,
+                            "plan": plan,
+                            "client_name": client_name,
+                            "client_mobile": client_mobile,
+                            "client_email": client_email,
+                            "currency": "",
+                            "census_sheet": "",
+                            "members": members,
+                        }
+
+                        # Submit to the API
+                        try:
+                            # Print the payload for debugging
+                            print(f"API Payload: {json.dumps(payload, indent=2)}")
+                            print(f"API URL: {INSURANCE_LAB_SME_ADD_API}")
+
+                            # Set proper headers to avoid Mod_Security issues
+                            headers = {
+                                "Content-Type": "application/json",
+                                "Accept": "application/json",
+                                "User-Agent": "InsuraBot/1.0",
+                            }
+
+                            # Try to send as JSON first
+                            try:
+                                api_response = requests.post(
+                                    INSURANCE_LAB_SME_ADD_API,
+                                    json=payload,
+                                    headers=headers,
+                                    timeout=30,
+                                )
+                            except:
+                                # If JSON fails, try as form data
+                                print("JSON request failed, trying form data...")
+                                api_response = requests.post(
+                                    INSURANCE_LAB_SME_ADD_API,
+                                    data=payload,
+                                    headers=headers,
+                                    timeout=30,
+                                )
+
+                            print(f"API Response Status: {api_response.status_code}")
+                            print(f"API Response Text: {api_response.text}")
+
+                            if api_response.status_code == 200:
+                                response_data = api_response.json()
+                                print(
+                                    f"API Response Data: {json.dumps(response_data, indent=2)}"
+                                )
+
+                                # Store the ID from response if it exists
+                                response_id = response_data.get("id", "")
+                                print(f"Extracted ID: {response_id}")
+
+                                # Build the customer plan link using the ID
+                                customer_plan_link = (
+                                    f"{INSURANCE_LAB_SME_PLAN_BASE}/{response_id}"
+                                )
+
+                                # Store API response in user state
+                                responses["api_response_id"] = response_id
+                                responses["api_submission_status"] = "success"
+                                responses["customer_plan_link"] = customer_plan_link
+
+                                # Check if there are more questions after this
+                                conversation_state["current_question_index"] += 1
+
+                                if conversation_state["current_question_index"] < len(
+                                    questions
+                                ):
+                                    next_question = questions[
+                                        conversation_state["current_question_index"]
+                                    ]
+                                    if isinstance(next_question, dict):
+                                        if "options" in next_question:
+                                            options = ", ".join(
+                                                next_question["options"]
+                                            )
+                                            next_questions = next_question["question"]
+                                            return {
+                                                "response": f"Thank you for uploading the Excel file. Your data has been processed successfully (ID: {response_id}). Now, let's move on to: {next_questions}",
+                                                "options": options,
+                                                "submission_id": response_id,
+                                                "customer_plan_link": customer_plan_link,
+                                            }
+                                        else:
+                                            next_questions = next_question["question"]
+                                            return {
+                                                "response": f"Thank you for uploading the Excel file. Your data has been processed successfully (ID: {response_id}). Now, let's move on to: {next_questions}",
+                                                "submission_id": response_id,
+                                                "customer_plan_link": customer_plan_link,
+                                            }
+                                    else:
+                                        return {
+                                            "response": f"Thank you for uploading the Excel file. Your data has been processed successfully (ID: {response_id}). Now, let's move on to: {next_question}",
+                                            "submission_id": response_id,
+                                            "customer_plan_link": customer_plan_link,
+                                        }
+                                else:
+                                    # Save responses and end the conversation - SMA flow completion
+                                    with open("user_responses.json", "w") as file:
+                                        json.dump(responses, file, indent=4)
+
+                                    # Format the response similar to individual flow
+                                    success_message = "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please find the link below to view your quotation:"
+                                    review_message = "If you are satisfied with Wehbe(Broker) services, please leave a review for sharing happiness to others!!😊"
+
+                                    # Translate messages if needed
+                                    translated_success = (
+                                        translate_text(success_message, user_language)
+                                        if user_language != "English"
+                                        else success_message
+                                    )
+                                    translated_review = (
+                                        translate_text(review_message, user_language)
+                                        if user_language != "English"
+                                        else review_message
+                                    )
+
+                                    # Reset conversation state to allow starting a new inquiry
+                                    # Save the language preference before resetting
+                                    saved_language = conversation_state.get(
+                                        "preferred_language", "English"
+                                    )
+                                    saved_language_code = conversation_state.get(
+                                        "language_code", "en"
+                                    )
+                                    saved_language_explicitly_set = (
+                                        conversation_state.get(
+                                            "language_explicitly_set", False
+                                        )
+                                    )
+
+                                    user_states[user_id] = {
+                                        "current_question_index": 0,
+                                        "responses": {},
+                                        "current_flow": "initial",
+                                        "welcome_shown": False,  # Set to False to allow new greeting on restart
+                                        "awaiting_document_name": False,
+                                        "document_name": "",
+                                        "last_takaful_query_time": None,
+                                        "awaiting_takaful_followup": False,
+                                        "last_chronic_conditions_time": None,
+                                        "awaiting_chronic_conditions_followup": False,
+                                        "takaful_emarat_asked": False,
+                                        "preferred_language": saved_language,  # Preserve language
+                                        "language_code": saved_language_code,
+                                        "language_explicitly_set": saved_language_explicitly_set,  # Preserve explicit setting
+                                    }
+
+                                    return {
+                                        "response": translated_success,
+                                        "link": customer_plan_link,
+                                        "review_message": translated_review,
+                                        "review_link": "https://www.google.com/search?client=ms-android-samsung-ss&sca_esv=4eb717e6f42bf628&sxsrf=AHTn8zprabdPVFL3C2gXo4guY8besI3jqQ:1744004771562&q=wehbe+insurance+services+llc+reviews&uds=ABqPDvy-z0dcsfm2PY76_gjn-YWou9-AAVQ4iWjuLR6vmDV0vf3KpBMNjU5ZkaHGmSY0wBrWI3xO9O55WuDmXbDq6a3SqlwKf2NJ5xQAjebIw44UNEU3t4CpFvpLt9qFPlVh2F8Gfv8sMuXXSo2Qq0M_ZzbXbg2c323G_bE4tVi7Ue7d_sW0CrnycpJ1CvV-OyrWryZw_TeQ3gLGDgzUuHD04MpSHquYZaSQ0_mIHLWjnu7fu8c7nb6_aGDb_H1Q-86fD2VmWluYA5jxRkC9U2NsSwSSXV4FPW9w1Q2T_Wjt6koJvLgtikd66MqwYiJPX2x9MwLhoGYlpTbKtkJuHwE9eM6wQgieChskow6tJCVjQ75I315dT8n3tUtasGdBkprOlUK9ibPrYr9HqRz4AwzEQaxAq9_EDcsSG_XW0CHuqi2lRKHw592MlGlhjyQibXKSZJh-v3KW4wIVqa-2x0k1wfbZdpaO3BZaKYCacLOxwUKTnXPbQqDPLQDeYgDBwaTLvaCN221H&si=APYL9bvoDGWmsM6h2lfKzIb8LfQg_oNQyUOQgna9TyfQHAoqUvvaXjJhb-NHEJtDKiWdK3OqRhtZNP2EtNq6veOxTLUq88TEa2J8JiXE33-xY1b8ohiuDLBeOOGhuI1U6V4mDc9jmZkDoxLC9b6s6V8MAjPhY-EC_g%3D%3D&sa=X&sqi=2&ved=2ahUKEwi05JSHnMWMAxUw8bsIHRRCDd0Qk8gLegQIHxAB&ictx=1&stq=1&cs=0&lei=o2bzZ_SGIrDi7_UPlIS16A0#ebo=1",
+                                        "language": user_language,
+                                        "language_code": get_language_code(
+                                            user_language
+                                        ),
+                                        "restart_conversation": True,  # Signal to frontend to restart
+                                    }
+                            else:
+                                # API call failed
+                                print(
+                                    f"API Error - Status: {api_response.status_code}, Response: {api_response.text}"
+                                )
+                                responses["api_submission_status"] = "error"
+                                responses["api_error_message"] = api_response.text
+                                return {
+                                    "response": f"Thank you for uploading the Excel file. However, there was an issue processing your data (Error: {api_response.status_code}). Please try again or contact support@insuranceclub.ae",
+                                    "error_details": api_response.text,
+                                }
+                        except requests.exceptions.RequestException as e:
+                            # Handle request exceptions
+                            responses["api_submission_status"] = "error"
+                            responses["api_error_message"] = str(e)
+                            print(f"API request error: {e}")
+                            # Continue with normal flow even if API fails
+                            conversation_state["current_question_index"] += 1
+
+                            if conversation_state["current_question_index"] < len(
+                                questions
+                            ):
+                                next_question = questions[
+                                    conversation_state["current_question_index"]
+                                ]
+                                if isinstance(next_question, dict):
+                                    options = ", ".join(
+                                        next_question.get("options", [])
+                                    )
+                                    next_questions = next_question.get("question", "")
+                                    return {
+                                        "response": f"Thank you for uploading the Excel file. There was a temporary issue, but we've saved your data. Now, let's move on to: {next_questions}",
+                                        "options": options,
+                                    }
+                                else:
+                                    return {
+                                        "response": f"Thank you for uploading the Excel file. Now, let's move on to: {next_question}"
+                                    }
+                            else:
+                                return {
+                                    "response": "Thank you for uploading the Excel file. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry.",
+                                    "final_responses": responses,
+                                }
                     else:
-                        # Save responses and end the conversation - SMA flow completion
-                        with open("user_responses.json", "w") as file:
-                            json.dump(responses, file, indent=4)
+                        # Excel data doesn't exist yet - wait for it
+                        conversation_state["current_question_index"] += 1
 
-                        # Reset conversation state to allow starting a new inquiry
-                        user_states[user_id] = {
-                            "current_question_index": 0,
-                            "responses": {},
-                            "current_flow": "initial",
-                            "welcome_shown": True,
-                            "awaiting_document_name": False,
-                            "document_name": "",
-                            "last_takaful_query_time": None,
-                            "awaiting_takaful_followup": False,
-                            "last_chronic_conditions_time": None,
-                            "awaiting_chronic_conditions_followup": False,
-                            "takaful_emarat_asked": False,
-                        }
+                        if conversation_state["current_question_index"] < len(
+                            questions
+                        ):
+                            next_question = questions[
+                                conversation_state["current_question_index"]
+                            ]
+                            if isinstance(next_question, dict):
+                                options = ", ".join(next_question.get("options", []))
+                                next_questions = next_question.get("question", "")
+                                return {
+                                    "response": f"Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Now, let's move on to: {next_questions}",
+                                    "options": options,
+                                }
+                            else:
+                                return {
+                                    "response": f"Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Now, let's move on to: {next_question}"
+                                }
+                        else:
+                            # Save responses and end the conversation - SMA flow completion
+                            with open("user_responses.json", "w") as file:
+                                json.dump(responses, file, indent=4)
 
-                        return {
-                            "response": "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae",
-                            "final_responses": responses,
-                        }
+                            # Reset conversation state to allow starting a new inquiry
+                            user_states[user_id] = {
+                                "current_question_index": 0,
+                                "responses": {},
+                                "current_flow": "initial",
+                                "welcome_shown": True,
+                                "awaiting_document_name": False,
+                                "document_name": "",
+                                "last_takaful_query_time": None,
+                                "awaiting_takaful_followup": False,
+                                "last_chronic_conditions_time": None,
+                                "awaiting_chronic_conditions_followup": False,
+                                "takaful_emarat_asked": False,
+                            }
+
+                            return {
+                                "response": "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae",
+                                "final_responses": responses,
+                            }
                 else:
                     # Invalid file format
                     return {

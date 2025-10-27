@@ -8,7 +8,7 @@ from langchain_core.messages import HumanMessage
 from langchain_core.pydantic_v1 import BaseModel, Field
 import pytesseract
 from pdf2image import convert_from_path
-from PIL import Image,ImageFilter
+from PIL import Image, ImageFilter
 import os
 import io
 import base64
@@ -26,7 +26,7 @@ from routes.VisionModel import DocumentVisionOCR
 #         raw_text = ""
 #         for page in convert_from_path(file_path):
 #             raw_text += pytesseract.image_to_string(page, lang='eng')
-#         print(raw_text)    
+#         print(raw_text)
 
 #         # Initialize LLM and create extraction chain
 #         llm = ChatGroq(
@@ -61,7 +61,7 @@ from routes.VisionModel import DocumentVisionOCR
 #                         # Map gender values
 #                         if value.lower() == 'm' or value.lower() == 'male':
 #                             value = 'male'
-#                         elif value.lower() == 'f' or value.lower() == 'female': 
+#                         elif value.lower() == 'f' or value.lower() == 'female':
 #                             value = 'female'
 #                     if key in result:
 #                         if isinstance(result[key], list):
@@ -76,8 +76,8 @@ from routes.VisionModel import DocumentVisionOCR
 
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=str(e))
-   
-   
+
+
 # #Extract text from give  emirate image
 # async def extract_image_info(file_path: str) -> Dict:
 #     """
@@ -88,18 +88,18 @@ from routes.VisionModel import DocumentVisionOCR
 #         image = Image.open(file_path)
 #         image = image.convert('L')  # Convert to grayscale
 #         image = image.resize((image.width * 2, image.height * 2))  # Resize to improve OCR accuracy
-        
+
 #         # Extract text from JPG image
 #         raw_text = pytesseract.image_to_string(image, lang='eng')
 #         print("Extracted text:", raw_text)  # Debugging step to verify OCR extraction
-        
+
 #         # Initialize LLM and create extraction chain
 #         llm = ChatGroq(
 #             model=os.getenv('LLM_MODEL'),
 #             temperature=0,
 #             api_key=os.getenv('GROQ_API_KEY')
 #         )
-        
+
 #         schema = {
 #             "properties": {
 #                 "name": {"type": "string", "description": "Full name of the person"},
@@ -113,13 +113,13 @@ from routes.VisionModel import DocumentVisionOCR
 #             },
 #             "required": ["name","id_number","gender"]
 #         }
-        
+
 #         # Extract information
 #         extraction_chain = create_extraction_chain(schema, llm)
 #         extracted_content = extraction_chain.run(raw_text)
-        
+
 #         print("Extracted content:", extracted_content)  # Debugging step to verify LLM extraction
-        
+
 #         # Combine results into single dictionary
 #         result = {}
 #         for item in extracted_content:
@@ -138,21 +138,20 @@ from routes.VisionModel import DocumentVisionOCR
 #                             result[key] = [result[key], value]
 #                     else:
 #                         result[key] = value
-                        
+
 #         return result or {"error": "No information extracted"}
-        
+
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=str(e))
-        
+
 #     except Exception as e:
 #         raise HTTPException(status_code=500, detail=str(e))
-     
+
 # #Extract text from license image
-    
-    
-    
+
+
 # Extract information from license pdf
-async def extract_pdf_drving_license(file_path: str): 
+async def extract_pdf_drving_license(file_path: str):
     """
     Extract information from PDF and return as JSON
     """
@@ -160,27 +159,44 @@ async def extract_pdf_drving_license(file_path: str):
         # Convert PDF to images and extract text
         raw_text = ""
         for page in convert_from_path(file_path):
-            raw_text += pytesseract.image_to_string(page, lang='eng') + "\n"
-        print(raw_text)    
+            raw_text += pytesseract.image_to_string(page, lang="eng") + "\n"
+        print(raw_text)
 
         # Initialize LLM and create extraction chain
         llm = ChatGroq(
-            model=os.getenv('LLM_MODEL'),
+            model=os.getenv("LLM_MODEL"),
             temperature=0,
-            api_key=os.getenv('GROQ_API_KEY')
+            api_key=os.getenv("GROQ_API_KEY"),
         )
 
         schema = {
             "properties": {
                 "name": {"type": "string", "description": "Full name of the person"},
-                "license_no": {"type": "string", "description": "License No only six numbers"},
+                "license_no": {
+                    "type": "string",
+                    "description": "License No only six numbers",
+                },
                 "date_of_birth": {"type": "string", "description": "Date of birth"},
                 "nationality": {"type": "string", "description": "Nationality"},
                 "issue_date": {"type": "string", "description": "Document issue date"},
-                "expiry_date": {"type": "string", "description": "Document expiry date"},
-                "place_of_issue": {"type": "string", "description": "Please select the Place of issue"},
+                "expiry_date": {
+                    "type": "string",
+                    "description": "Document expiry date",
+                },
+                "place_of_issue": {
+                    "type": "string",
+                    "description": "Please select the Place of issue",
+                },
             },
-            "required": ["name", "license_no", "date_of_birth", "nationality", "issue_date", "expiry_date", "place_of_issue"]
+            "required": [
+                "name",
+                "license_no",
+                "date_of_birth",
+                "nationality",
+                "issue_date",
+                "expiry_date",
+                "place_of_issue",
+            ],
         }
 
         # Extract information
@@ -203,31 +219,37 @@ async def extract_pdf_drving_license(file_path: str):
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
-    
- #?Image
- 
- 
-#?Tod just image extract
+
+
+# ?Image
+
+
+# ?Tod just image extract
 async def extract_image_info1(file_path: str) -> Dict:
     """
     Extract information from  document and return as JSON
-    
+
     Args:
         file_path (str): Path to the image file
-        
+
     Returns:
         Dict: Structured information extracted from the document
     """
     try:
         # Preprocess the image
         image = Image.open(file_path)
-        image = image.convert('L')  # Convert to grayscale
-        image = image.resize((image.width * 2, image.height * 2))  # Resize to improve OCR accuracy
-        image = image.filter(ImageFilter.SHARPEN)  # Sharpen the image to improve OCR accuracy
-        
+        image = image.convert("L")  # Convert to grayscale
+        image = image.resize((
+            image.width * 2,
+            image.height * 2,
+        ))  # Resize to improve OCR accuracy
+        image = image.filter(
+            ImageFilter.SHARPEN
+        )  # Sharpen the image to improve OCR accuracy
+
         # Extract text from JPG image
         vision_model = DocumentVisionOCR()
-        
+
         # Create a specialized prompt for license documents
         license_prompt = """
         Extract ALL English text from this license.
@@ -247,18 +269,18 @@ async def extract_image_info1(file_path: str) -> Dict:
         Capture all text exactly as shown, preserving numbers and codes precisely.
         If any mentioned information is missing, recheck and extract everything accurately.
         """
-        
+
         # Use the extract_text_from_image method with the preprocessed image
         vision_text = vision_model.extract_text_from_image(image, prompt=license_prompt)
         logging.info("Extracted text from license document")
-        
+
         # Initialize LLM and create extraction chain
         llm = ChatGroq(
-            model=os.getenv('LLM_MODEL'),
+            model=os.getenv("LLM_MODEL"),
             temperature=0,
-            api_key=os.getenv('GROQ_API_KEY')
+            api_key=os.getenv("GROQ_API_KEY"),
         )
-        
+
         # Enhanced extraction prompt to ensure structured JSON output
         extraction_prompt = f"""
         Extract the following information from this document.
@@ -289,27 +311,27 @@ async def extract_image_info1(file_path: str) -> Dict:
         
         IMPORTANT: Return ONLY the JSON object with no additional text, code blocks, or explanations.
         """
-        
+
         # Directly use the LLM to extract structured information
         extraction_response = llm.invoke(extraction_prompt)
         extracted_content = extraction_response.content
         logging.info("LLM extraction completed")
-        
+
         # Create default empty result structure
         default_result = {
-                "name": "",
-                "id_number": "",
-                "date_of_birth": "",
-                "nationality": "",
-                "issue_date": "",
-                "expiry_date": "",
-                "gender": "",
-                "card_number": "",
-                "occupation": "",
-                "employer": "",
-                "issuing_place": "",
-            }
-        
+            "name": "",
+            "id_number": "",
+            "date_of_birth": "",
+            "nationality": "",
+            "issue_date": "",
+            "expiry_date": "",
+            "gender": "",
+            "card_number": "",
+            "occupation": "",
+            "employer": "",
+            "issuing_place": "",
+        }
+
         # Try to parse the response as JSON
         try:
             # First, attempt to parse as a JSON string
@@ -319,15 +341,19 @@ async def extract_image_info1(file_path: str) -> Dict:
             logging.warning(f"Direct JSON parsing failed: {e}")
             try:
                 # Find JSON-like content between curly braces
-                start = extracted_content.find('{')
-                end = extracted_content.rfind('}') + 1
-                
+                start = extracted_content.find("{")
+                end = extracted_content.rfind("}") + 1
+
                 if start >= 0 and end > start:
                     cleaned_content = extracted_content[start:end]
                     # Replace potential newlines, tabs and fix common JSON format issues
-                    cleaned_content = cleaned_content.replace('\n', ' ').replace('\t', ' ')
-                    cleaned_content = re.sub(r',\s*}', '}', cleaned_content)  # Remove trailing commas
-                    
+                    cleaned_content = cleaned_content.replace("\n", " ").replace(
+                        "\t", " "
+                    )
+                    cleaned_content = re.sub(
+                        r",\s*}", "}", cleaned_content
+                    )  # Remove trailing commas
+
                     result = json.loads(cleaned_content)
                     logging.info("Successfully parsed JSON after cleaning")
                 else:
@@ -335,38 +361,43 @@ async def extract_image_info1(file_path: str) -> Dict:
             except (ValueError, json.JSONDecodeError) as e:
                 logging.warning(f"JSON parsing failed: {e}. Creating empty structure.")
                 result = default_result
-        
+
         # Ensure all expected keys are present in the result
         for key in default_result:
             if key not in result:
                 result[key] = ""
-        
+
         return result
     except Exception as e:
         logging.error(f"Error in extract_image_driving_license: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
-       
+
 
 async def extract_front_page_emirate(file_path: str) -> Dict:
     """
     Extract information from  document and return as JSON
-    
+
     Args:
         file_path (str): Path to the image file
-        
+
     Returns:
         Dict: Structured information extracted from the document
     """
     try:
         # Preprocess the image
         image = Image.open(file_path)
-        image = image.convert('L')  # Convert to grayscale
-        image = image.resize((image.width * 2, image.height * 2))  # Resize to improve OCR accuracy
-        image = image.filter(ImageFilter.SHARPEN)  # Sharpen the image to improve OCR accuracy
-        
+        image = image.convert("L")  # Convert to grayscale
+        image = image.resize((
+            image.width * 2,
+            image.height * 2,
+        ))  # Resize to improve OCR accuracy
+        image = image.filter(
+            ImageFilter.SHARPEN
+        )  # Sharpen the image to improve OCR accuracy
+
         # Extract text from JPG image
         vision_model = DocumentVisionOCR()
-        
+
         # Create a specialized prompt for license documents
         license_prompt = """
         Extract ALL English text from this license.
@@ -383,18 +414,18 @@ async def extract_front_page_emirate(file_path: str) -> Dict:
         Capture all text exactly as shown, preserving numbers and codes precisely.
         If any mentioned information is missing, recheck and extract everything accurately.
         """
-        
+
         # Use the extract_text_from_image method with the preprocessed image
         vision_text = vision_model.extract_text_from_image(image, prompt=license_prompt)
         logging.info("Extracted text from license document")
-        
+
         # Initialize LLM and create extraction chain
         llm = ChatGroq(
-            model=os.getenv('LLM_MODEL'),
+            model=os.getenv("LLM_MODEL"),
             temperature=0,
-            api_key=os.getenv('GROQ_API_KEY')
+            api_key=os.getenv("GROQ_API_KEY"),
         )
-        
+
         # Enhanced extraction prompt to ensure structured JSON output
         extraction_prompt = f"""
         Extract the following information from this document.
@@ -422,24 +453,23 @@ async def extract_front_page_emirate(file_path: str) -> Dict:
         
         IMPORTANT: Return ONLY the JSON object with no additional text, code blocks, or explanations.
         """
-        
+
         # Directly use the LLM to extract structured information
         extraction_response = llm.invoke(extraction_prompt)
         extracted_content = extraction_response.content
         logging.info("LLM extraction completed")
-        
+
         # Create default empty result structure
         default_result = {
-                "name": "",
-                "id_number": "",
-                "date_of_birth": "",
-                "nationality": "",
-                "issue_date": "",
-                "expiry_date": "",
-                "gender": "",
+            "name": "",
+            "id_number": "",
+            "date_of_birth": "",
+            "nationality": "",
+            "issue_date": "",
+            "expiry_date": "",
+            "gender": "",
+        }
 
-            }
-        
         # Try to parse the response as JSON
         try:
             # First, attempt to parse as a JSON string
@@ -449,15 +479,19 @@ async def extract_front_page_emirate(file_path: str) -> Dict:
             logging.warning(f"Direct JSON parsing failed: {e}")
             try:
                 # Find JSON-like content between curly braces
-                start = extracted_content.find('{')
-                end = extracted_content.rfind('}') + 1
-                
+                start = extracted_content.find("{")
+                end = extracted_content.rfind("}") + 1
+
                 if start >= 0 and end > start:
                     cleaned_content = extracted_content[start:end]
                     # Replace potential newlines, tabs and fix common JSON format issues
-                    cleaned_content = cleaned_content.replace('\n', ' ').replace('\t', ' ')
-                    cleaned_content = re.sub(r',\s*}', '}', cleaned_content)  # Remove trailing commas
-                    
+                    cleaned_content = cleaned_content.replace("\n", " ").replace(
+                        "\t", " "
+                    )
+                    cleaned_content = re.sub(
+                        r",\s*}", "}", cleaned_content
+                    )  # Remove trailing commas
+
                     result = json.loads(cleaned_content)
                     logging.info("Successfully parsed JSON after cleaning")
                 else:
@@ -465,38 +499,43 @@ async def extract_front_page_emirate(file_path: str) -> Dict:
             except (ValueError, json.JSONDecodeError) as e:
                 logging.warning(f"JSON parsing failed: {e}. Creating empty structure.")
                 result = default_result
-        
+
         # Ensure all expected keys are present in the result
         for key in default_result:
             if key not in result:
                 result[key] = ""
-        
+
         return result
     except Exception as e:
         logging.error(f"Error in extract_image_driving_license: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
-       
-       
+
+
 async def extract_back_page_emirate(file_path: str) -> Dict:
     """
     Extract information from back page document and return as JSON
-    
+
     Args:
         file_path (str): Path to the image file
-        
+
     Returns:
         Dict: Structured information extracted from the document
     """
     try:
         # Preprocess the image
         image = Image.open(file_path)
-        image = image.convert('L')  # Convert to grayscale
-        image = image.resize((image.width * 2, image.height * 2))  # Resize to improve OCR accuracy
-        image = image.filter(ImageFilter.SHARPEN)  # Sharpen the image to improve OCR accuracy
-        
+        image = image.convert("L")  # Convert to grayscale
+        image = image.resize((
+            image.width * 2,
+            image.height * 2,
+        ))  # Resize to improve OCR accuracy
+        image = image.filter(
+            ImageFilter.SHARPEN
+        )  # Sharpen the image to improve OCR accuracy
+
         # Extract text from JPG image
         vision_model = DocumentVisionOCR()
-        
+
         # Create a specialized prompt for license documents
         license_prompt = """
         Extract ALL English text from this license.
@@ -509,18 +548,18 @@ async def extract_back_page_emirate(file_path: str) -> Dict:
         Capture all text exactly as shown, preserving numbers and codes precisely.
         If any mentioned information is missing, recheck and extract everything accurately.
         """
-        
+
         # Use the extract_text_from_image method with the preprocessed image
         vision_text = vision_model.extract_text_from_image(image, prompt=license_prompt)
         logging.info("Extracted text from license document")
-        
+
         # Initialize LLM and create extraction chain
         llm = ChatGroq(
-            model=os.getenv('LLM_MODEL'),
+            model=os.getenv("LLM_MODEL"),
             temperature=0,
-            api_key=os.getenv('GROQ_API_KEY')
+            api_key=os.getenv("GROQ_API_KEY"),
         )
-        
+
         # Enhanced extraction prompt to ensure structured JSON output
         extraction_prompt = f"""
         Extract the following information from this document.
@@ -544,21 +583,20 @@ async def extract_back_page_emirate(file_path: str) -> Dict:
         
         IMPORTANT: Return ONLY the JSON object with no additional text, code blocks, or explanations.
         """
-        
+
         # Directly use the LLM to extract structured information
         extraction_response = llm.invoke(extraction_prompt)
         extracted_content = extraction_response.content
         logging.info("LLM extraction completed")
-        
+
         # Create default empty result structure
         default_result = {
+            "card_number": "",
+            "occupation": "",
+            "employer": "",
+            "issuing_place": "",
+        }
 
-                "card_number": "",
-                "occupation": "",
-                "employer": "",
-                "issuing_place": "",
-            }
-        
         # Try to parse the response as JSON
         try:
             # First, attempt to parse as a JSON string
@@ -568,15 +606,19 @@ async def extract_back_page_emirate(file_path: str) -> Dict:
             logging.warning(f"Direct JSON parsing failed: {e}")
             try:
                 # Find JSON-like content between curly braces
-                start = extracted_content.find('{')
-                end = extracted_content.rfind('}') + 1
-                
+                start = extracted_content.find("{")
+                end = extracted_content.rfind("}") + 1
+
                 if start >= 0 and end > start:
                     cleaned_content = extracted_content[start:end]
                     # Replace potential newlines, tabs and fix common JSON format issues
-                    cleaned_content = cleaned_content.replace('\n', ' ').replace('\t', ' ')
-                    cleaned_content = re.sub(r',\s*}', '}', cleaned_content)  # Remove trailing commas
-                    
+                    cleaned_content = cleaned_content.replace("\n", " ").replace(
+                        "\t", " "
+                    )
+                    cleaned_content = re.sub(
+                        r",\s*}", "}", cleaned_content
+                    )  # Remove trailing commas
+
                     result = json.loads(cleaned_content)
                     logging.info("Successfully parsed JSON after cleaning")
                 else:
@@ -584,34 +626,34 @@ async def extract_back_page_emirate(file_path: str) -> Dict:
             except (ValueError, json.JSONDecodeError) as e:
                 logging.warning(f"JSON parsing failed: {e}. Creating empty structure.")
                 result = default_result
-        
+
         # Ensure all expected keys are present in the result
         for key in default_result:
             if key not in result:
                 result[key] = ""
-        
+
         return result
     except Exception as e:
         logging.error(f"Error in extract_image_driving_license: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
-           
+
 
 async def extract_pdf_info1(file_path: str) -> Dict:
     """
     Extract information from JPG License document and return as JSON
-    
+
     Args:
         file_path (str): Path to the image file
-        
+
     Returns:
         Dict: Structured information extracted from the driving license document
     """
     try:
         # Preprocess the image
-       
+
         # Extract text from JPG image
         vision_model = DocumentVisionOCR()
-        
+
         # Create a specialized prompt for license documents
         emirate_prompt = """
         Extract all English text from this license. 
@@ -634,18 +676,19 @@ async def extract_pdf_info1(file_path: str) -> Dict:
         If any mentioned information is missing, recheck and extract everything accurately.
         """
 
-        
         # Use the extract_text_from_image method with the preprocessed image
-        vision_text = vision_model.extract_text_to_string(file_path, prompt=emirate_prompt)
+        vision_text = vision_model.extract_text_to_string(
+            file_path, prompt=emirate_prompt
+        )
         logging.info("Extracted text from license document")
-        
+
         # Initialize LLM and create extraction chain
         llm = ChatGroq(
-            model=os.getenv('LLM_MODEL'),
+            model=os.getenv("LLM_MODEL"),
             temperature=0,
-            api_key=os.getenv('GROQ_API_KEY')
+            api_key=os.getenv("GROQ_API_KEY"),
         )
-        
+
         # Enhanced extraction prompt to ensure structured JSON output
         extraction_prompt = f"""
         Extract the following information from this Emirate document
@@ -675,27 +718,27 @@ async def extract_pdf_info1(file_path: str) -> Dict:
         
         IMPORTANT: Return ONLY the JSON object with no additional text, code blocks, or explanations.
         """
-        
+
         # Directly use the LLM to extract structured information
         extraction_response = llm.invoke(extraction_prompt)
         extracted_content = extraction_response.content
         logging.info("LLM extraction completed")
-        
+
         # Create default empty result structure
-        default_result =  {
-                "name": "",
-                "id_number": "",
-                "date_of_birth": "",
-                "nationality": "",
-                "issue_date": "",
-                "expiry_date": "",
-                "gender": "",
-                "card_number": "",
-                "occupation": "",
-                "employer": "",
-                "issuing_place": "",
-            }
-        
+        default_result = {
+            "name": "",
+            "id_number": "",
+            "date_of_birth": "",
+            "nationality": "",
+            "issue_date": "",
+            "expiry_date": "",
+            "gender": "",
+            "card_number": "",
+            "occupation": "",
+            "employer": "",
+            "issuing_place": "",
+        }
+
         # Try to parse the response as JSON
         try:
             # First, attempt to parse as a JSON string
@@ -705,15 +748,19 @@ async def extract_pdf_info1(file_path: str) -> Dict:
             logging.warning(f"Direct JSON parsing failed: {e}")
             try:
                 # Find JSON-like content between curly braces
-                start = extracted_content.find('{')
-                end = extracted_content.rfind('}') + 1
-                
+                start = extracted_content.find("{")
+                end = extracted_content.rfind("}") + 1
+
                 if start >= 0 and end > start:
                     cleaned_content = extracted_content[start:end]
                     # Replace potential newlines, tabs and fix common JSON format issues
-                    cleaned_content = cleaned_content.replace('\n', ' ').replace('\t', ' ')
-                    cleaned_content = re.sub(r',\s*}', '}', cleaned_content)  # Remove trailing commas
-                    
+                    cleaned_content = cleaned_content.replace("\n", " ").replace(
+                        "\t", " "
+                    )
+                    cleaned_content = re.sub(
+                        r",\s*}", "}", cleaned_content
+                    )  # Remove trailing commas
+
                     result = json.loads(cleaned_content)
                     logging.info("Successfully parsed JSON after cleaning")
                 else:
@@ -721,40 +768,44 @@ async def extract_pdf_info1(file_path: str) -> Dict:
             except (ValueError, json.JSONDecodeError) as e:
                 logging.warning(f"JSON parsing failed: {e}. Creating empty structure.")
                 result = default_result
-        
+
         # Ensure all expected keys are present in the result
         for key in default_result:
             if key not in result:
                 result[key] = ""
-        
+
         return result
     except Exception as e:
         logging.error(f"Error in extract_image_driving_license: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
 
 
-
-#Todo
+# Todo
 async def extract_image_driving_license(file_path: str) -> Dict:
     """
     Extract information from JPG License document and return as JSON
-    
+
     Args:
         file_path (str): Path to the image file
-        
+
     Returns:
         Dict: Structured information extracted from the driving license document
     """
     try:
         # Preprocess the image
         image = Image.open(file_path)
-        image = image.convert('L')  # Convert to grayscale
-        image = image.resize((image.width * 2, image.height * 2))  # Resize to improve OCR accuracy
-        image = image.filter(ImageFilter.SHARPEN)  # Sharpen the image to improve OCR accuracy
-        
+        image = image.convert("L")  # Convert to grayscale
+        image = image.resize((
+            image.width * 2,
+            image.height * 2,
+        ))  # Resize to improve OCR accuracy
+        image = image.filter(
+            ImageFilter.SHARPEN
+        )  # Sharpen the image to improve OCR accuracy
+
         # Extract text from JPG image
         vision_model = DocumentVisionOCR()
-        
+
         # Create a specialized prompt for license documents
         license_prompt = """
         Extract ALL English text from this license.
@@ -772,18 +823,18 @@ async def extract_image_driving_license(file_path: str) -> Dict:
         Capture all text exactly as shown, preserving numbers and codes precisely.
         If any mentioned information is missing, recheck and extract everything accurately.
         """
-        
+
         # Use the extract_text_from_image method with the preprocessed image
         vision_text = vision_model.extract_text_from_image(image, prompt=license_prompt)
         logging.info("Extracted text from license document")
-        
+
         # Initialize LLM and create extraction chain
         llm = ChatGroq(
-            model=os.getenv('LLM_MODEL'),
+            model=os.getenv("LLM_MODEL"),
             temperature=0,
-            api_key=os.getenv('GROQ_API_KEY')
+            api_key=os.getenv("GROQ_API_KEY"),
         )
-        
+
         # Enhanced extraction prompt to ensure structured JSON output
         extraction_prompt = f"""
         Extract the following information from this Driving License.
@@ -811,12 +862,12 @@ async def extract_image_driving_license(file_path: str) -> Dict:
         
         IMPORTANT: Return ONLY the JSON object with no additional text, code blocks, or explanations.
         """
-        
+
         # Directly use the LLM to extract structured information
         extraction_response = llm.invoke(extraction_prompt)
         extracted_content = extraction_response.content
         logging.info("LLM extraction completed")
-        
+
         # Create default empty result structure
         default_result = {
             "name": "",
@@ -827,9 +878,9 @@ async def extract_image_driving_license(file_path: str) -> Dict:
             "expiry_date": "",
             "traffic_code_no": "",
             "place_of_issue": "",
-            "permitted_vehicles": ""
+            "permitted_vehicles": "",
         }
-        
+
         # Try to parse the response as JSON
         try:
             # First, attempt to parse as a JSON string
@@ -839,15 +890,19 @@ async def extract_image_driving_license(file_path: str) -> Dict:
             logging.warning(f"Direct JSON parsing failed: {e}")
             try:
                 # Find JSON-like content between curly braces
-                start = extracted_content.find('{')
-                end = extracted_content.rfind('}') + 1
-                
+                start = extracted_content.find("{")
+                end = extracted_content.rfind("}") + 1
+
                 if start >= 0 and end > start:
                     cleaned_content = extracted_content[start:end]
                     # Replace potential newlines, tabs and fix common JSON format issues
-                    cleaned_content = cleaned_content.replace('\n', ' ').replace('\t', ' ')
-                    cleaned_content = re.sub(r',\s*}', '}', cleaned_content)  # Remove trailing commas
-                    
+                    cleaned_content = cleaned_content.replace("\n", " ").replace(
+                        "\t", " "
+                    )
+                    cleaned_content = re.sub(
+                        r",\s*}", "}", cleaned_content
+                    )  # Remove trailing commas
+
                     result = json.loads(cleaned_content)
                     logging.info("Successfully parsed JSON after cleaning")
                 else:
@@ -855,38 +910,35 @@ async def extract_image_driving_license(file_path: str) -> Dict:
             except (ValueError, json.JSONDecodeError) as e:
                 logging.warning(f"JSON parsing failed: {e}. Creating empty structure.")
                 result = default_result
-        
+
         # Ensure all expected keys are present in the result
         for key in default_result:
             if key not in result:
                 result[key] = ""
-        
+
         return result
     except Exception as e:
         logging.error(f"Error in extract_image_driving_license: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
-    
-    
-    
-    
 
-#Todo
+
+# Todo
 async def extract_pdf_driving_license(file_path: str) -> Dict:
     """
     Extract information from JPG License document and return as JSON
-    
+
     Args:
         file_path (str): Path to the image file
-        
+
     Returns:
         Dict: Structured information extracted from the driving license document
     """
     try:
         # Preprocess the image
-       
+
         # Extract text from JPG image
         vision_model = DocumentVisionOCR()
-        
+
         # Create a specialized prompt for license documents
         license_prompt = """
         Extract ALL English text from this license.
@@ -905,18 +957,20 @@ async def extract_pdf_driving_license(file_path: str) -> Dict:
         make sure to extract all provided information in the give document
         If any mentioned information is missing, recheck and extract everything accurately.
         """
-        
+
         # Use the extract_text_from_image method with the preprocessed image
-        vision_text = vision_model.extract_text_to_string(file_path, prompt=license_prompt)
+        vision_text = vision_model.extract_text_to_string(
+            file_path, prompt=license_prompt
+        )
         logging.info("Extracted text from license document")
-        
+
         # Initialize LLM and create extraction chain
         llm = ChatGroq(
-            model=os.getenv('LLM_MODEL'),
+            model=os.getenv("LLM_MODEL"),
             temperature=0,
-            api_key=os.getenv('GROQ_API_KEY')
+            api_key=os.getenv("GROQ_API_KEY"),
         )
-        
+
         # Enhanced extraction prompt to ensure structured JSON output
         extraction_prompt = f"""
         Extract the following information from this Driving License.
@@ -944,12 +998,12 @@ async def extract_pdf_driving_license(file_path: str) -> Dict:
         
         IMPORTANT: Return ONLY the JSON object with no additional text, code blocks, or explanations.
         """
-        
+
         # Directly use the LLM to extract structured information
         extraction_response = llm.invoke(extraction_prompt)
         extracted_content = extraction_response.content
         logging.info("LLM extraction completed")
-        
+
         # Create default empty result structure
         default_result = {
             "name": "",
@@ -960,9 +1014,9 @@ async def extract_pdf_driving_license(file_path: str) -> Dict:
             "expiry_date": "",
             "traffic_code_no": "",
             "place_of_issue": "",
-            "permitted_vehicles": ""
+            "permitted_vehicles": "",
         }
-        
+
         # Try to parse the response as JSON
         try:
             # First, attempt to parse as a JSON string
@@ -972,15 +1026,19 @@ async def extract_pdf_driving_license(file_path: str) -> Dict:
             logging.warning(f"Direct JSON parsing failed: {e}")
             try:
                 # Find JSON-like content between curly braces
-                start = extracted_content.find('{')
-                end = extracted_content.rfind('}') + 1
-                
+                start = extracted_content.find("{")
+                end = extracted_content.rfind("}") + 1
+
                 if start >= 0 and end > start:
                     cleaned_content = extracted_content[start:end]
                     # Replace potential newlines, tabs and fix common JSON format issues
-                    cleaned_content = cleaned_content.replace('\n', ' ').replace('\t', ' ')
-                    cleaned_content = re.sub(r',\s*}', '}', cleaned_content)  # Remove trailing commas
-                    
+                    cleaned_content = cleaned_content.replace("\n", " ").replace(
+                        "\t", " "
+                    )
+                    cleaned_content = re.sub(
+                        r",\s*}", "}", cleaned_content
+                    )  # Remove trailing commas
+
                     result = json.loads(cleaned_content)
                     logging.info("Successfully parsed JSON after cleaning")
                 else:
@@ -988,43 +1046,44 @@ async def extract_pdf_driving_license(file_path: str) -> Dict:
             except (ValueError, json.JSONDecodeError) as e:
                 logging.warning(f"JSON parsing failed: {e}. Creating empty structure.")
                 result = default_result
-        
+
         # Ensure all expected keys are present in the result
         for key in default_result:
             if key not in result:
                 result[key] = ""
-        
+
         return result
     except Exception as e:
         logging.error(f"Error in extract_image_driving_license: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
-    
-    
-    
-    
 
 
-#Todo Mulkiya
+# Todo Mulkiya
 async def extract_image_mulkiya(file_path: str) -> Dict:
     """
     Extract information from JPG License document and return as JSON
-    
+
     Args:
         file_path (str): Path to the image file
-        
+
     Returns:
         Dict: Structured information extracted from the driving license document
     """
     try:
         # Preprocess the image
         image = Image.open(file_path)
-        image = image.convert('L')  # Convert to grayscale
-        image = image.resize((image.width * 2, image.height * 2))  # Resize to improve OCR accuracy
-        image = image.filter(ImageFilter.SHARPEN)  # Sharpen the image to improve OCR accuracy
-        
+        image = image.convert("L")  # Convert to grayscale
+        image = image.resize((
+            image.width * 2,
+            image.height * 2,
+        ))  # Resize to improve OCR accuracy
+        image = image.filter(
+            ImageFilter.SHARPEN
+        )  # Sharpen the image to improve OCR accuracy
+
         # Extract text from JPG image
         vision_model = DocumentVisionOCR()
-        
+
         # Create a specialized prompt for license documents
         license_prompt = """
         Extract ALL English text from this driving license or mulkiya.
@@ -1051,18 +1110,18 @@ async def extract_image_mulkiya(file_path: str) -> Dict:
         Capture all text exactly as shown, preserving numbers and codes precisely.
         If any mentioned information is missing, recheck and extract everything accurately.
         """
-        
+
         # Use the extract_text_from_image method with the preprocessed image
         vision_text = vision_model.extract_text_from_image(image, prompt=license_prompt)
         logging.info("Extracted text from license document")
-        
+
         # Initialize LLM and create extraction chain
         llm = ChatGroq(
-            model=os.getenv('LLM_MODEL'),
+            model=os.getenv("LLM_MODEL"),
             temperature=0,
-            api_key=os.getenv('GROQ_API_KEY')
+            api_key=os.getenv("GROQ_API_KEY"),
         )
-        
+
         # Enhanced extraction prompt to ensure structured JSON output
         extraction_prompt = f"""
         Extract the following information from this Driving License.
@@ -1098,32 +1157,32 @@ async def extract_image_mulkiya(file_path: str) -> Dict:
         
         IMPORTANT: Return ONLY the JSON object with no additional text, code blocks, or explanations.
         """
-        
+
         # Directly use the LLM to extract structured information
         extraction_response = llm.invoke(extraction_prompt)
         extracted_content = extraction_response.content
         logging.info("LLM extraction completed")
-        
+
         # Create default empty result structure
         default_result = {
             "owner": "",
-         "traffic_plate_no": "",
-        "tc_no": "",
-        "nationality": "",
-         "reg_date": "",
-         "expiry_date": "",
-         "ins_exp": "",
-         "policy_no": "",
-        "place_of_issue": "",
-        "model_no": "",
-        "number_of_pass": "",
-         "origin": "",
-         "vehicle_type": "",
-         "empty_weight": "",
-         "engine_no": "",
-         "chassis_no": ""
+            "traffic_plate_no": "",
+            "tc_no": "",
+            "nationality": "",
+            "reg_date": "",
+            "expiry_date": "",
+            "ins_exp": "",
+            "policy_no": "",
+            "place_of_issue": "",
+            "model_no": "",
+            "number_of_pass": "",
+            "origin": "",
+            "vehicle_type": "",
+            "empty_weight": "",
+            "engine_no": "",
+            "chassis_no": "",
         }
-        
+
         # Try to parse the response as JSON
         try:
             # First, attempt to parse as a JSON string
@@ -1133,15 +1192,19 @@ async def extract_image_mulkiya(file_path: str) -> Dict:
             logging.warning(f"Direct JSON parsing failed: {e}")
             try:
                 # Find JSON-like content between curly braces
-                start = extracted_content.find('{')
-                end = extracted_content.rfind('}') + 1
-                
+                start = extracted_content.find("{")
+                end = extracted_content.rfind("}") + 1
+
                 if start >= 0 and end > start:
                     cleaned_content = extracted_content[start:end]
                     # Replace potential newlines, tabs and fix common JSON format issues
-                    cleaned_content = cleaned_content.replace('\n', ' ').replace('\t', ' ')
-                    cleaned_content = re.sub(r',\s*}', '}', cleaned_content)  # Remove trailing commas
-                    
+                    cleaned_content = cleaned_content.replace("\n", " ").replace(
+                        "\t", " "
+                    )
+                    cleaned_content = re.sub(
+                        r",\s*}", "}", cleaned_content
+                    )  # Remove trailing commas
+
                     result = json.loads(cleaned_content)
                     logging.info("Successfully parsed JSON after cleaning")
                 else:
@@ -1149,39 +1212,34 @@ async def extract_image_mulkiya(file_path: str) -> Dict:
             except (ValueError, json.JSONDecodeError) as e:
                 logging.warning(f"JSON parsing failed: {e}. Creating empty structure.")
                 result = default_result
-        
+
         # Ensure all expected keys are present in the result
         for key in default_result:
             if key not in result:
                 result[key] = ""
-        
+
         return result
     except Exception as e:
         logging.error(f"Error in extract_image_driving_license: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
-    
-    
-    
-    
-    
 
 
 async def extract_pdf_mulkiya(file_path: str) -> Dict:
     """
     Extract information from JPG License document and return as JSON
-    
+
     Args:
         file_path (str): Path to the image file
-        
+
     Returns:
         Dict: Structured information extracted from the driving license document
     """
     try:
         # Preprocess the image
-       
+
         # Extract text from JPG image
         vision_model = DocumentVisionOCR()
-        
+
         # Create a specialized prompt for license documents
         mulkiya_prompt = """
         Extract ALL English text from this driving license or mulkiya.
@@ -1208,18 +1266,20 @@ async def extract_pdf_mulkiya(file_path: str) -> Dict:
         Capture all text exactly as shown, preserving numbers and codes precisely.
         If any mentioned information is missing, recheck and extract everything accurately.
         """
-        
+
         # Use the extract_text_from_image method with the preprocessed image
-        vision_text = vision_model.extract_text_to_string(file_path, prompt=mulkiya_prompt)
+        vision_text = vision_model.extract_text_to_string(
+            file_path, prompt=mulkiya_prompt
+        )
         logging.info("Extracted text from license document")
-        
+
         # Initialize LLM and create extraction chain
         llm = ChatGroq(
-            model=os.getenv('LLM_MODEL'),
+            model=os.getenv("LLM_MODEL"),
             temperature=0,
-            api_key=os.getenv('GROQ_API_KEY')
+            api_key=os.getenv("GROQ_API_KEY"),
         )
-        
+
         # Enhanced extraction prompt to ensure structured JSON output
         extraction_prompt = f"""
         Extract the following information from this Driving License.
@@ -1255,32 +1315,32 @@ async def extract_pdf_mulkiya(file_path: str) -> Dict:
         
         IMPORTANT: Return ONLY the JSON object with no additional text, code blocks, or explanations.
         """
-        
+
         # Directly use the LLM to extract structured information
         extraction_response = llm.invoke(extraction_prompt)
         extracted_content = extraction_response.content
         logging.info("LLM extraction completed")
-        
+
         # Create default empty result structure
         default_result = {
             "owner": "",
-         "traffic_plate_no": "",
-        "tc_no": "",
-        "nationality": "",
-         "reg_date": "",
-         "expiry_date": "",
-         "ins_exp": "",
-         "policy_no": "",
-        "place_of_issue": "",
-        "model_no": "",
-        "number_of_pass": "",
-         "origin": "",
-         "vehicle_type": "",
-         "empty_weight": "",
-         "engine_no": "",
-         "chassis_no": ""
+            "traffic_plate_no": "",
+            "tc_no": "",
+            "nationality": "",
+            "reg_date": "",
+            "expiry_date": "",
+            "ins_exp": "",
+            "policy_no": "",
+            "place_of_issue": "",
+            "model_no": "",
+            "number_of_pass": "",
+            "origin": "",
+            "vehicle_type": "",
+            "empty_weight": "",
+            "engine_no": "",
+            "chassis_no": "",
         }
-        
+
         # Try to parse the response as JSON
         try:
             # First, attempt to parse as a JSON string
@@ -1290,15 +1350,19 @@ async def extract_pdf_mulkiya(file_path: str) -> Dict:
             logging.warning(f"Direct JSON parsing failed: {e}")
             try:
                 # Find JSON-like content between curly braces
-                start = extracted_content.find('{')
-                end = extracted_content.rfind('}') + 1
-                
+                start = extracted_content.find("{")
+                end = extracted_content.rfind("}") + 1
+
                 if start >= 0 and end > start:
                     cleaned_content = extracted_content[start:end]
                     # Replace potential newlines, tabs and fix common JSON format issues
-                    cleaned_content = cleaned_content.replace('\n', ' ').replace('\t', ' ')
-                    cleaned_content = re.sub(r',\s*}', '}', cleaned_content)  # Remove trailing commas
-                    
+                    cleaned_content = cleaned_content.replace("\n", " ").replace(
+                        "\t", " "
+                    )
+                    cleaned_content = re.sub(
+                        r",\s*}", "}", cleaned_content
+                    )  # Remove trailing commas
+
                     result = json.loads(cleaned_content)
                     logging.info("Successfully parsed JSON after cleaning")
                 else:
@@ -1306,17 +1370,16 @@ async def extract_pdf_mulkiya(file_path: str) -> Dict:
             except (ValueError, json.JSONDecodeError) as e:
                 logging.warning(f"JSON parsing failed: {e}. Creating empty structure.")
                 result = default_result
-        
+
         # Ensure all expected keys are present in the result
         for key in default_result:
             if key not in result:
                 result[key] = ""
-        
+
         return result
     except Exception as e:
         logging.error(f"Error in extract_image_driving_license: {e}")
         raise HTTPException(status_code=500, detail=f"Internal Server Error: {str(e)}")
-    
 
 
 async def extract_excel_sme_census(file_path: str) -> dict:
@@ -1339,36 +1402,96 @@ async def extract_excel_sme_census(file_path: str) -> dict:
             f"Successfully read Excel file with {len(df)} rows and {len(df.columns)} columns"
         )
 
+        # Log all column names to debug
+        logging.info(f"Columns found in Excel: {df.columns.tolist()}")
+
+        # Log first row to see the data
+        if len(df) > 0:
+            logging.info(f"First row data: {df.iloc[0].to_dict()}")
+
         # Convert DataFrame to list of dictionaries
         employees_list = []
 
         for index, row in df.iterrows():
+            # Try to find columns with flexible matching
+            def get_value(row_dict, possible_keys, default=""):
+                for key in possible_keys:
+                    if key in row_dict:
+                        value = row_dict[key]
+                        if pd.notna(value) and str(value).strip():
+                            return str(value).strip()
+                return default
+
             employee_record = {
-                "sr_no": str(row.get("SR No.", "")).strip()
-                if pd.notna(row.get("SR No."))
-                else "",
-                "first_name": str(row.get("First Name ", "")).strip()
-                if pd.notna(row.get("First Name "))
-                else "",
-                "gender": str(row.get("Gender", "")).strip()
-                if pd.notna(row.get("Gender"))
-                else "",
-                "date_of_birth": str(row.get("Date Of Birth ", "")).strip()
-                if pd.notna(row.get("Date Of Birth "))
-                else "",
-                "nationality": str(row.get("Nationality", "")).strip()
-                if pd.notna(row.get("Nationality"))
-                else "",
-                "marital_status": str(row.get("Marital Status", "")).strip()
-                if pd.notna(row.get("Marital Status"))
-                else "",
-                "relation": str(row.get("Relation", "")).strip()
-                if pd.notna(row.get("Relation"))
-                else "",
-                "visa_issued_location": str(row.get("Visa Issued Location", "")).strip()
-                if pd.notna(row.get("Visa Issued Location"))
-                else "",
+                "sr_no": get_value(
+                    row.to_dict(),
+                    ["SR No.", "sr_no", "Sr No.", "S.No", "S.No.", "Sn", "Sr"],
+                    "",
+                ),
+                "first_name": get_value(
+                    row.to_dict(),
+                    [
+                        "First Name ",
+                        "First Name",
+                        "first_name",
+                        "Name",
+                        "Full Name",
+                        "Employee Name",
+                        "Employee",
+                    ],
+                    "",
+                ),
+                "gender": get_value(
+                    row.to_dict(), ["Gender", "gender", "Sex", "G"], ""
+                ),
+                "date_of_birth": get_value(
+                    row.to_dict(),
+                    [
+                        "Date Of Birth ",
+                        "Date Of Birth",
+                        "date_of_birth",
+                        "DOB",
+                        "Birth Date",
+                        "Date of Birth",
+                        "Birthday",
+                    ],
+                    "",
+                ),
+                "nationality": get_value(
+                    row.to_dict(), ["Nationality", "nationality", "Nationality "], ""
+                ),
+                "marital_status": get_value(
+                    row.to_dict(),
+                    [
+                        "Marital Status",
+                        "marital_status",
+                        "Marital Status ",
+                        "Status",
+                        "Maritial",
+                    ],
+                    "",
+                ),
+                "relation": get_value(
+                    row.to_dict(), ["Relation", "relation", "Relationship", "Rel"], ""
+                ),
+                "visa_issued_location": get_value(
+                    row.to_dict(),
+                    [
+                        "Visa Issued Location",
+                        "visa_issued_location",
+                        "Visa Issued Location ",
+                        "Emirate",
+                        "Emirate ID",
+                        "Issue Location",
+                        "Emirates",
+                    ],
+                    "",
+                ),
             }
+
+            # Log each record for debugging
+            logging.info(f"Employee record extracted: {employee_record}")
+
             employees_list.append(employee_record)
 
         # Create the final result structure
