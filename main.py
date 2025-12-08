@@ -8,6 +8,7 @@ from routes import (
     pdf2text,
     excel_upload,
     language_detection,
+    livekitToken,
 )
 from routes.pdf2text import get_pdf
 from fastapi import FastAPI, File, UploadFile, HTTPException
@@ -73,4 +74,4 @@ app.include_router(pdf2text.router)
 app.include_router(upload.router)
 app.include_router(excel_upload.router)
 app.include_router(language_detection.router)
-# app.include_router(livekitToken.router)
+app.include_router(livekitToken.router)

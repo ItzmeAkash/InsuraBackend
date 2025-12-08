@@ -52,7 +52,6 @@ INSURANCE_LAB_BASE_URL = "https://insurancelab.ae"
 INSURANCE_LAB_API_BASE_URL = f"{INSURANCE_LAB_BASE_URL}/Api"
 INSURANCE_LAB_SME_ADD_API = f"{INSURANCE_LAB_API_BASE_URL}/sme_add/"
 INSURANCE_LAB_SME_PLAN_BASE = f"{INSURANCE_LAB_BASE_URL}/sme_plan"
-
 # Updated
 llm = ChatGroq(
     model="llama-3.3-70b-versatile",
