@@ -22,10 +22,3 @@ openpyxl==3.1.5
 livekit
 livekit-agents
 livekit-api
-livekit-blingfire
-livekit-plugins-deepgram
-livekit-plugins-groq
-livekit-plugins-openai
-livekit-plugins-silero
-livekit-plugins-tavus
-livekit-protocol
