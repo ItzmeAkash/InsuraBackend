@@ -19,13 +19,13 @@ aiofiles==24.1.0
 cachetools==5.5.0
 pandas== 2.2.3
 openpyxl==3.1.5
-livekit==1.0.12
-livekit-agents==1.2.6
-livekit-api==1.0.5
-livekit-blingfire==1.0.0
-livekit-plugins-deepgram==1.2.6
-livekit-plugins-groq==1.2.6
-livekit-plugins-openai==1.2.6
-livekit-plugins-silero==1.2.6
-livekit-plugins-tavus==1.2.6
-livekit-protocol==1.0.5
+livekit
+livekit-agents
+livekit-api
+livekit-blingfire
+livekit-plugins-deepgram
+livekit-plugins-groq
+livekit-plugins-openai
+livekit-plugins-silero
+livekit-plugins-tavus
+livekit-protocol
