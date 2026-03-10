@@ -19,6 +19,7 @@ aiofiles==24.1.0
 cachetools==5.5.0
 pandas== 2.2.3
 openpyxl==3.1.5
+python-docx==1.1.2
 livekit
 livekit-agents
 livekit-api
