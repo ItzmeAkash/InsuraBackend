@@ -9,6 +9,7 @@ from routes import (
     language_detection,
     livekitToken,
     emirate_upload,
+    insurance_compare,
 )
 from utils.helper import transcribe_audio
 import aiofiles
@@ -73,3 +74,4 @@ app.include_router(excel_upload.router)
 app.include_router(language_detection.router)
 app.include_router(livekitToken.router)
 app.include_router(emirate_upload.router)
+app.include_router(insurance_compare.router)
