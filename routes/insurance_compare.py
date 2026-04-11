@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import APIRouter, File, HTTPException, UploadFile
 
 from documentcomparison_parser import InsuranceComparisonParser
+from documentcomparison_parser.utils import normalize_json_keys
 
 router = APIRouter()
 
@@ -55,6 +56,7 @@ async def _parse_one_pdf(
             data = await asyncio.to_thread(parser.extract, tmp_path)
             if isinstance(data, dict):
                 data = _rename_section_keys(data)
+                data = normalize_json_keys(data)
 
         return {"filename": filename, "ok": True, "data": data}
     except Exception as e:
@@ -73,6 +75,8 @@ async def compare_insurance_pdfs(
 ):
     """
     Upload multiple PDFs and parse each in parallel.
+
+    Each successful result's ``data`` uses **snake_case** keys (e.g. ``company_name``, ``benefits_section``).
 
     Returns per-file results so one failure doesn't fail the whole batch.
     """

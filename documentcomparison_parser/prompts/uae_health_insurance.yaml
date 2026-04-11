@@ -21,6 +21,8 @@ template: |-
 
   ## 🧠 UNDERSTANDING THE DOCUMENT
 
+  * **Insurance company / insurer name**: Extract the name of the insurance company or underwriter as printed on the document (letterhead, quotation title, "Policy issued by", insurer logo text, schedule header). Use the clearest commercial name shown (e.g. "MetLife" not a long legal footnote unless that is the only name). If not found → null.
+
   The document may contain:
 
   * Category A and Category B plans
@@ -237,6 +239,7 @@ template: |-
 
   Before returning JSON, verify:
 
+  0. **company_name** matches insurer/underwriter branding on the document (not the TPA unless no insurer name exists)
   1. Aggregate limit is highest monetary value
   2. Category A and B both populated (if present)
   3. No sub-limit used as aggregate limit
@@ -254,6 +257,7 @@ template: |-
   ## 📤 OUTPUT FORMAT (STRICT JSON)
 
   {{
+  "company_name": null,
   "benefits_section": {{
   "Area Of Cover - Elective": "",
   "Emergency Treatment Outside Area of Cover": "",

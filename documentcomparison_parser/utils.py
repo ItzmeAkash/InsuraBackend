@@ -108,6 +108,33 @@ def parse_json_from_llm(content: str) -> dict[str, Any] | None:
     return None
 
 
+def json_key_to_snake_case(key: str) -> str:
+    """
+    Turn a human-readable JSON key into lowercase snake_case (API responses).
+
+    Examples: ``"Category A"`` → ``category_a``, ``"Area Of Cover - Elective"`` → ``area_of_cover_elective``.
+    """
+    s = key.strip().lower()
+    s = re.sub(r"[^a-z0-9]+", "_", s)
+    s = re.sub(r"_+", "_", s)
+    return s.strip("_")
+
+
+def normalize_json_keys(obj: Any) -> Any:
+    """Recursively rename all dict keys to snake_case; pass through lists and scalars."""
+    if isinstance(obj, dict):
+        out: dict[str, Any] = {}
+        for k, v in obj.items():
+            if not isinstance(k, str):
+                k = str(k)
+            nk = json_key_to_snake_case(k)
+            out[nk] = normalize_json_keys(v)
+        return out
+    if isinstance(obj, list):
+        return [normalize_json_keys(x) for x in obj]
+    return obj
+
+
 def deep_merge_extraction(base: dict[str, Any], incoming: dict[str, Any]) -> dict[str, Any]:
     """Merge chunk JSON: recurse into dicts; prefer longer strings; fill missing leaves."""
     for key, new_val in incoming.items():

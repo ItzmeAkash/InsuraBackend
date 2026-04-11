@@ -21,7 +21,11 @@ from .utils import (
 logger = logging.getLogger(__name__)
 
 class InsuranceComparisonParser:
-    """Extract structured insurance benefits/pricing from a PDF via Groq."""
+    """Extract structured insurance benefits/pricing from a PDF via Groq.
+
+    Merged JSON includes top-level ``company_name`` (insurer/underwriter as printed on the PDF),
+    filled from the chunked extraction prompt when present in the document text.
+    """
 
     DEFAULT_MODEL = "openai/gpt-oss-120b"
     CHUNK_CHARS = 8000
