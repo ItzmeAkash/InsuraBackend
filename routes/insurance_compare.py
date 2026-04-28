@@ -11,6 +11,9 @@ from documentcomparison_parser.utils import normalize_json_keys
 router = APIRouter()
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
+MAX_FILES_PER_REQUEST = 6
+# Keep parser concurrency conservative to avoid Groq TPM bursts.
+MAX_PARSER_CONCURRENCY = 2
 
 SECTION_KEY_RENAMES = {
     "section_1_policy_scope": "benefits_section",
@@ -82,10 +85,14 @@ async def compare_insurance_pdfs(
     """
     if not files:
         raise HTTPException(status_code=422, detail="No files provided")
+    if len(files) > MAX_FILES_PER_REQUEST:
+        raise HTTPException(
+            status_code=422,
+            detail=f"Maximum {MAX_FILES_PER_REQUEST} PDF files are allowed per request",
+        )
 
     parser = InsuranceComparisonParser()
-    cpu = os.cpu_count() or 4
-    max_concurrency = max(1, min(20, len(files), cpu))
+    max_concurrency = max(1, min(MAX_PARSER_CONCURRENCY, len(files)))
     semaphore = asyncio.Semaphore(max_concurrency)
 
     tasks = [

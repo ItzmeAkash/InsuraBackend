@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import random
+import time
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -31,6 +33,9 @@ class InsuranceComparisonParser:
     CHUNK_CHARS = 8000
     CHUNK_OVERLAP = 500
     MAX_PROMPT_CHUNK = 8000
+    MAX_RETRIES = 5
+    BASE_RETRY_SECONDS = 1.0
+    MAX_RETRY_SECONDS = 8.0
     DEFAULT_PROMPT_YAML = Path(__file__).resolve().parent / "prompts" / "uae_health_insurance.yaml"
 
     def __init__(
@@ -83,7 +88,7 @@ class InsuranceComparisonParser:
 
         for i, chunk in enumerate(chunks):
             prompt = self._prompt_template.format(chunk=chunk[: self._max_prompt_chunk])
-            response = llm.invoke([HumanMessage(content=prompt)])
+            response = self._invoke_with_backoff(llm, prompt, chunk_index=i)
             content = response.content if isinstance(response.content, str) else str(response.content)
             data = self._json_parser(content)
             if not isinstance(data, dict):
@@ -92,6 +97,38 @@ class InsuranceComparisonParser:
             self._merge_func(merged, data)
 
         return merged
+
+    def _invoke_with_backoff(self, llm: ChatGroq, prompt: str, *, chunk_index: int) -> Any:
+        last_error: Exception | None = None
+        for attempt in range(1, self.MAX_RETRIES + 1):
+            try:
+                return llm.invoke([HumanMessage(content=prompt)])
+            except Exception as exc:  # pragma: no cover - network/provider dependent
+                last_error = exc
+                msg = str(exc)
+                is_retryable = _is_retryable_rate_limit_or_transient(msg)
+                if not is_retryable or attempt >= self.MAX_RETRIES:
+                    raise
+
+                retry_after = _extract_retry_after_seconds(msg)
+                backoff = min(
+                    self.MAX_RETRY_SECONDS,
+                    self.BASE_RETRY_SECONDS * (2 ** (attempt - 1)),
+                )
+                sleep_seconds = max(retry_after, backoff) + random.uniform(0, 0.35)
+                logger.warning(
+                    "Chunk %s invoke failed (attempt %s/%s). Retrying in %.2fs. Error: %s",
+                    chunk_index,
+                    attempt,
+                    self.MAX_RETRIES,
+                    sleep_seconds,
+                    msg,
+                )
+                time.sleep(sleep_seconds)
+
+        if last_error is not None:
+            raise last_error
+        raise RuntimeError("LLM invocation failed without an exception")
 
 
 def _split_text(text: str, *, chunk_size: int, chunk_overlap: int) -> list[str]:
@@ -115,6 +152,41 @@ def _split_text(text: str, *, chunk_size: int, chunk_overlap: int) -> list[str]:
             break
         start += step
     return chunks
+
+
+def _extract_retry_after_seconds(error_message: str) -> float:
+    """
+    Extract retry-after hint from provider message, if present.
+    Example: "Please try again in 1.0275s"
+    """
+    import re
+
+    match = re.search(r"try again in\s*([0-9]*\.?[0-9]+)\s*s", error_message, re.IGNORECASE)
+    if not match:
+        return 0.0
+    try:
+        return float(match.group(1))
+    except ValueError:
+        return 0.0
+
+
+def _is_retryable_rate_limit_or_transient(error_message: str) -> bool:
+    lowered = error_message.lower()
+    retryable_tokens = (
+        "429",
+        "rate limit",
+        "rate_limit_exceeded",
+        "tokens per minute",
+        "tpm",
+        "timeout",
+        "temporarily unavailable",
+        "service unavailable",
+        "internal server error",
+        "502",
+        "503",
+        "504",
+    )
+    return any(token in lowered for token in retryable_tokens)
 
 
 if __name__ == "__main__":
