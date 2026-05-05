@@ -126,7 +126,7 @@ class MedicalConversationHandler:
                         "restart_conversation": True,
                     }
 
-                fallback_message = "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae."
+                fallback_message = "Thank you for sharing the details. We will inform Insura to  assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae."
                 return {
                     "response": translate_text(fallback_message, user_language),
                     "language": user_language,

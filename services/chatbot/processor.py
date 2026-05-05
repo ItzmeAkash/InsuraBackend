@@ -2703,7 +2703,7 @@ def process_user_input(user_input: UserInput):
                         json.dump(responses, file, indent=4)
                     del user_states[user_id]
 
-                    final_message = "Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae."
+                    final_message = "Thank you for sharing the details. We will inform Insura to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae."
 
                     result = format_response_in_language(
                         final_message, [], user_language
@@ -4571,7 +4571,7 @@ def process_user_input(user_input: UserInput):
                                     }
                             else:
                                 return {
-                                    "response": "Thank you for uploading the Excel file. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry.",
+                                    "response": "Thank you for uploading the Excel file. We will inform  Insura to assist you further with your enquiry.",
                                     "final_responses": responses,
                                 }
                     else:
@@ -4588,12 +4588,12 @@ def process_user_input(user_input: UserInput):
                                 options = ", ".join(next_question.get("options", []))
                                 next_questions = next_question.get("question", "")
                                 return {
-                                    "response": f"Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Now, let's move on to: {next_questions}",
+                                    "response": f"Thank you for sharing the details. We will inform Insura to assist you further with your enquiry. Now, let's move on to: {next_questions}",
                                     "options": options,
                                 }
                             else:
                                 return {
-                                    "response": f"Thank you for sharing the details. We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Now, let's move on to: {next_question}"
+                                    "response": f"Thank you for sharing the details.  We will inform Insura to  to assist you further with your enquiry. Now, let's move on to: {next_question}"
                                 }
                         else:
                             # Save responses and end the conversation - SMA flow completion

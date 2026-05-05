@@ -83,7 +83,7 @@ class MedicalIndividualHandler:
                 json.dump(responses, file, indent=4)
 
             completion_msg = translate_text(
-                "Thank you for sharing the details! 🎉 We will inform Shafeeque Shanavas from Wehbe Insurance to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae",
+                "Thank you for sharing the details! 🎉  We will inform Insura to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae",
                 user_language,
             )
             return {
