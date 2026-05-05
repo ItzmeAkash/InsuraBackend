@@ -5,7 +5,6 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from routes import (
     chat,
-    searchInternet,
     upload,
     pdf2text,
     excel_upload,
@@ -81,7 +80,6 @@ async def transcribe(file: UploadFile = File(...)):
 app.include_router(chat.router)
 app.include_router(document_upload.router)
 app.include_router(upload.router)
-app.include_router(searchInternet.router)
 app.include_router(pdf2text.router)
 app.include_router(excel_upload.router)
 app.include_router(language_detection.router)
