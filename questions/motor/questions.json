@@ -1,0 +1,176 @@
+{
+  "motor_insurance_questions": [
+    {
+      "step_id": "motor_menu",
+      "question": "Great! Now let me get the best motor insurance quote for your car!\n\nPlease tell me what you need today:",
+      "options": [
+        "New Insurance",
+        "Renewal"
+      ]
+    }
+  ],
+  "car_questions": [
+    {
+      "step_id": "passkey",
+      "question": "Please Enter Your PassKey"
+    },
+    {
+      "step_id": "motor_registration_city",
+      "question": "Let's start with your motor insurance details. Select the city of registration",
+      "options": [
+        "Abudhabi",
+        "Ajman",
+        "Dubai",
+        "Fujairah",
+        "Ras Al Khaimah",
+        "Sharjah",
+        "Umm Al Quwain"
+      ]
+    },
+    {
+      "step_id": "vehicle_registration_type",
+      "question": "Is the vehicle registered under:",
+      "options": [
+        "Private (Individual)",
+        "Company (Business)"
+      ]
+    },
+    {
+      "step_id": "emirate_choice_car",
+      "question": "Next, we need the details of the car owner. Would you like to upload their Emirates ID or manually enter the information?",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "step_id": "upload_driving_license",
+      "question": "Please Upload Your Driving license"
+    },
+    {
+      "step_id": "upload_mulkiya",
+      "question": "Please Upload Mulkiya"
+    },
+    {
+      "step_id": "motor_cover_type",
+      "question": "What type of motor insurance are you looking for?",
+      "options": [
+        "ThirdParty Liability",
+        "Comprehensive",
+        "Know More"
+      ]
+    }
+  ],
+  "bike_questions": [
+    {
+      "step_id": "passkey",
+      "question": "Please Enter Your PassKey"
+    },
+    {
+      "step_id": "motor_registration_city",
+      "question": "Let's start with your motor insurance details. Select the city of registration",
+      "options": [
+        "Abudhabi",
+        "Ajman",
+        "Dubai",
+        "Fujairah",
+        "Ras Al Khaimah",
+        "Sharjah",
+        "Umm Al Quwain"
+      ]
+    }
+  ],
+  "claim_router_questions": [
+    {
+      "step_id": "claim_type_choice",
+      "question": "I'll help you file a claim. What type of insurance policy are you filing a claim for?",
+      "options": [
+        "Motor insurance",
+        "Medical insurance"
+      ]
+    }
+  ],
+  "motor_claim": [
+    {
+      "step_id": "motor_claim_vehicle_registration",
+      "question": "Upload Required Documents\n\nPlease upload your Vehicle Registration Card (Mulkiya)."
+    },
+    {
+      "step_id": "motor_claim_driving_license",
+      "question": "Please upload your valid driving license."
+    },
+    {
+      "step_id": "motor_claim_emirates_id",
+      "question": "Please upload your Emirates ID."
+    },
+    {
+      "step_id": "motor_claim_police_verification",
+      "question": "Please upload police verification documents related to the incident."
+    },
+    {
+      "step_id": "motor_claim_contact_mobile",
+      "question": "Please provide your mobile number so we can reach you."
+    },
+    {
+      "step_id": "motor_claim_repair_workshop",
+      "question": "Please tell us where you would like to repair your vehicle:",
+      "options": [
+        "Adamjee",
+        "Al Sagr",
+        "Al Wathba",
+        "AXA",
+        "DNI",
+        "Ihouse",
+        "Oman",
+        "Orient",
+        "QIC",
+        "Sukoon",
+        "LIVA",
+        "RAK",
+        "Salama",
+        "Al Buhairah",
+        "GIG",
+        "National General",
+        "Oriental",
+        "Noor",
+        "RSA",
+        "Emirates",
+        "Methaq",
+        "Dubai",
+        "New India",
+        "Tokio Marine",
+        "Union Insurance",
+        "Watania",
+        "Alliance",
+        "Arabia Insurance",
+        "Arabian",
+        "Fidelity United",
+        "Orient Takaful"
+      ]
+    },
+    {
+      "step_id": "motor_claim_road_recovery",
+      "question": "✅ Got it!\n\nOur claims team is now reviewing them to move your request forward.\nIf you need assistance at any time, contact your insurance provider's customer service using their official support numbers.\n\nDo you want to recover from road?",
+      "options": ["Yes", "No"]
+    },
+    {
+      "step_id": "motor_claim_recovery_location",
+      "question": "Please select where you would like roadside recovery:",
+      "options": [
+        "Dubai",
+        "Abu Dhabi",
+        "Sharjah",
+        "Ajman",
+        "Umm Al Quwain",
+        "Ras Al Khaimah",
+        "Fujairah",
+        "Al Ain"
+      ]
+    },
+    {
+      "step_id": "motor_claim_repurchase_offer",
+      "question": "Would you like to purchase our insurance again?",
+      "options": ["Yes", "No"]
+    }
+  ]
+}

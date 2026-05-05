@@ -1,0 +1,91 @@
+{
+  "motor_claim": [
+    {
+      "step_id": "motor_claim_vehicle_registration",
+      "question": "Upload Required Documents\n\nPlease upload your Vehicle Registration Card (Mulkiya)."
+    },
+    {
+      "step_id": "motor_claim_driving_license",
+      "question": "Please upload your valid driving license."
+    },
+    {
+      "step_id": "motor_claim_emirates_id",
+      "question": "Please upload your Emirates ID."
+    },
+    {
+      "step_id": "motor_claim_police_verification",
+      "question": "Please upload police verification documents related to the incident."
+    },
+    {
+      "step_id": "motor_claim_contact_mobile",
+      "question": "Please provide your mobile number so we can reach you."
+    },
+    {
+      "step_id": "motor_claim_repair_workshop",
+      "question": "Please tell us where you would like to repair your vehicle:",
+      "options": [
+        "Adamjee",
+        "Al Sagr",
+        "Al Wathba",
+        "AXA",
+        "DNI",
+        "Ihouse",
+        "Oman",
+        "Orient",
+        "QIC",
+        "Sukoon",
+        "LIVA",
+        "RAK",
+        "Salama",
+        "Al Buhairah",
+        "GIG",
+        "National General",
+        "Oriental",
+        "Noor",
+        "RSA",
+        "Emirates",
+        "Methaq",
+        "Dubai",
+        "New India",
+        "Tokio Marine",
+        "Union Insurance",
+        "Watania",
+        "Alliance",
+        "Arabia Insurance",
+        "Arabian",
+        "Fidelity United",
+        "Orient Takaful"
+      ]
+    },
+    {
+      "step_id": "motor_claim_road_recovery",
+      "question": "✅ Got it!\n\nOur claims team is now reviewing them to move your request forward.\nIf you need assistance at any time, contact your insurance provider's customer service using their official support numbers.\n\nDo you want to recover from road?",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "step_id": "motor_claim_recovery_location",
+      "question": "Please select where you would like roadside recovery:",
+      "options": [
+        "Dubai",
+        "Abu Dhabi",
+        "Sharjah",
+        "Ajman",
+        "Umm Al Quwain",
+        "Ras Al Khaimah",
+        "Fujairah",
+        "Al Ain"
+      ]
+    },
+    {
+      "step_id": "motor_claim_repurchase_offer",
+      "question": "Would you like to purchase our insurance again?",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    }
+  ]
+}

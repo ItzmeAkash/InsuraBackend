@@ -2,6 +2,8 @@ from fastapi import APIRouter, File, UploadFile, HTTPException
 import os
 from cachetools import TTLCache
 
+from services.chatbot.question_store import remember_last_upload_relative_path
+
 # Initialize Router
 router = APIRouter()
 
@@ -32,6 +34,10 @@ async def upload_file(file: UploadFile = File(...), user_id: str = ""):
             raise HTTPException(status_code=413, detail="File too large")
         with open(file_location, "wb") as f:
             f.write(content)
+
+        rel_path = file_location.replace("\\", "/")
+        if user_id:
+            remember_last_upload_relative_path(user_id, rel_path)
 
         # Update user state with file information
         if user_id:

@@ -1,0 +1,21 @@
+{
+  "initial_questions": [
+    {
+      "step_id": "main_menu",
+      "question": "What would you like to help with today?",
+      "options": [
+        "Medical Insurance",
+        "Motor Insurance",
+        "General Insurance",
+        "Claim Insurance"
+      ]
+    }
+  ],
+  "greeting_templates": [
+    "Hey {user_name}, nice to know you! Let's dive in: {first_question}",
+    "Hello {user_name}! really great to work on your request{first_question}",
+    "Hi {user_name},  thanks for connecting today! {first_question}",
+    "Hi {user_name},excited to work on your requirements {first_question}",
+    "Hi {user_name}, great to chat! Let's start with {first_question}"
+  ]
+}

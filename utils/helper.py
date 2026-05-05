@@ -10,8 +10,10 @@ import json
 from rapidfuzz import process, fuzz
 from ast import Dict
 from fastapi import APIRouter, File, UploadFile, HTTPException
+from typing import Optional
+
+from pydantic import BaseModel, Field
 from langchain_groq import ChatGroq
-from langchain.chains import create_extraction_chain
 import pytesseract
 from pdf2image import convert_from_path
 from PIL import Image
@@ -20,6 +22,15 @@ import os
 import tempfile
 from deepgram import Deepgram
 import asyncio
+
+from services.medical.flow import (
+    MEDICAL_MONTHLY_SALARY_QUESTION,
+    MEDICAL_PRIMARY_RESIDENCY_QUESTION,
+    MEDICAL_SPONSOR_EMAIL_QUESTION,
+    MEDICAL_SPONSOR_MOBILE_QUESTION,
+    MEDICAL_VISA_ISSUED_QUESTION,
+    medical_marital_status_answer_from_responses,
+)
 
 load_dotenv()
 
@@ -628,8 +639,8 @@ def fetching_medical_detail(responses_dict):
         "What would you like to do today?", ""
     ).lower()
 
-    marital_status_member_question = responses_dict.get(
-        "Please Confirm the marital status of", ""
+    marital_status_member_question = medical_marital_status_answer_from_responses(
+        responses_dict
     ).capitalize()
 
     if policy_type_question == "purchase a new policy":
@@ -638,17 +649,13 @@ def fetching_medical_detail(responses_dict):
     else:
         policy_type = "Renewal"
 
+    _visa = responses_dict.get(MEDICAL_VISA_ISSUED_QUESTION, "")
     payload = {
-        "visa_issued_emirates": responses_dict.get(
-            "Let's start with your Medical insurance details. Choose your Visa issued Emirate?",
-            "",
-        ).capitalize(),
+        "visa_issued_emirates": _visa.capitalize() if _visa else "",
         "plan": responses_dict.get(
             "What type of plan are you looking for?", ""
         ).capitalize(),
-        "monthly_salary": responses_dict.get(
-            "Could you please tell me your monthly salary?", ""
-        ),
+        "monthly_salary": responses_dict.get(MEDICAL_MONTHLY_SALARY_QUESTION, ""),
         "currency": responses_dict.get(
             "May I kindly ask you to tell me the currency?", ""
         ),
@@ -657,11 +664,9 @@ def fetching_medical_detail(responses_dict):
             "",
         ).capitalize(),
         "sponsor_mobile": responses_dict.get(
-            "May I have the sponsor's mobile number, please?", ""
+            MEDICAL_SPONSOR_MOBILE_QUESTION, ""
         ).capitalize(),
-        "sponsor_email": responses_dict.get(
-            "May I have the sponsor's Email Address, please?", ""
-        ).lower(),
+        "sponsor_email": responses_dict.get(MEDICAL_SPONSOR_EMAIL_QUESTION, "").lower(),
         "members": [
             {
                 "name": responses_dict.get(
@@ -676,11 +681,25 @@ def fetching_medical_detail(responses_dict):
                 ),
                 "marital_status": marital_status_member_question,
                 "relation": responses_dict.get(
-                    "Could you kindly share your relationship with the sponsor?", ""
+                    MEDICAL_PRIMARY_RESIDENCY_QUESTION, ""
                 ).capitalize(),
             }
         ],
     }
+
+    for extra in responses_dict.get("medical_additional_members") or []:
+        payload["members"].append(
+            {
+                "name": str(extra.get("name", "")).capitalize(),
+                "dob": convert_date_format(str(extra.get("dob", ""))),
+                "gender": convert_gender(str(extra.get("gender", ""))),
+                "marital_status": str(extra.get("marital_status", "")).capitalize(),
+                "relation": str(extra.get("relation", "")).capitalize(),
+                "relationship_to_primary": str(
+                    extra.get("relationship_to_primary", "")
+                ).capitalize(),
+            }
+        )
 
     api = "https://insurancelab.ae/Api/medical_insert"
 
@@ -710,6 +729,21 @@ def fetching_medical_detail(responses_dict):
         return "There are some issues with the request. Please wait for a moment and try again. If the problem persists, contact support@insurca.com."
 
 
+class _PassportImageExtract(BaseModel):
+    """Structured fields extracted from passport / ID OCR text."""
+
+    name: Optional[str] = Field(None, description="Full name of the person")
+    date_of_birth: Optional[str] = Field(None, description="Date of birth")
+    passport_number: Optional[str] = Field(None, description="Passport or ID number")
+    nationality: Optional[str] = Field(None, description="Nationality")
+    issue_date: Optional[str] = Field(None, description="Document issue date")
+    expiry_date: Optional[str] = Field(None, description="Document expiry date")
+    gender: Optional[str] = Field(None, description="Gender")
+    document_number: Optional[str] = Field(
+        None, description="Document identification number"
+    )
+
+
 def extract_image_info(file_path: str) -> Dict:
     """
     Extract information from JPG and return as JSON
@@ -718,51 +752,31 @@ def extract_image_info(file_path: str) -> Dict:
         # Extract text from JPG image
         raw_text = pytesseract.image_to_string(Image.open(file_path), lang="eng")
 
-        # Initialize LLM and create extraction chain
+        # Initialize LLM and structured extraction (replaces create_extraction_chain)
         llm = ChatGroq(
             model=os.getenv("LLM_MODEL"),
             temperature=0,
             api_key=os.getenv("GROQ_API_KEY"),
         )
-
-        schema = {
-            "properties": {
-                "name": {"type": "string", "description": "Full name of the person"},
-                "date_of_birth": {"type": "string", "description": "Date of birth"},
-                "passport_number": {
-                    "type": "string",
-                    "description": "Passport or ID number",
-                },
-                "nationality": {"type": "string", "description": "Nationality"},
-                "issue_date": {"type": "string", "description": "Document issue date"},
-                "expiry_date": {
-                    "type": "string",
-                    "description": "Document expiry date",
-                },
-                "gender": {"type": "string", "description": "Gender"},
-                "document_number": {
-                    "type": "string",
-                    "description": "Document identification number",
-                },
-            },
-            "required": ["name"],
-        }
-
-        # Extract information
-        extracted_content = create_extraction_chain(schema, llm).run(raw_text)
+        structured = llm.with_structured_output(_PassportImageExtract)
+        extracted = structured.invoke(
+            "Extract the following information from this OCR text. "
+            "Use empty strings only if a field is not present.\n\n"
+            f"{raw_text}"
+        )
 
         # Combine results into single dictionary
         result = {}
-        for item in extracted_content:
-            for key, value in item.items():
-                if value and value.strip():
-                    if key in result:
-                        if isinstance(result[key], list):
-                            result[key].append(value)
-                        else:
-                            result[key] = [result[key], value]
+        item = extracted.model_dump(exclude_none=True)
+        for key, value in item.items():
+            if value and str(value).strip():
+                if key in result:
+                    if isinstance(result[key], list):
+                        result[key].append(value)
                     else:
-                        result[key] = value
+                        result[key] = [result[key], value]
+                else:
+                    result[key] = value
 
         return result or {"error": "No information extracted"}
 

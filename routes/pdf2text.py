@@ -424,7 +424,6 @@ async def upload_mulkiya_document(
             status_code=400,
             detail=f"Only these file types are allowed: {', '.join(valid_all)}",
         )
-
     # Create a temporary file with correct extension
     with tempfile.NamedTemporaryFile(delete=False, suffix=file_extension) as temp_file:
         try:

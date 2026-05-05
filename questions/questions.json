@@ -1,29 +1,28 @@
 {
   "initial_questions": [
     {
-      "question": "What would you like to do today?",
+      "step_id": "main_menu",
+      "question": "What would you like to help with today?",
       "options": [
-        "Purchase a Medical Insurance",
-        "Purchase a Motor Insurance",
-        "Claim a Motor Insurance"
+        "Medical Insurance",
+        "Motor Insurance",
+        "General Insurance",
+        "Claim Insurance"
       ]
     }
   ],
   "medical_questions": [
-    "Please Enter Your PassKey",
     {
-      "question": "Please choose which one would you like to",
-      "options": [
-        "Individual",
-        "SME"
-      ]
+      "step_id": "passkey",
+      "question": "Please Enter Your PassKey"
     }
   ],
   "individual_questions": [
     {
-      "question": "Let's start with your Medical insurance details. Choose your Visa issued Emirate?",
+      "step_id": "medical_visa_emirate",
+      "question": "Great! Now let me get the best medical insurance quote for you!\n\nChoose your Visa issued by Emirates.",
       "options": [
-        "Abudhabi",
+        "Abu Dhabi",
         "Ajman",
         "Dubai",
         "Fujairah",
@@ -33,25 +32,42 @@
       ]
     },
     {
+      "step_id": "medical_plan_type",
       "question": "What type of plan are you looking for?",
       "options": [
         "Basic Plan",
         "Enhanced Plan",
         "Enhanced Plan Standalone",
-        "Flexi Plan"
+        "Flexi Plan",
+        "Group Medical"
       ]
     },
     {
+      "step_id": "sponsor_type",
       "question": "Now, let's move to the sponsor details, Could you let me know the sponsor's type?",
       "options": [
         "Employee",
         "Investors"
       ]
     },
-    "Could you please tell me your monthly salary?",
-    "May I have the sponsor's mobile number, please?",
-    "May I have the sponsor's Email Address, please?",
     {
+      "step_id": "monthly_salary",
+      "question": "Please tell me your monthly salary?",
+      "options": [
+        "Below 4000",
+        "Above 4000"
+      ]
+    },
+    {
+      "step_id": "sponsor_mobile",
+      "question": "May I have your mobile number?"
+    },
+    {
+      "step_id": "sponsor_email",
+      "question": "Please share your Email Address"
+    },
+    {
+      "step_id": "emirate_choice_medical",
       "question": "Next, we need the details of the member. Would you like to upload their Emirates ID or manually enter the information?",
       "options": [
         "Yes",
@@ -59,14 +75,16 @@
       ]
     },
     {
-      "question": "Please Confirm the marital status of",
+      "step_id": "marital_status_member",
+      "question": "Please confirm the marital status of {name}",
       "options": [
         "Single",
         "Married"
       ]
     },
     {
-      "question": "Could you kindly share your relationship with the sponsor?",
+      "step_id": "sponsor_relationship",
+      "question": "Kindly confirm your current Residency Status?",
       "options": [
         "Investor",
         "Employee",
@@ -78,50 +96,33 @@
       ]
     },
     {
-      "question": "Do you have an Insurance Advisor code?",
+      "step_id": "medical_add_another_member",
+      "question": "Would you like to add another member to your policy?",
       "options": [
         "Yes",
         "No"
       ]
     }
   ],
-  "sma_questions": [
-    {
-      "question": "Let's start with your Medical insurance details. Choose your Visa issued Emirate?",
-      "options": [
-        "Abudhabi",
-        "Ajman",
-        "Dubai",
-        "Fujairah",
-        "Ras Al Khaimah",
-        "Sharjah",
-        "Umm Al Quwain"
-      ]
-    },
-    {
-      "question": "What type of plan are you looking for?",
-      "options": [
-        "Basic Plan",
-        "Enhanced Plan",
-        "Enhanced Plan Standalone",
-        "Flexi Plan"
-      ]
-    },
-    "May I have the Client Name, please?",
-    "May I have the Client mobile number, please?",
-    "May I have the Client Email Address, please?",
-    "Please upload an Excel file to get your medical insurance details"
-  ],
   "existing_policy_questions": [
     {
+      "step_id": "policy_renewal_choice",
       "question": "Your policy is up for renewal. Would you like to proceed with renewing it?",
       "options": [
         "Yes",
         "No"
       ]
     },
-    "Could you please tell me your monthly salary?",
     {
+      "step_id": "monthly_salary",
+      "question": "Please tell me your monthly salary?",
+      "options": [
+        "Below 4000",
+        "Above 4000"
+      ]
+    },
+    {
+      "step_id": "currency_choice",
       "question": "May I kindly ask you to tell me the currency?",
       "options": [
         "ADE",
@@ -129,44 +130,59 @@
       ]
     },
     {
+      "step_id": "sponsor_type",
       "question": "Now, let's move to the sponsor details, Could you let me know the sponsor's type?",
       "options": [
         "Employee",
         "Investors"
       ]
     },
-    "May I have the sponsor's mobile number, please?",
-    "May I have the sponsor's Email Address, please?",
-    "Next, Please provide the member's details.Please tell me the Name",
-    "Date of Birth (DOB)",
     {
+      "step_id": "sponsor_mobile",
+      "question": "May I have your mobile number?"
+    },
+    {
+      "step_id": "sponsor_email",
+      "question": "Please share your Email Address"
+    },
+    {
+      "step_id": "validate_name",
+      "question": "Next, Please provide the member's details.Please tell me the Name"
+    },
+    {
+      "step_id": "member_dob",
+      "question": "Date of Birth (DOB)"
+    },
+    {
+      "step_id": "marital_status_member",
       "question": "May I know your marital status?",
       "options": [
         "Single",
         "Married"
       ]
     },
-    "Tell your relationship with the Sponsor",
     {
-      "question": "Do you have an Insurance Advisor code?",
-      "options": [
-        "Yes",
-        "No"
-      ]
+      "step_id": "sponsor_relationship",
+      "question": "Kindly confirm your current Residency Status?"
     }
   ],
   "motor_insurance_questions": [
     {
-      "question": "What would you like to do today?",
+      "step_id": "motor_menu",
+      "question": "Great! Now let me get the best motor insurance quote for your car!\n\nPlease tell me what you need today:",
       "options": [
-        "Purchase a Car Insurance",
-        "Purchase a Bike Insurance"
+        "New Insurance",
+        "Renewal"
       ]
     }
   ],
   "car_questions": [
-    "Please Enter Your PassKey",
     {
+      "step_id": "passkey",
+      "question": "Please Enter Your PassKey"
+    },
+    {
+      "step_id": "motor_registration_city",
       "question": "Let's start with your motor insurance details. Select the city of registration",
       "options": [
         "Abudhabi",
@@ -179,6 +195,15 @@
       ]
     },
     {
+      "step_id": "vehicle_registration_type",
+      "question": "Is the vehicle registered under:",
+      "options": [
+        "Private (Individual)",
+        "Company (Business)"
+      ]
+    },
+    {
+      "step_id": "emirate_choice_car",
       "question": "Next, we need the details of the car owner. Would you like to upload their Emirates ID or manually enter the information?",
       "options": [
         "Yes",
@@ -188,15 +213,20 @@
     "Please Upload Your Driving license",
     "Please Upload Mulkiya",
     {
-      "question": "You Wish to Buy",
+      "step_id": "motor_cover_type",
+      "question": "What type of motor insurance are you looking for?",
       "options": [
-        "Comprehensive (Full Cover)",
-        "Third Party"
+        "ThirdParty Liability",
+        "Comprehensive",
+        "Know More"
       ]
     }
   ],
   "bike_questions": [
-    "Please Enter Your PassKey",
+    {
+      "step_id": "passkey",
+      "question": "Please Enter Your PassKey"
+    },
     {
       "question": "Let's start with your motor insurance details. Select the city of registration",
       "options": [

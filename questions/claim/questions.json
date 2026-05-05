@@ -1,0 +1,12 @@
+{
+  "claim_router_questions": [
+    {
+      "step_id": "claim_type_choice",
+      "question": "I'll help you file a claim. What type of insurance policy are you filing a claim for?",
+      "options": [
+        "Motor insurance",
+        "Medical insurance"
+      ]
+    }
+  ]
+}

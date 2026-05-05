@@ -1,0 +1,35 @@
+{
+  "medical_claim": [
+    {
+      "step_id": "medical_claim_assistance_type",
+      "question": "Please tell me what you need assistance with today. Select the option that best matches your request:",
+      "options": [
+        "Claim pending approval",
+        "Claim rejected",
+        "Reimbursement submission",
+        "Home country treatment services",
+        "Something else"
+      ]
+    },
+    {
+      "step_id": "medical_claim_emirates_id_upload",
+      "question": "Please upload the following documents to continue:\n\nEmirates ID"
+    },
+    {
+      "step_id": "medical_claim_insurance_card_upload",
+      "question": "Please upload insurance card."
+    },
+    {
+      "step_id": "medical_claim_contact_mobile",
+      "question": "Please provide your mobile number so we can reach you."
+    },
+    {
+      "step_id": "medical_claim_repurchase_offer",
+      "question": "Would you like to purchase our insurance again?",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    }
+  ]
+}

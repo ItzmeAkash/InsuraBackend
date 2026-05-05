@@ -3,9 +3,12 @@
 from __future__ import annotations
 
 import logging
+import os
 import random
+import threading
 import time
 from collections.abc import Callable
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -22,6 +25,60 @@ from .utils import (
 
 logger = logging.getLogger(__name__)
 
+
+class _GroqCallLimiter:
+    """Process-wide limiter to smooth burst traffic to Groq."""
+
+    def __init__(self, *, min_interval_seconds: float, max_concurrent: int) -> None:
+        self._min_interval_seconds = max(0.0, min_interval_seconds)
+        self._next_allowed_at = 0.0
+        self._clock_lock = threading.Lock()
+        self._inflight = threading.BoundedSemaphore(max(1, max_concurrent))
+
+    def acquire(self) -> None:
+        self._inflight.acquire()
+        while True:
+            wait_seconds = 0.0
+            with self._clock_lock:
+                now = time.monotonic()
+                wait_seconds = max(0.0, self._next_allowed_at - now)
+                if wait_seconds <= 0.0:
+                    self._next_allowed_at = now + self._min_interval_seconds
+                    return
+            # Sleep outside lock so other workers can evaluate their own wait.
+            time.sleep(min(wait_seconds, 0.5))
+
+    def release(self) -> None:
+        self._inflight.release()
+
+
+def _read_int_env(name: str, default: int, *, minimum: int = 1) -> int:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return max(minimum, int(raw))
+    except ValueError:
+        return default
+
+
+def _read_float_env(name: str, default: float, *, minimum: float = 0.0) -> float:
+    raw = os.getenv(name, "").strip()
+    if not raw:
+        return default
+    try:
+        return max(minimum, float(raw))
+    except ValueError:
+        return default
+
+
+@lru_cache(maxsize=1)
+def _get_groq_call_limiter() -> _GroqCallLimiter:
+    return _GroqCallLimiter(
+        min_interval_seconds=_read_float_env("GROQ_MIN_REQUEST_INTERVAL_SECONDS", 1.2, minimum=0.0),
+        max_concurrent=_read_int_env("GROQ_MAX_CONCURRENT_REQUESTS", 1, minimum=1),
+    )
+
 class InsuranceComparisonParser:
     """Extract structured insurance benefits/pricing from a PDF via Groq.
 
@@ -33,7 +90,7 @@ class InsuranceComparisonParser:
     CHUNK_CHARS = 8000
     CHUNK_OVERLAP = 500
     MAX_PROMPT_CHUNK = 8000
-    MAX_RETRIES = 5
+    MAX_RETRIES = 7
     BASE_RETRY_SECONDS = 1.0
     MAX_RETRY_SECONDS = 8.0
     DEFAULT_PROMPT_YAML = Path(__file__).resolve().parent / "prompts" / "uae_health_insurance.yaml"
@@ -100,9 +157,14 @@ class InsuranceComparisonParser:
 
     def _invoke_with_backoff(self, llm: ChatGroq, prompt: str, *, chunk_index: int) -> Any:
         last_error: Exception | None = None
+        limiter = _get_groq_call_limiter()
         for attempt in range(1, self.MAX_RETRIES + 1):
             try:
-                return llm.invoke([HumanMessage(content=prompt)])
+                limiter.acquire()
+                try:
+                    return llm.invoke([HumanMessage(content=prompt)])
+                finally:
+                    limiter.release()
             except Exception as exc:  # pragma: no cover - network/provider dependent
                 last_error = exc
                 msg = str(exc)

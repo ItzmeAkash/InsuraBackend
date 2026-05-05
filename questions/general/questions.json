@@ -1,0 +1,19 @@
+{
+  "general_insurance_questions": [
+    {
+      "step_id": "general_insurance_type",
+      "question": "Kindly select one of the following:",
+      "options": [
+        "Travel Insurance",
+        "Workmen's Compensation",
+        "Property All Risks",
+        "Third Party",
+        "Contract All Risks (CAR)",
+        "Professional Indemnity",
+        "Individual Travel",
+        "Marine & Cargo Insurance",
+        "More"
+      ]
+    }
+  ]
+}

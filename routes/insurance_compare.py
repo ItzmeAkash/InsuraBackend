@@ -13,7 +13,10 @@ router = APIRouter()
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
 MAX_FILES_PER_REQUEST = 6
 # Keep parser concurrency conservative to avoid Groq TPM bursts.
-MAX_PARSER_CONCURRENCY = 2
+MAX_PARSER_CONCURRENCY = max(
+    1,
+    int(os.getenv("INSURANCE_COMPARE_MAX_PARSER_CONCURRENCY", "1")),
+)
 
 SECTION_KEY_RENAMES = {
     "section_1_policy_scope": "benefits_section",

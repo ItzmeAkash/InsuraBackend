@@ -1,0 +1,157 @@
+{
+  "medical_questions": [
+    {
+      "step_id": "passkey",
+      "question": "Please Enter Your PassKey"
+    }
+  ],
+  "individual_questions": [
+    {
+      "step_id": "medical_visa_emirate",
+      "question": "Great! Now let me get the best medical insurance quote for you!\n\nChoose your Visa issued by Emirates.",
+      "options": [
+        "Abu Dhabi",
+        "Ajman",
+        "Dubai",
+        "Fujairah",
+        "Ras Al Khaimah",
+        "Sharjah",
+        "Umm Al Quwain"
+      ]
+    },
+    {
+      "step_id": "medical_plan_type",
+      "question": "What type of plan are you looking for?",
+      "options": [
+        "Basic Plan",
+        "Enhanced Plan",
+        "Enhanced Plan Standalone",
+        "Flexi Plan",
+        "Group Medical"
+      ]
+    },
+    {
+      "step_id": "sponsor_type",
+      "question": "Now, let's move to the sponsor details, Could you let me know the sponsor's type?",
+      "options": [
+        "Employee",
+        "Investors"
+      ]
+    },
+    {
+      "step_id": "monthly_salary",
+      "question": "Please tell me your monthly salary?",
+      "options": [
+        "Below 4000",
+        "Above 4000"
+      ]
+    },
+    {
+      "step_id": "sponsor_mobile",
+      "question": "May I have your mobile number?"
+    },
+    {
+      "step_id": "sponsor_email",
+      "question": "Please share your Email Address"
+    },
+    {
+      "step_id": "emirate_choice_medical",
+      "question": "Next, we need the details of the member. Would you like to upload their Emirates ID or manually enter the information?",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "step_id": "marital_status_member",
+      "question": "Please confirm the marital status of {name}",
+      "options": [
+        "Single",
+        "Married"
+      ]
+    },
+    {
+      "step_id": "sponsor_relationship",
+      "question": "Kindly confirm your current Residency Status?",
+      "options": [
+        "Investor",
+        "Employee",
+        "Spouse",
+        "Child",
+        "4th Child",
+        "Parent",
+        "Domestic"
+      ]
+    },
+    {
+      "step_id": "medical_add_another_member",
+      "question": "Would you like to add another member to your policy?",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    }
+  ],
+  "existing_policy_questions": [
+    {
+      "step_id": "policy_renewal_choice",
+      "question": "Your policy is up for renewal. Would you like to proceed with renewing it?",
+      "options": [
+        "Yes",
+        "No"
+      ]
+    },
+    {
+      "step_id": "monthly_salary",
+      "question": "Please tell me your monthly salary?",
+      "options": [
+        "Below 4000",
+        "Above 4000"
+      ]
+    },
+    {
+      "step_id": "currency_choice",
+      "question": "May I kindly ask you to tell me the currency?",
+      "options": [
+        "ADE",
+        "USD"
+      ]
+    },
+    {
+      "step_id": "sponsor_type",
+      "question": "Now, let's move to the sponsor details, Could you let me know the sponsor's type?",
+      "options": [
+        "Employee",
+        "Investors"
+      ]
+    },
+    {
+      "step_id": "sponsor_mobile",
+      "question": "May I have your mobile number?"
+    },
+    {
+      "step_id": "sponsor_email",
+      "question": "Please share your Email Address"
+    },
+    {
+      "step_id": "validate_name",
+      "question": "Next, Please provide the member's details.Please tell me the Name"
+    },
+    {
+      "step_id": "member_dob",
+      "question": "Date of Birth (DOB)"
+    },
+    {
+      "step_id": "marital_status_member",
+      "question": "May I know your marital status?",
+      "options": [
+        "Single",
+        "Married"
+      ]
+    },
+    {
+      "step_id": "sponsor_relationship",
+      "question": "Kindly confirm your current Residency Status?"
+    }
+  ]
+}

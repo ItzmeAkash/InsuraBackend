@@ -3,9 +3,8 @@ import re
 from typing import Dict, Any, Optional
 from fastapi import HTTPException
 from langchain_groq import ChatGroq
-from langchain.chains import create_extraction_chain
 from langchain_core.messages import HumanMessage
-from langchain_core.pydantic_v1 import BaseModel, Field
+from pydantic import BaseModel, Field
 import pytesseract
 from pdf2image import convert_from_path
 from PIL import Image, ImageFilter
@@ -150,6 +149,20 @@ from routes.VisionModel import DocumentVisionOCR
 # #Extract text from license image
 
 
+class _DrivingLicenseExtract(BaseModel):
+    """Structured fields from UAE driving license OCR."""
+
+    name: Optional[str] = Field(None, description="Full name of the person")
+    license_no: Optional[str] = Field(None, description="License No only six numbers")
+    date_of_birth: Optional[str] = Field(None, description="Date of birth")
+    nationality: Optional[str] = Field(None, description="Nationality")
+    issue_date: Optional[str] = Field(None, description="Document issue date")
+    expiry_date: Optional[str] = Field(None, description="Document expiry date")
+    place_of_issue: Optional[str] = Field(
+        None, description="Please select the Place of issue"
+    )
+
+
 # Extract information from license pdf
 async def extract_pdf_drving_license(file_path: str):
     """
@@ -162,58 +175,30 @@ async def extract_pdf_drving_license(file_path: str):
             raw_text += pytesseract.image_to_string(page, lang="eng") + "\n"
         print(raw_text)
 
-        # Initialize LLM and create extraction chain
         llm = ChatGroq(
             model=os.getenv("LLM_MODEL"),
             temperature=0,
             api_key=os.getenv("GROQ_API_KEY"),
         )
-
-        schema = {
-            "properties": {
-                "name": {"type": "string", "description": "Full name of the person"},
-                "license_no": {
-                    "type": "string",
-                    "description": "License No only six numbers",
-                },
-                "date_of_birth": {"type": "string", "description": "Date of birth"},
-                "nationality": {"type": "string", "description": "Nationality"},
-                "issue_date": {"type": "string", "description": "Document issue date"},
-                "expiry_date": {
-                    "type": "string",
-                    "description": "Document expiry date",
-                },
-                "place_of_issue": {
-                    "type": "string",
-                    "description": "Please select the Place of issue",
-                },
-            },
-            "required": [
-                "name",
-                "license_no",
-                "date_of_birth",
-                "nationality",
-                "issue_date",
-                "expiry_date",
-                "place_of_issue",
-            ],
-        }
-
-        # Extract information
-        extracted_content = create_extraction_chain(schema, llm).run(raw_text)
+        structured = llm.with_structured_output(_DrivingLicenseExtract)
+        extracted = structured.invoke(
+            "Extract the following information from this OCR text. "
+            "Use empty strings only if a field is not present.\n\n"
+            f"{raw_text}"
+        )
 
         # Combine results into a single dictionary
         result = {}
-        for item in extracted_content:
-            for key, value in item.items():
-                if value and value.strip():
-                    if key in result:
-                        if isinstance(result[key], list):
-                            result[key].append(value)
-                        else:
-                            result[key] = [result[key], value]
+        item = extracted.model_dump(exclude_none=True)
+        for key, value in item.items():
+            if value and str(value).strip():
+                if key in result:
+                    if isinstance(result[key], list):
+                        result[key].append(value)
                     else:
-                        result[key] = value
+                        result[key] = [result[key], value]
+                else:
+                    result[key] = value
 
         return result or {"error": "No information extracted"}
 

@@ -120,7 +120,7 @@
       "Tell me you Height in Cm",
       "Tell me you Weight in Kg",
       {
-        "question":"Tell your relationship with the Sponsor",
+        "question":"Kindly confirm your current Residency Status?",
         "options":[
           "Investor",
           "Employee",
@@ -234,7 +234,7 @@
          "options":["Single", "Married"]},
          "Tell me you Height in Cm",
          "Tell me you Weight in Kg",
-         "Tell your relationship with the Sponsor",
+         "Kindly confirm your current Residency Status?",
          {
           "question":"Have you been vaccinated for Covid-19?",
           "options":[

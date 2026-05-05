@@ -4,6 +4,15 @@ import os
 from langchain_groq.chat_models import ChatGroq
 import re
 from datetime import datetime
+from services.chatbot.emaf_company_options import EMAF_INSURANCE_VALID_OPTIONS
+from services.chatbot.question_steps import (
+    STEP_GENDER_CONFIRM,
+    STEP_MEMBER_DOB,
+    STEP_MEMBER_PURCHASE_NAME,
+    STEP_UPLOAD_EMIRATES_DOC,
+)
+from services.chatbot.question_utils import display_question_matches_current_index
+from services.medical.flow import MEDICAL_PLAN_TYPE_OPTIONS, medical_member_identity_keys
 from utils.helper import fetching_medical_detail, is_valid_country, is_valid_nationality
 from utils.helper import valid_date_format
 from fastapi import Request
@@ -75,6 +84,7 @@ def handle_visa_issued_emirate_question(
     user_message, conversation_state, questions, responses, question
 ):
     valid_options = [
+        "Abu Dhabi",
         "Abudhabi",
         "Ajman",
         "Dubai",
@@ -84,7 +94,9 @@ def handle_visa_issued_emirate_question(
         "Umm Al Quwain",
     ]
     if user_message in valid_options:
-        responses["question"] = user_message
+        responses["question"] = (
+            "Abu Dhabi" if user_message in ("Abudhabi",) else user_message
+        )
         conversation_state["current_question_index"] += 1
 
         if conversation_state["current_question_index"] < len(questions):
@@ -137,12 +149,7 @@ def handle_visa_issued_emirate_question(
 def handle_type_plan_question(
     user_message, conversation_state, questions, responses, question
 ):
-    valid_options = [
-        "Basic Plan",
-        "Enhanced Plan",
-        "Enhanced Plan Standalone",
-        "Flexi Plan",
-    ]
+    valid_options = list(MEDICAL_PLAN_TYPE_OPTIONS)
 
     if user_message in valid_options:
         responses[question] = user_message
@@ -252,7 +259,7 @@ def handle_yes_or_no(
 def handle_validate_name(
     question, user_message, conversation_state, questions, responses, is_valid_name
 ):
-    if conversation_state["current_question_index"] == questions.index(question):
+    if display_question_matches_current_index(questions, conversation_state, question):
         # Convert user input to title case
         user_message = user_message.strip().title()
 
@@ -296,8 +303,13 @@ def handle_validate_name(
 
             if conversation_state["current_question_index"] < len(questions):
                 next_question = questions[conversation_state["current_question_index"]]
+                next_text = (
+                    next_question["question"]
+                    if isinstance(next_question, dict)
+                    else next_question
+                )
                 return {
-                    "response": f"Thank you for providing the name. Now, let's move on to: {next_question}"
+                    "response": f"Thank you for providing the name. Now, let's move on to: {next_text}"
                 }
             else:
                 # All questions completed
@@ -334,7 +346,7 @@ def handle_client_name_question(
     Handles the 'May I have the Client Name, please?' question.
     This function directly accepts the user's input as the client name without validation.
     """
-    if conversation_state["current_question_index"] == questions.index(question):
+    if display_question_matches_current_index(questions, conversation_state, question):
         # Convert user input to title case and store the client name
         user_message = user_message.strip().title()
         responses[question] = user_message
@@ -350,8 +362,13 @@ def handle_client_name_question(
                     "options": options,
                 }
             else:
+                next_text = (
+                    next_question["question"]
+                    if isinstance(next_question, dict)
+                    else next_question
+                )
                 return {
-                    "response": f"Thank you for providing the client name. Now, let's move on to: {next_question}"
+                    "response": f"Thank you for providing the client name. Now, let's move on to: {next_text}"
                 }
         else:
             # All questions completed
@@ -419,7 +436,7 @@ def handle_policy_question(
     Handles the 'tell your policy number' question by validating and processing the user's input.
     """
     if question == question:
-        if conversation_state["current_question_index"] == questions.index(question):
+        if display_question_matches_current_index(questions, conversation_state, question):
             # Prompt LLM for additional validation
             check_prompt = (
                 f"The user has responded with: '{user_message}'. Determine if this is a valid policy number. "
@@ -451,8 +468,13 @@ def handle_policy_question(
                             "options": options,
                         }
                     else:
+                        next_text = (
+                            next_question["question"]
+                            if isinstance(next_question, dict)
+                            else next_question
+                        )
                         return {
-                            "response": f"Thank you for providing the Policy Number. Now, let's move on to: {next_question}"
+                            "response": f"Thank you for providing the Policy Number. Now, let's move on to: {next_text}"
                         }
                 else:
                     # All questions completed
@@ -534,7 +556,7 @@ def handle_company_name_question(
     question, user_message, conversation_state, questions, responses
 ):
     if question == question:
-        if conversation_state["current_question_index"] == questions.index(question):
+        if display_question_matches_current_index(questions, conversation_state, question):
             # Check if the input is a company name using LLM
             check_prompt = f"The user has responded with: '{user_message}'. Is this a valid company name? Respond with 'Yes' or 'No'."
             llm_response = llm.invoke([
@@ -563,8 +585,13 @@ def handle_company_name_question(
                             "options": options,
                         }
                     else:
+                        next_text = (
+                            next_question["question"]
+                            if isinstance(next_question, dict)
+                            else next_question
+                        )
                         return {
-                            "response": f"Thank you for providing the company name. Now, let's move on to: {next_question}"
+                            "response": f"Thank you for providing the company name. Now, let's move on to: {next_text}"
                         }
                 else:
                     with open("user_responses.json", "w") as file:
@@ -611,7 +638,7 @@ def handle_job_title_question(
         translate_text,
     )
 
-    if conversation_state["current_question_index"] == questions.index(question):
+    if display_question_matches_current_index(questions, conversation_state, question):
         # Prompt LLM to check if the input is a valid job title
         check_prompt = f"The user has responded with: '{user_message}'. Is this a valid job title? Respond with 'Yes' or 'No'."
         llm_response = llm.invoke([
@@ -690,6 +717,7 @@ def handle_emirate_question(
     )
 
     valid_options = [
+        "Abu Dhabi",
         "Abudhabi",
         "Ajman",
         "Dubai",
@@ -707,6 +735,8 @@ def handle_emirate_question(
     if validation_result["is_valid"]:
         # Store the English version
         matched_option = validation_result["matched_value"]
+        if matched_option == "Abudhabi":
+            matched_option = "Abu Dhabi"
         responses[question] = matched_option
         conversation_state["current_question_index"] += 1
 
@@ -754,10 +784,131 @@ def handle_emirate_question(
         }
 
 
+def handle_vehicle_registration_car_question(
+    *,
+    user_message: str,
+    question: str,
+    user_language: str,
+    conversation_state: dict,
+    questions: list,
+    responses: dict,
+) -> dict:
+    """Car flow: Private skips EID + license and goes to Mulkiya front/back; Company keeps full path."""
+    from services.chatbot.language_service import (
+        detect_document_type_from_question,
+        format_response_in_language,
+        get_language_code,
+        translate_text,
+        validate_response_multilingual,
+    )
+    from services.chatbot.question_steps import (
+        STEP_EMIRATE_CHOICE_CAR,
+        STEP_UPLOAD_DRIVING_LICENSE,
+        STEP_UPLOAD_MULKIYA,
+        STEP_UPLOAD_MULKIYA_FRONT,
+    )
+
+    private_opt = "Private (Individual)"
+    company_opt = "Company (Business)"
+    valid_options = [private_opt, company_opt]
+
+    vr = validate_response_multilingual(user_message, valid_options, user_language)
+    if not vr["is_valid"]:
+        err_prompt = (
+            f"The user said '{user_message}' but must choose from: "
+            f"{', '.join(valid_options)}. Brief hint."
+        )
+        err_llm = llm.invoke([
+            SystemMessage(
+                content=f"You are Insura. Respond in {user_language}. Be brief."
+            ),
+            HumanMessage(content=err_prompt),
+        ])
+        retry_q = translate_text(f"Let's try again: {question}", user_language)
+        ropts = [translate_text(o, user_language) for o in valid_options]
+        return {
+            "response": err_llm.content.strip(),
+            "question": retry_q,
+            "options": ", ".join(ropts),
+            "language": user_language,
+            "language_code": get_language_code(user_language),
+        }
+
+    responses[question] = vr["matched_value"]
+    conversation_state["current_question_index"] += 1
+    idx = conversation_state["current_question_index"]
+    is_renewal = any(
+        isinstance(v, str) and v.strip().lower() == "renewal"
+        for v in responses.values()
+    )
+
+    if vr["matched_value"] == private_opt:
+        while idx < len(questions) and isinstance(questions[idx], dict):
+            sid = questions[idx].get("step_id")
+            if sid in (STEP_EMIRATE_CHOICE_CAR, STEP_UPLOAD_DRIVING_LICENSE):
+                questions.pop(idx)
+                continue
+            break
+        if idx < len(questions) and isinstance(questions[idx], dict):
+            if questions[idx].get("step_id") == STEP_UPLOAD_MULKIYA:
+                questions[idx] = {
+                    "step_id": STEP_UPLOAD_MULKIYA_FRONT,
+                    "question": (
+                        "Perfect 👍 Please upload the following documents 📎\n\n"
+                        "Please upload your vehicle registration (Mulkiya) — Front side and Back side"
+                    ),
+                }
+    elif vr["matched_value"] == company_opt and is_renewal:
+        while idx < len(questions) and isinstance(questions[idx], dict):
+            sid = questions[idx].get("step_id")
+            if sid in (STEP_EMIRATE_CHOICE_CAR, STEP_UPLOAD_DRIVING_LICENSE):
+                questions.pop(idx)
+                continue
+            break
+
+    if conversation_state["current_question_index"] >= len(questions):
+        try:
+            with open("user_responses.json", "w") as file:
+                json.dump(responses, file, indent=4)
+        except OSError:
+            pass
+        final_message = translate_text(
+            "You're all set! Thank you for providing your details. "
+            "If you need further assistance, feel free to ask.",
+            user_language,
+        )
+        result = format_response_in_language(final_message, [], user_language)
+        result["final_responses"] = responses
+        return result
+
+    next_question = questions[conversation_state["current_question_index"]]
+    next_question_text = (
+        next_question["question"]
+        if isinstance(next_question, dict)
+        else next_question
+    )
+    next_options = (
+        next_question.get("options", [])
+        if isinstance(next_question, dict)
+        else []
+    )
+    if isinstance(next_question, dict) and next_question.get(
+        "step_id"
+    ) == STEP_UPLOAD_MULKIYA_FRONT:
+        response_message = next_question_text
+    else:
+        intro = translate_text("Thank you! Now, let's move on to:", user_language)
+        response_message = f"{intro} {next_question_text}"
+    msg_type, doc_type = detect_document_type_from_question(next_question_text)
+    return format_response_in_language(
+        response_message, next_options, user_language, msg_type, doc_type
+    )
+
+
 def handle_nationality_question(
     user_message, question, conversation_state, questions, responses
 ):
-    if conversation_state["current_question_index"] == questions.index(question):
+    if display_question_matches_current_index(questions, conversation_state, question):
         # First check if the input is a valid nationality using the is_valid_nationality function
         is_nationality = is_valid_nationality(user_message)
 
@@ -769,8 +920,13 @@ def handle_nationality_question(
             # Check if there are more questions
             if conversation_state["current_question_index"] < len(questions):
                 next_question = questions[conversation_state["current_question_index"]]
+                next_text = (
+                    next_question["question"]
+                    if isinstance(next_question, dict)
+                    else next_question
+                )
                 return {
-                    "response": f"Thank you for providing the nationality. Now, let's move on to: {next_question}"
+                    "response": f"Thank you for providing the nationality. Now, let's move on to: {next_text}"
                 }
             else:
                 with open("user_responses.json", "w") as file:
@@ -1177,7 +1333,7 @@ def valid_date_format(date_str):
 def handle_country_question(
     user_message, question, conversation_state, questions, responses
 ):
-    if conversation_state["current_question_index"] == questions.index(question):
+    if display_question_matches_current_index(questions, conversation_state, question):
         is_country = is_valid_country(user_message)
 
         if is_country:
@@ -1188,8 +1344,13 @@ def handle_country_question(
             # Check if there are more questions
             if conversation_state["current_question_index"] < len(questions):
                 next_question = questions[conversation_state["current_question_index"]]
+                next_text = (
+                    next_question["question"]
+                    if isinstance(next_question, dict)
+                    else next_question
+                )
                 return {
-                    "response": f"Thank you for providing the Country. Now, let's move on to: {next_question}"
+                    "response": f"Thank you for providing the Country. Now, let's move on to: {next_text}"
                 }
             else:
                 with open("user_responses.json", "w") as file:
@@ -1212,89 +1373,6 @@ def handle_country_question(
             }
 
 
-def handle_individual_sma_choice(
-    user_message,
-    conversation_state,
-    questions,
-    responses,
-    question,
-    user_language="English",
-):
-    from services.llm_services import (
-        individual_questions,
-        sma_questions,
-        format_response_in_language,
-        validate_response_multilingual,
-        translate_text,
-    )
-
-    valid_options = ["Individual", "SME"]
-
-    # Use multilingual validation instead of direct string matching
-    validation_result = validate_response_multilingual(
-        user_message, valid_options, user_language
-    )
-
-    if validation_result["is_valid"]:
-        # Store the English version
-        matched_option = validation_result["matched_value"]
-        responses[question] = matched_option
-        conversation_state["current_question_index"] += 1
-
-        if matched_option == "Individual":
-            conversation_state["current_flow"] = "individual"
-            conversation_state["current_question_index"] = 0
-
-            if isinstance(individual_questions[0], dict):
-                next_options = individual_questions[0].get("options", [])
-                response_message = (
-                    f"Great choice! {individual_questions[0]['question']}"
-                )
-                # Translate to user's language
-                return format_response_in_language(
-                    response_message, next_options, user_language
-                )
-            else:
-                response_message = f"Great choice! {individual_questions[0]}"
-                return format_response_in_language(response_message, [], user_language)
-        elif matched_option == "SME":
-            conversation_state["current_flow"] = "sma"
-            conversation_state["current_question_index"] = 0
-
-            if isinstance(sma_questions[0], dict):
-                next_options = sma_questions[0].get("options", [])
-                response_message = f"Great choice! {sma_questions[0]['question']}"
-                # Translate to user's language
-                return format_response_in_language(
-                    response_message, next_options, user_language
-                )
-            else:
-                response_message = f"Great choice! {sma_questions[0]}"
-                return format_response_in_language(response_message, [], user_language)
-    else:
-        # Handle invalid responses or unrelated queries in user's language
-        general_assistant_prompt = (
-            f"user response: {user_message}. Please assist them in {user_language}."
-        )
-        general_assistant_response = llm.invoke([
-            SystemMessage(
-                content=f"You are Insura, a friendly Insurance assistant created by CloudSubset. Respond in {user_language}. Your role is to assist with any inquiries using your vast knowledge base. Provide helpful, accurate, and user-friendly responses to all questions or requests. Do not mention being a large language model; you are Insura."
-            ),
-            HumanMessage(content=general_assistant_prompt),
-        ])
-
-        # Translate the retry question and options to user's language
-        retry_question = translate_text(f"Let's try again: {question}", user_language)
-        translated_options = [
-            translate_text(opt, user_language) for opt in valid_options
-        ]
-
-        return {
-            "response": f"{general_assistant_response.content.strip()}",
-            "question": retry_question,
-            "options": ", ".join(translated_options),
-        }
-
 
 def handle_what_would_you_do_today_question(
     user_message,
@@ -1310,6 +1388,10 @@ def handle_what_would_you_do_today_question(
     )
 
     valid_options = [
+        "Medical Insurance",
+        "Motor Insurance",
+        "General Insurance",
+        "Claim Insurance",
         "Purchase a Medical Insurance",
         "Purchase a Motor Insurance",
         "Claim a Motor Insurance",
@@ -1617,15 +1699,23 @@ def handle_emirate_upload_document(
 
     valid_options = ["Yes", "No"]
 
-    # Define all questions upfront for better maintainability
+    name_k, dob_k, gender_k = medical_member_identity_keys(conversation_state)
     QUESTIONS = {
-        "upload": {"question": "Please Upload Your Document"},
-        "name": {
-            "question": "Next, we need the details of the member for whom the policy is being purchased. Please provide Name"
+        "upload": {
+            "step_id": STEP_UPLOAD_EMIRATES_DOC,
+            "question": "Please Upload Your Document",
         },
-        "dob": "Date of Birth (DOB)",  # Simple string format as requested
+        "name": {
+            "step_id": STEP_MEMBER_PURCHASE_NAME,
+            "question": name_k,
+        },
+        "dob": {
+            "step_id": STEP_MEMBER_DOB,
+            "question": dob_k,
+        },
         "gender": {
-            "question": "Please confirm this gender of",
+            "step_id": STEP_GENDER_CONFIRM,
+            "question": gender_k,
             "options": ["Male", "Female"],
         },
     }
@@ -1681,6 +1771,9 @@ def handle_emirate_upload_document(
 
     # Handle "Yes" path - use the matched English value
     if validation_result["matched_value"] == "Yes":
+        responses["back_page_received"] = False
+        responses["front_page_received"] = False
+
         upload_question = QUESTIONS["upload"]
         name_question = QUESTIONS["name"]
         dob_question = QUESTIONS["dob"]
@@ -1843,30 +1936,17 @@ def handle_emaf_document(
 ):
     QUESTIONS = {
         "name": {
+            "step_id": "emaf_name",
             "question": "May I know your name, please?",
         },
-        "phone": {"question": "May I kindly ask for your phone number, please?"},
+        "phone": {
+            "step_id": "emaf_phone",
+            "question": "May I kindly ask for your phone number, please?",
+        },
         "company": {
+            "step_id": "emaf_company",
             "question": "Could you kindly confirm the name of your insurance company, please?",
-            "options": [
-                "Takaful Emarat (Ecare)",
-                "National Life & General Insurance (Innayah)",
-                "Takaful Emarat (Aafiya)",
-                "National Life & General Insurance (NAS)",
-                "Orient UNB Takaful (Nextcare)",
-                "Orient Mednet (Mednet)",
-                "Al Sagr Insurance (Nextcare)",
-                "RAK Insurance (Mednet)",
-                "Dubai Insurance (Dubai Care)",
-                "Fidelity United (Nextcare)",
-                "Salama April International (Salama)",
-                "Sukoon (Sukoon)",
-                "Orient basic",
-                "Daman",
-                "Dubai insurance(Mednet)",
-                "Takaful Emarat(NAS)",
-                "Takaful emarat(Nextcare)",
-            ],
+            "options": list(EMAF_INSURANCE_VALID_OPTIONS),
         },
     }
 
@@ -1945,12 +2025,20 @@ def handle_emirate_upload_document_car_insurance(
 
     # Define all questions upfront for better maintainability
     QUESTIONS = {
-        "upload": {"question": "Please Upload Your Document"},
-        "name": {
-            "question": "Next, we need the details of the member for whom the policy is being purchased. Please provide Name"
+        "upload": {
+            "step_id": STEP_UPLOAD_EMIRATES_DOC,
+            "question": "Please Upload Your Document",
         },
-        "dob": "Date of Birth (DOB)",  # Simple string format as requested
+        "name": {
+            "step_id": STEP_MEMBER_PURCHASE_NAME,
+            "question": "Next, we need the details of the member for whom the policy is being purchased. Please provide Name",
+        },
+        "dob": {
+            "step_id": STEP_MEMBER_DOB,
+            "question": "Date of Birth (DOB)",
+        },
         "gender": {
+            "step_id": STEP_GENDER_CONFIRM,
             "question": "Please confirm this gender of",
             "options": ["Male", "Female"],
         },

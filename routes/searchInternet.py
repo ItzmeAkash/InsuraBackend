@@ -4,7 +4,8 @@ import os
 from langchain_groq.chat_models import ChatGroq
 # from langchain_community.tools import DuckDuckGoSearchRun
 from langchain_core.tools import tool
-from langchain.agents import initialize_agent,load_tools
+from langchain_classic.agents import initialize_agent
+from langchain_community.agent_toolkits.load_tools import load_tools
 import logging
 
 router = APIRouter()
@@ -49,7 +50,7 @@ class QueryRequest(BaseModel):
 @router.post("/ask/")
 async def ask(request: QueryRequest):
     try:
-        response = agent.invoke(request.message)
+        response = agent.invoke({"input": request.message})
         print(response)
         return {"response": response['output']}
     except Exception as e:

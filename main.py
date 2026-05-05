@@ -1,11 +1,15 @@
+from pathlib import Path
+
 from fastapi import FastAPI, File, UploadFile, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from routes import (
     chat,
     searchInternet,
     upload,
     pdf2text,
     excel_upload,
+    document_upload,
     language_detection,
     livekitToken,
     emirate_upload,
@@ -16,6 +20,14 @@ import aiofiles
 
 # Initialize FastAPI app
 app = FastAPI()
+
+_general_docs_dir = Path(__file__).resolve().parent / "services" / "general" / "documents"
+if _general_docs_dir.is_dir():
+    app.mount(
+        "/general-documents",
+        StaticFiles(directory=str(_general_docs_dir)),
+        name="general_documents",
+    )
 
 # Middleware
 app.add_middleware(
@@ -67,6 +79,7 @@ async def transcribe(file: UploadFile = File(...)):
 
 # Routes
 app.include_router(chat.router)
+app.include_router(document_upload.router)
 app.include_router(upload.router)
 app.include_router(searchInternet.router)
 app.include_router(pdf2text.router)
