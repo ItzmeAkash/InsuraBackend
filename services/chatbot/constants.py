@@ -51,4 +51,4 @@ INSURA_REVIEW_URL: str = os.environ.get(
 )
 
 # Expected user entry for the passkey step. Override in env for different environments.
-PASSKEY_VALID_CODE: str = os.environ.get("PASSKEY_VALID_CODE", "5514")
+PASSKEY_VALID_CODE: str = os.environ.get("PASSKEY_VALID_CODE", "6754")
