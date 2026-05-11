@@ -98,6 +98,34 @@ def medical_member_marital_question_text(
     if conversation_state:
         name_key = conversation_state.get(CONV_STATE_MEMBER_NAME_KEY) or MEDICAL_MEMBER_NAME_RESPONSE_KEY
     name = str(responses.get(name_key) or "").strip()
+
+    if not name:
+        # Fallback: derive name from stored upload payloads.
+        upload_payloads: list[dict[str, Any]] = []
+        for value in responses.values():
+            if isinstance(value, dict):
+                upload_payloads.append(value)
+        first_upload = responses.get("first_document_upload")
+        if isinstance(first_upload, dict):
+            upload_payloads.append(first_upload)
+
+        for payload in upload_payloads:
+            for key in ("full_name", "fullName", "name"):
+                v = payload.get(key)
+                if isinstance(v, str) and v.strip():
+                    name = v.strip()
+                    break
+            if name:
+                break
+            first_name = payload.get("first_name")
+            last_name = payload.get("last_name")
+            if isinstance(first_name, str) and first_name.strip():
+                if isinstance(last_name, str) and last_name.strip():
+                    name = f"{first_name.strip()} {last_name.strip()}"
+                else:
+                    name = first_name.strip()
+                break
+
     if not name:
         name = "the member"
     return MEDICAL_MEMBER_MARITAL_STATUS_TEMPLATE.format(name=name)

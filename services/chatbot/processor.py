@@ -1897,13 +1897,23 @@ def process_user_input(user_input: UserInput):
                     responses["back_page_received"] = True
                     responses["Card Number"] = document_data.get("card_number")
 
-                # Check if date_of_birth and name are present - indicates front page information
-                if (
-                    "date_of_birth" in document_data
-                    and document_data.get("date_of_birth")
-                    and "name" in document_data
-                    and document_data.get("name")
-                ):
+                extracted_member_name = ""
+                for _key in ("full_name", "fullName", "name"):
+                    _value = document_data.get(_key)
+                    if isinstance(_value, str) and _value.strip():
+                        extracted_member_name = _value.strip()
+                        break
+                if not extracted_member_name:
+                    _first_name = document_data.get("first_name")
+                    _last_name = document_data.get("last_name")
+                    if isinstance(_first_name, str) and _first_name.strip():
+                        extracted_member_name = _first_name.strip()
+                        if isinstance(_last_name, str) and _last_name.strip():
+                            extracted_member_name = (
+                                f"{_first_name.strip()} {_last_name.strip()}"
+                            )
+                # Check if DOB and any member name variant are present.
+                if document_data.get("date_of_birth") and extracted_member_name:
                     # Mark that we've received the front page information
                     responses["front_page_received"] = True
 
@@ -1911,7 +1921,7 @@ def process_user_input(user_input: UserInput):
                     _name_k, _dob_k, _gender_k = medical_member_identity_keys(
                         conversation_state
                     )
-                    responses[_name_k] = document_data.get("name")
+                    responses[_name_k] = extracted_member_name
                     responses[_dob_k] = document_data.get("date_of_birth")
                     if "gender" in document_data and document_data.get("gender"):
                         responses[_gender_k] = document_data.get("gender")
@@ -2180,7 +2190,22 @@ def process_user_input(user_input: UserInput):
                 _name_k, _dob_k, _gender_k = medical_member_identity_keys(
                     conversation_state
                 )
-                responses[_name_k] = document_data.get("name")
+                extracted_member_name = ""
+                for _key in ("full_name", "fullName", "name"):
+                    _value = document_data.get(_key)
+                    if isinstance(_value, str) and _value.strip():
+                        extracted_member_name = _value.strip()
+                        break
+                if not extracted_member_name:
+                    _first_name = document_data.get("first_name")
+                    _last_name = document_data.get("last_name")
+                    if isinstance(_first_name, str) and _first_name.strip():
+                        extracted_member_name = _first_name.strip()
+                        if isinstance(_last_name, str) and _last_name.strip():
+                            extracted_member_name = (
+                                f"{_first_name.strip()} {_last_name.strip()}"
+                            )
+                responses[_name_k] = extracted_member_name or document_data.get("name")
                 responses[_dob_k] = document_data.get("date_of_birth")
                 responses[_gender_k] = document_data.get("gender")
 

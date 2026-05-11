@@ -12,7 +12,10 @@ from services.chatbot.question_steps import (
     STEP_UPLOAD_EMIRATES_DOC,
 )
 from services.chatbot.question_utils import display_question_matches_current_index
-from services.medical.flow import MEDICAL_PLAN_TYPE_OPTIONS, medical_member_identity_keys
+from services.medical.flow import (
+    MEDICAL_PLAN_TYPE_OPTIONS,
+    medical_member_identity_keys,
+)
 from utils.helper import fetching_medical_detail, is_valid_country, is_valid_nationality
 from utils.helper import valid_date_format
 from fastapi import Request
@@ -436,7 +439,9 @@ def handle_policy_question(
     Handles the 'tell your policy number' question by validating and processing the user's input.
     """
     if question == question:
-        if display_question_matches_current_index(questions, conversation_state, question):
+        if display_question_matches_current_index(
+            questions, conversation_state, question
+        ):
             # Prompt LLM for additional validation
             check_prompt = (
                 f"The user has responded with: '{user_message}'. Determine if this is a valid policy number. "
@@ -556,7 +561,9 @@ def handle_company_name_question(
     question, user_message, conversation_state, questions, responses
 ):
     if question == question:
-        if display_question_matches_current_index(questions, conversation_state, question):
+        if display_question_matches_current_index(
+            questions, conversation_state, question
+        ):
             # Check if the input is a company name using LLM
             check_prompt = f"The user has responded with: '{user_message}'. Is this a valid company name? Respond with 'Yes' or 'No'."
             llm_response = llm.invoke([
@@ -883,18 +890,15 @@ def handle_vehicle_registration_car_question(
 
     next_question = questions[conversation_state["current_question_index"]]
     next_question_text = (
-        next_question["question"]
-        if isinstance(next_question, dict)
-        else next_question
+        next_question["question"] if isinstance(next_question, dict) else next_question
     )
     next_options = (
-        next_question.get("options", [])
-        if isinstance(next_question, dict)
-        else []
+        next_question.get("options", []) if isinstance(next_question, dict) else []
     )
-    if isinstance(next_question, dict) and next_question.get(
-        "step_id"
-    ) == STEP_UPLOAD_MULKIYA_FRONT:
+    if (
+        isinstance(next_question, dict)
+        and next_question.get("step_id") == STEP_UPLOAD_MULKIYA_FRONT
+    ):
         response_message = next_question_text
     else:
         intro = translate_text("Thank you! Now, let's move on to:", user_language)
@@ -1371,7 +1375,6 @@ def handle_country_question(
                 "response": f"{general_assistant_response.content.strip()}",
                 "question": f"Let's move back: {question}",
             }
-
 
 
 def handle_what_would_you_do_today_question(
