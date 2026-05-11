@@ -76,7 +76,7 @@
     },
     {
       "step_id": "marital_status_member",
-      "question": "Please confirm the marital status of {name}",
+      "question": "Please confirm the marital status",
       "options": [
         "Single",
         "Married"

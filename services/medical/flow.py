@@ -83,8 +83,8 @@ MEDICAL_RELATIONSHIP_OPTION_KEYS = (
     "Domestic",
 )
 
-# Template for marital status — ``{name}`` filled from document / manual capture.
-MEDICAL_MEMBER_MARITAL_STATUS_TEMPLATE = "Please confirm the marital status of {name}"
+# Marital status prompt (generic, without member name).
+MEDICAL_MEMBER_MARITAL_STATUS_TEMPLATE = "Please confirm the marital status"
 
 CONV_STATE_MEMBER_NAME_KEY = "medical_member_name_response_key"
 
