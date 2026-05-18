@@ -32,6 +32,8 @@ import json
 import re
 
 from services.chatbot.constants import (
+    MOTOR_DRIVING_LICENSE_COMBINED_UPLOAD_QUESTION,
+    MOTOR_EMIRATES_ID_COMBINED_UPLOAD_QUESTION,
     PASSKEY_VALID_CODE,
     WEHBE_GOOGLE_REVIEW_URL,
     WEHBE_REVIEW_INVITE_MESSAGE,
@@ -77,6 +79,7 @@ from services.chatbot.question_steps import (
     STEP_MOTOR_CLAIM_REPAIR_WORKSHOP,
     STEP_MOTOR_CLAIM_ROAD_RECOVERY,
     STEP_MOTOR_COVER_TYPE,
+    STEP_MOTOR_ENQUIRY_PHONE,
     STEP_IDS_MAIN_MENU,
     STEP_PASSKEY,
     STEP_POLICY_RENEWAL_CHOICE,
@@ -133,7 +136,31 @@ from services.chatbot.conversation_handlers import (
     motor_conversation_handler,
 )
 from services.chatbot.flow_registry import ChatbotFlowRegistry
-from services.claim.flow import MEDICAL_CLAIM_FLOW, MOTOR_CLAIM_FLOW
+from services.claim.api_submission import (
+    claim_flow_try_enquiry,
+    claim_flow_try_first_step,
+    claim_flow_try_upload_from_message,
+    store_claim_mobile,
+)
+from services.claim.roadside_hotlines import format_motor_claim_roadside_hotline_message
+from services.claim.flow import (
+    CLAIM_ROUTER_FLOW,
+    MEDICAL_CLAIM_FLOW,
+    MOTOR_CLAIM_FLOW,
+    repair_workshop_paged_options,
+)
+from services.general.api_submission import (
+    general_flow_try_enquiry_after_type,
+    general_flow_try_first_step,
+    general_flow_try_upload_from_payload,
+)
+from services.motor.api_submission import (
+    motor_flow_try_enquiry_after_phone,
+    motor_flow_try_second_step_after_cover,
+    motor_flow_try_third_step_after_contact,
+    motor_flow_try_upload_document,
+)
+from services.upload_cleanup import wipe_flow_session_upload_files
 from services.medical.flow import (
     CONV_STATE_MEMBER_NAME_KEY,
     MEDICAL_ADDITIONAL_MEMBER_NAME_RESPONSE_KEY,
@@ -296,7 +323,7 @@ from services.chatbot.question_store import (
     medical_claim,
     motor_claim,
     motor_insurance_questions,
-    pop_last_upload_relative_path,
+    peek_last_upload_relative_path,
     refresh_medical_questions_if_changed,
     user_states,
 )
@@ -374,6 +401,430 @@ def _is_motor_renewal_company_flow(responses):
     return has_renewal and has_company
 
 
+def _looks_like_pdf_reference(value: Any) -> bool:
+    if not isinstance(value, str):
+        return False
+    raw = value.strip().replace("\\", "/")
+    if not raw:
+        return False
+    lowered = raw.lower().split("?", 1)[0].split("#", 1)[0]
+    return lowered.endswith(".pdf")
+
+
+def _mulkiya_upload_contains_both_sides(
+    document_data: dict[str, Any],
+    file_path: str = "",
+    raw_message: str = "",
+    user_id: str = "",
+) -> bool:
+    """Best-effort detection for combined Mulkiya uploads.
+
+    We skip the extra back-side prompt when the upload is clearly a PDF / multi-page
+    document or when the payload explicitly says it contains multiple pages.
+    """
+    stored_path = peek_last_upload_relative_path(user_id, "mulkiya") if user_id else ""
+    candidates: list[Any] = [file_path, raw_message, stored_path]
+    for key in (
+        "document_stored_path",
+        "stored_relative_path",
+        "upload_relative_path",
+        "file_path",
+        "document_path",
+        "local_path",
+        "document_url",
+        "pdf_url",
+        "file_url",
+        "mulkiya_pdf_url",
+        "_file_reference",
+    ):
+        candidates.append(document_data.get(key))
+
+    for sub_key in ("document", "file", "pdf", "source", "mulkiya_file", "attachment"):
+        sub = document_data.get(sub_key)
+        if isinstance(sub, dict):
+            for nested_key in (
+                "url",
+                "href",
+                "src",
+                "path",
+                "local_path",
+                "stored_path",
+                "document_url",
+                "pdf_url",
+                "file_path",
+            ):
+                candidates.append(sub.get(nested_key))
+        else:
+            candidates.append(sub)
+
+    if any(_looks_like_pdf_reference(candidate) for candidate in candidates):
+        return True
+
+    for count_key in ("page_count", "pages_count", "total_pages"):
+        count_value = document_data.get(count_key)
+        if isinstance(count_value, (int, float)) and count_value > 1:
+            return True
+        if isinstance(count_value, str) and count_value.strip().isdigit():
+            if int(count_value.strip()) > 1:
+                return True
+
+    pages = document_data.get("pages")
+    if isinstance(pages, list) and len(pages) > 1:
+        return True
+
+    side = document_data.get("side")
+    if isinstance(side, str) and side.strip().lower() in {"both", "combined", "full"}:
+        return True
+
+    return False
+
+
+def _emirates_id_member_name(document_data: dict[str, Any]) -> str:
+    for key in ("full_name", "fullName", "name"):
+        value = document_data.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    first_name = document_data.get("first_name")
+    last_name = document_data.get("last_name")
+    if isinstance(first_name, str) and first_name.strip():
+        if isinstance(last_name, str) and last_name.strip():
+            return f"{first_name.strip()} {last_name.strip()}"
+        return first_name.strip()
+    return ""
+
+
+def _emirates_front_detected(document_data: dict[str, Any]) -> bool:
+    return bool(document_data.get("date_of_birth") and _emirates_id_member_name(document_data))
+
+
+def _emirates_back_detected(document_data: dict[str, Any]) -> bool:
+    return bool(document_data.get("card_number"))
+
+
+def _emirates_upload_contains_both_sides(
+    document_data: dict[str, Any],
+    file_path: str = "",
+    raw_message: str = "",
+    user_id: str = "",
+) -> bool:
+    if _emirates_front_detected(document_data) and _emirates_back_detected(document_data):
+        return True
+
+    candidates: list[Any] = [
+        file_path,
+        raw_message,
+        peek_last_upload_relative_path(user_id, "emirates_id") if user_id else "",
+    ]
+    for key in (
+        "stored_relative_path",
+        "upload_relative_path",
+        "file_path",
+        "document_path",
+        "local_path",
+        "document_url",
+        "pdf_url",
+        "file_url",
+        "_file_reference",
+    ):
+        candidates.append(document_data.get(key))
+    if any(_looks_like_pdf_reference(candidate) for candidate in candidates):
+        return True
+    for count_key in ("page_count", "pages_count", "total_pages"):
+        count_value = document_data.get(count_key)
+        if isinstance(count_value, (int, float)) and count_value > 1:
+            return True
+        if isinstance(count_value, str) and count_value.strip().isdigit():
+            if int(count_value.strip()) > 1:
+                return True
+    pages = document_data.get("pages")
+    return isinstance(pages, list) and len(pages) > 1
+
+
+def _remember_emirates_payload(
+    responses: dict[str, Any],
+    document_data: dict[str, Any],
+    conversation_state: dict[str, Any] | None = None,
+) -> tuple[bool, bool]:
+    has_back = _emirates_back_detected(document_data)
+    has_front = _emirates_front_detected(document_data)
+
+    if has_back:
+        responses["back_page_received"] = True
+        responses["Card Number"] = document_data.get("card_number")
+        responses["_motor_eid_back_payload"] = document_data
+
+    if has_front:
+        responses["front_page_received"] = True
+        responses["_motor_eid_front_payload"] = document_data
+        _name_k, _dob_k, _gender_k = medical_member_identity_keys(
+            conversation_state
+        )
+        member_name = _emirates_id_member_name(document_data)
+        responses[_name_k] = member_name or document_data.get("name")
+        responses[_dob_k] = document_data.get("date_of_birth")
+        if "gender" in document_data and document_data.get("gender"):
+            responses[_gender_k] = document_data.get("gender")
+
+    return has_front, has_back
+
+
+def _merged_emirates_payload(
+    responses: dict[str, Any], current_payload: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    merged: dict[str, Any] = {}
+    for payload in (
+        responses.get("_motor_eid_front_payload"),
+        responses.get("_motor_eid_back_payload"),
+        current_payload,
+    ):
+        if not isinstance(payload, dict):
+            continue
+        for key, value in payload.items():
+            if value not in (None, "", [], {}, "null"):
+                merged[key] = value
+            elif key not in merged:
+                merged[key] = value
+    return merged
+
+
+def _apply_driving_license_fields(
+    responses: dict[str, Any], document_data: dict[str, Any]
+) -> None:
+    responses["driving license Name in the License"] = document_data.get("name")
+    responses["Date of Birth (DOB) in the License"] = document_data.get("date_of_birth")
+    responses["License No in the License"] = document_data.get("license_no")
+    responses["Nationality in the License"] = document_data.get("nationality")
+    responses["Issue Date in the License"] = document_data.get("issue_date")
+    responses["Expiry Date in the License"] = document_data.get("expiry_date")
+    responses["Place Of Issue in the License"] = document_data.get("place_of_issue")
+
+
+def _remember_driving_license_payload(
+    responses: dict[str, Any], document_data: dict[str, Any], *, is_back: bool = False
+) -> None:
+    _apply_driving_license_fields(responses, document_data)
+    key = (
+        "_motor_driving_license_back_payload"
+        if is_back
+        else "_motor_driving_license_front_payload"
+    )
+    responses[key] = document_data
+
+
+def _merged_driving_license_payload(
+    responses: dict[str, Any], current_payload: dict[str, Any] | None = None
+) -> dict[str, Any]:
+    merged: dict[str, Any] = {}
+    for payload in (
+        responses.get("_motor_driving_license_front_payload"),
+        responses.get("_motor_driving_license_back_payload"),
+        current_payload,
+    ):
+        if not isinstance(payload, dict):
+            continue
+        for key, value in payload.items():
+            if value not in (None, "", [], {}, "null"):
+                merged[key] = value
+            elif key not in merged:
+                merged[key] = value
+    return merged
+
+
+def _driving_license_upload_contains_both_sides(
+    document_data: dict[str, Any],
+    file_path: str = "",
+    raw_message: str = "",
+    user_id: str = "",
+) -> bool:
+    candidates: list[Any] = [
+        file_path,
+        raw_message,
+        peek_last_upload_relative_path(user_id, "driving_license") if user_id else "",
+    ]
+    for key in (
+        "stored_relative_path",
+        "upload_relative_path",
+        "file_path",
+        "document_path",
+        "local_path",
+        "document_url",
+        "pdf_url",
+        "file_url",
+        "_file_reference",
+    ):
+        candidates.append(document_data.get(key))
+    if any(_looks_like_pdf_reference(candidate) for candidate in candidates):
+        return True
+    for count_key in ("page_count", "pages_count", "total_pages"):
+        count_value = document_data.get(count_key)
+        if isinstance(count_value, (int, float)) and count_value > 1:
+            return True
+        if isinstance(count_value, str) and count_value.strip().isdigit():
+            if int(count_value.strip()) > 1:
+                return True
+    pages = document_data.get("pages")
+    if isinstance(pages, list) and len(pages) > 1:
+        return True
+    side = document_data.get("side")
+    return isinstance(side, str) and side.strip().lower() in {"both", "combined", "full"}
+
+
+def _has_both_driving_license_payloads(responses: dict[str, Any]) -> bool:
+    return (
+        isinstance(responses.get("_motor_driving_license_front_payload"), dict)
+        and isinstance(responses.get("_motor_driving_license_back_payload"), dict)
+    )
+
+
+def _driving_license_upload_complete(
+    responses: dict[str, Any],
+    document_data: dict[str, Any],
+    *,
+    file_path: str = "",
+    raw_message: str = "",
+    user_id: str = "",
+) -> bool:
+    return _driving_license_upload_contains_both_sides(
+        document_data,
+        file_path=file_path,
+        raw_message=raw_message,
+        user_id=user_id,
+    ) or _has_both_driving_license_payloads(responses)
+
+
+def _driving_license_incomplete_prompt(_responses: dict[str, Any]) -> str:
+    """Always re-prompt with front+back wording until both sides are collected."""
+    return MOTOR_DRIVING_LICENSE_COMBINED_UPLOAD_QUESTION
+
+
+def _rewind_to_driving_license_step(
+    conversation_state: dict[str, Any], questions: list[Any]
+) -> None:
+    idx = conversation_state["current_question_index"]
+    for i in range(idx, -1, -1):
+        if i >= len(questions):
+            continue
+        q = questions[i]
+        if isinstance(q, dict) and q.get("step_id") == STEP_UPLOAD_DRIVING_LICENSE:
+            conversation_state["current_question_index"] = i
+            return
+    for i in range(idx):
+        q = questions[i]
+        if isinstance(q, dict) and q.get("step_id") == STEP_UPLOAD_DRIVING_LICENSE:
+            conversation_state["current_question_index"] = i
+            return
+
+
+def _skip_past_driving_license_substeps(
+    conversation_state: dict[str, Any], questions: list[Any]
+) -> None:
+    _dl_steps = {
+        STEP_UPLOAD_DRIVING_LICENSE,
+        STEP_UPLOAD_DRIVING_LICENSE_FRONT,
+        STEP_UPLOAD_DRIVING_LICENSE_BACK,
+    }
+    idx = conversation_state["current_question_index"]
+    while idx < len(questions):
+        q = questions[idx]
+        if isinstance(q, dict) and q.get("step_id") in _dl_steps:
+            idx += 1
+            continue
+        break
+    conversation_state["current_question_index"] = idx
+
+
+def _ensure_motor_contact_steps_before_cover(
+    questions: list[Any], current_index: int
+) -> None:
+    """Insert email only before cover — mobile is collected at car flow start (motor_enquiry)."""
+    if current_index >= len(questions):
+        return
+    current = questions[current_index]
+    if not isinstance(current, dict) or current.get("step_id") != STEP_MOTOR_COVER_TYPE:
+        return
+    if current_index > 0:
+        prev = questions[current_index - 1]
+        if isinstance(prev, dict) and prev.get("step_id") == STEP_SPONSOR_EMAIL:
+            return
+    questions.insert(
+        current_index,
+        {
+            "step_id": STEP_SPONSOR_EMAIL,
+            "question": "May I have the Email Address",
+        },
+    )
+
+
+def _claim_upload_file_type(payload: Any) -> str:
+    if not isinstance(payload, dict):
+        return ""
+    raw = payload.get("file_type")
+    return raw.strip() if isinstance(raw, str) else ""
+
+
+def _expected_claim_upload_types_for_step(step: str) -> set[str]:
+    mapping = {
+        STEP_UPLOAD_DRIVING_LICENSE: {"driving_license"},
+        STEP_UPLOAD_DRIVING_LICENSE_FRONT: {"driving_license"},
+        STEP_UPLOAD_DRIVING_LICENSE_BACK: {"driving_license"},
+        STEP_UPLOAD_EMIRATES_DOC: {"emirates_id"},
+        STEP_UPLOAD_EID_FRONT: {"emirates_id"},
+        STEP_UPLOAD_EID_BACK: {"emirates_id"},
+        STEP_UPLOAD_MULKIYA: {"mulkiya", "vehicle_registration"},
+        STEP_UPLOAD_MULKIYA_FRONT: {"mulkiya", "vehicle_registration"},
+        STEP_UPLOAD_MULKIYA_BACK: {"mulkiya", "vehicle_registration"},
+        STEP_VEHICLE_TEST_CERT: {"passing_paper"},
+    }
+    return mapping.get(step, set())
+
+
+def _claim_upload_payload_mismatch(payload: Any, step: str) -> bool:
+    if not isinstance(payload, dict) or not payload.get("claim_document_upload"):
+        return False
+    file_type = _claim_upload_file_type(payload)
+    expected = _expected_claim_upload_types_for_step(step)
+    return bool(file_type and expected and file_type not in expected)
+
+
+def _claim_upload_mismatch_response(
+    *,
+    payload: dict[str, Any],
+    question: str,
+    user_language: str,
+) -> dict[str, Any]:
+    file_type = _claim_upload_file_type(payload).replace("_", " ").strip() or "document"
+    msg_type, doc_type = detect_document_type_from_question(question)
+    result = format_response_in_language(
+        f"We stored your {file_type}, but this step is asking for a different document. "
+        f"Please upload the requested file.",
+        [],
+        user_language,
+        msg_type,
+        doc_type,
+    )
+    result["question"] = translate_text(question, user_language)
+    return result
+
+
+def _motor_quote_try_upload(
+    *,
+    user_id: str,
+    file_path: str,
+    current_flow: str,
+    responses: dict[str, Any],
+    step: str,
+    user_message: str,
+) -> None:
+    motor_flow_try_upload_document(
+        user_id=user_id,
+        file_path=file_path,
+        current_flow=current_flow,
+        responses=responses,
+        step_id=step,
+        raw_message=user_message,
+    )
+
+
 def _merge_upload_file_path_into_message(user_input: UserInput, message: str) -> str:
     """Clients often POST upload success text in ``message`` and the path in ``file_path``."""
     fp_from_body = (user_input.file_path or "").strip()
@@ -388,35 +839,40 @@ def _merge_upload_file_path_into_message(user_input: UserInput, message: str) ->
         or "document upload successfully" in low
         or ("document upload" in low and "success" in low)
     )
-    if boilerplate and not fp_raw:
-        fp_raw = pop_last_upload_relative_path(user_input.user_id.strip())
     if not fp_raw:
         return message
     fp_norm = fp_raw.replace("\\", "/")
+    # Keep structured JSON in ``message``; motor InsuranceLab upload reads ``file_path`` separately.
+    msg_stripped = message.strip()
+    if msg_stripped.startswith("{"):
+        try:
+            parsed_json = json.loads(msg_stripped)
+        except json.JSONDecodeError:
+            parsed_json = None
+        if isinstance(parsed_json, (dict, list)):
+            return message
     if boilerplate or fp_from_body:
         return fp_norm
     return message
 
 
-def _repair_workshop_paged_options(
-    full_options: list[str], page: int, page_size: int = 10
-) -> list[str]:
-    safe_page = max(0, page)
-    start = safe_page * page_size
-    end = start + page_size
-    page_options = full_options[start:end]
-    if end < len(full_options):
-        return [*page_options, "More"]
-    return page_options
-
-
-def _emirates_roadside_info_text() -> str:
-    return (
-        "Emirates\n\n"
-        "EMIRATES INSURANCE\n\n"
-        "This is the number you can reach them anytime: "
-        "Roadside Assistance 24/7 Emergency Hotline: 80073"
+def _motor_document_transition_message(
+    next_question_text: str, user_language: str
+) -> str:
+    """Thank-you line plus next upload prompt (matches Emirates ID hand-off style)."""
+    intro = translate_text(
+        "Thank you for uploading the document. Now, let's move on to:",
+        user_language,
     )
+    return f"{intro} {translate_text(next_question_text, user_language)}"
+
+
+def _motor_upload_question_display_text(question: Any) -> str:
+    if isinstance(question, dict):
+        if question.get("step_id") == STEP_UPLOAD_DRIVING_LICENSE:
+            return MOTOR_DRIVING_LICENSE_COMBINED_UPLOAD_QUESTION
+        return str(question.get("question") or "")
+    return str(question)
 
 
 def _format_info_then_question(
@@ -470,6 +926,22 @@ def _is_claim_upload_input(user_message: str) -> bool:
     return False
 
 
+def _motor_document_message_to_json(user_message: str) -> dict[str, Any] | None:
+    """Parse OCR JSON, or accept upload path / success text as a minimal dict for motor flow."""
+    raw = (user_message or "").strip()
+    if not raw:
+        return None
+    if raw.startswith("{"):
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            return None
+        return data if isinstance(data, dict) else None
+    if _is_claim_upload_input(raw):
+        return {"_file_reference": raw}
+    return None
+
+
 def _restart_to_initial_menu(
     *, user_id: str, conversation_state: dict[str, Any]
 ) -> dict[str, Any]:
@@ -502,6 +974,7 @@ def process_user_input(user_input: UserInput):
         }
 
     conversation_state = user_states[user_id]
+    conversation_state["user_id"] = user_id
     user_name = get_user_name(user_id)
 
     # ==================== LANGUAGE DETECTION ====================
@@ -769,6 +1242,11 @@ def process_user_input(user_input: UserInput):
             conversation_state["current_flow"] = "initial"
             conversation_state["current_question_index"] = 0
             _persist_user_responses_json()
+            wipe_flow_session_upload_files(
+                user_id=user_id,
+                current_flow=current_flow,
+                responses=responses,
+            )
             snapshot = responses
             conversation_state["responses"] = {}
             result = format_response_in_language(
@@ -778,6 +1256,9 @@ def process_user_input(user_input: UserInput):
             return result
 
         def _schedule_travel_anything_else_thank(thank_message_en: str):
+            general_flow_try_first_step(
+                current_flow=current_flow, responses=responses
+            )
             gdf["phase"] = GENERAL_DOC_PHASE_AWAITING_ANYTHING_ELSE
             gdf["pending_travel_thank_en"] = thank_message_en
             _persist_user_responses_json()
@@ -818,6 +1299,12 @@ def process_user_input(user_input: UserInput):
         def _after_travel_form_upload_ok(form_payload):
             responses[f"{product_name} completed upload"] = form_payload
             responses[f"{product_name} expected template"] = expected_template
+            general_flow_try_upload_from_payload(
+                current_flow=current_flow,
+                responses=responses,
+                payload=form_payload,
+                product_name=product_name,
+            )
             gdf["phase"] = GENERAL_DOC_PHASE_AWAITING_TRADE_LICENCE
             _persist_user_responses_json()
             thank = translate_text(
@@ -901,6 +1388,12 @@ def process_user_input(user_input: UserInput):
         if phase == GENERAL_DOC_PHASE_AWAITING_TRADE_LICENCE:
             if upload_ok and should_accept_trade_licence_upload(payload):
                 responses["Trade licence upload"] = payload
+                general_flow_try_upload_from_payload(
+                    current_flow=current_flow,
+                    responses=responses,
+                    payload=payload,
+                    product_name=product_name,
+                )
                 gdf["phase"] = GENERAL_DOC_PHASE_AWAITING_VAT_AVAILABLE
                 _persist_user_responses_json()
                 thank = translate_text(
@@ -961,6 +1454,12 @@ def process_user_input(user_input: UserInput):
                 return format_response_in_language(q, yes_no_opts, user_language)
             if upload_ok and should_accept_vat_certificate_upload(payload):
                 responses["VAT certificate upload"] = payload
+                general_flow_try_upload_from_payload(
+                    current_flow=current_flow,
+                    responses=responses,
+                    payload=payload,
+                    product_name=product_name,
+                )
                 gdf["phase"] = GENERAL_DOC_PHASE_AWAITING_EXISTING_POLICY
                 _persist_user_responses_json()
                 thank = translate_text(GENERAL_DOC_MSG_VAT_THANK, user_language)
@@ -1105,6 +1604,9 @@ def process_user_input(user_input: UserInput):
                 )
                 return format_response_in_language(msg, [], user_language)
             responses["Corporate specialist preference"] = GENERAL_DOC_OPT_WAIT
+            general_flow_try_first_step(
+                current_flow=current_flow, responses=responses
+            )
             gdf["phase"] = GENERAL_DOC_PHASE_AFTER_WAIT_CLOSING
             gdf["pending_travel_thank_en"] = (
                 GENERAL_DOC_MSG_ANYTHING_ELSE_DECLINED_SIGNOFF_EN
@@ -1153,6 +1655,11 @@ def process_user_input(user_input: UserInput):
             if yn2 == "Yes":
                 snapshot_more = dict(responses)
                 _persist_user_responses_json()
+                wipe_flow_session_upload_files(
+                    user_id=user_id,
+                    current_flow=current_flow,
+                    responses=responses,
+                )
                 conversation_state.pop("general_document_followup", None)
                 conversation_state["current_flow"] = "initial"
                 conversation_state["current_question_index"] = 0
@@ -1431,6 +1938,19 @@ def process_user_input(user_input: UserInput):
         )
         questions[current_index] = question_data
         if isinstance(question_data, dict):
+            _dl_steps = {
+                STEP_UPLOAD_DRIVING_LICENSE,
+                STEP_UPLOAD_DRIVING_LICENSE_FRONT,
+                STEP_UPLOAD_DRIVING_LICENSE_BACK,
+            }
+            if (
+                question_data.get("step_id") in _dl_steps
+                and not _has_both_driving_license_payloads(responses)
+            ):
+                question_data = dict(question_data)
+                question_data["step_id"] = STEP_UPLOAD_DRIVING_LICENSE
+                question_data["question"] = MOTOR_DRIVING_LICENSE_COMBINED_UPLOAD_QUESTION
+                questions[current_index] = question_data
             question = question_data["question"]
             options = question_data.get("options", [])
         else:
@@ -1443,7 +1963,22 @@ def process_user_input(user_input: UserInput):
         if options:
             if step == STEP_MOTOR_CLAIM_REPAIR_WORKSHOP:
                 page = int(conversation_state.get("motor_claim_repair_page", 0) or 0)
-                options = _repair_workshop_paged_options(options, page)
+                options = repair_workshop_paged_options(options, page)
+            elif step == STEP_MOTOR_CLAIM_RECOVERY_LOCATION:
+                page = int(
+                    conversation_state.get("motor_claim_recovery_page", 0) or 0
+                )
+                options = repair_workshop_paged_options(options, page)
+
+            # Duplicate upload POST after /upload-document/ must not count as an answer.
+            if step in (
+                STEP_MOTOR_CLAIM_REPAIR_WORKSHOP,
+                STEP_MOTOR_CLAIM_RECOVERY_LOCATION,
+            ) and _is_claim_upload_input(user_message):
+                prompt = translate_text(question, user_language)
+                return format_response_in_language(
+                    prompt, options, user_language
+                )
 
             # Validate user response against options using multilingual validation
             validation_result = validate_response_multilingual(
@@ -1478,6 +2013,13 @@ def process_user_input(user_input: UserInput):
 
                 if step == STEP_CLAIM_TYPE_CHOICE:
                     if matched_option == "Motor insurance":
+                        claim_flow_try_enquiry(
+                            user_id=user_id,
+                            current_flow=current_flow or CLAIM_ROUTER_FLOW,
+                            responses=responses,
+                            claim_type="Motor insurance",
+                            claim_question_type="Motor insurance",
+                        )
                         conversation_state["current_flow"] = MOTOR_CLAIM_FLOW
                         conversation_state["current_question_index"] = 0
                         intro_en = (
@@ -1497,6 +2039,7 @@ def process_user_input(user_input: UserInput):
                             doc_type,
                         )
                     if matched_option == "Medical insurance":
+                        responses["claim_type"] = "Medical insurance"
                         conversation_state["current_flow"] = MEDICAL_CLAIM_FLOW
                         conversation_state["current_question_index"] = 0
                         first_med_claim = medical_claim[0]
@@ -1515,6 +2058,13 @@ def process_user_input(user_input: UserInput):
                         )
 
                 if step == STEP_MEDICAL_CLAIM_ASSISTANCE_TYPE:
+                    claim_flow_try_enquiry(
+                        user_id=user_id,
+                        current_flow=current_flow,
+                        responses=responses,
+                        claim_type=responses.get("claim_type", "Medical insurance"),
+                        claim_question_type=matched_option,
+                    )
                     conversation_state["current_question_index"] += 1
                     nq = questions[conversation_state["current_question_index"]]
                     next_q = nq["question"] if isinstance(nq, dict) else str(nq)
@@ -1535,7 +2085,7 @@ def process_user_input(user_input: UserInput):
                             if isinstance(question_data, dict)
                             else []
                         )
-                        next_page_options = _repair_workshop_paged_options(
+                        next_page_options = repair_workshop_paged_options(
                             full_options, conversation_state["motor_claim_repair_page"]
                         )
                         return format_response_in_language(
@@ -1544,6 +2094,7 @@ def process_user_input(user_input: UserInput):
                             user_language,
                         )
                     conversation_state.pop("motor_claim_repair_page", None)
+                    responses["motor_claim_insurance_provider"] = matched_option
                     conversation_state["current_question_index"] += 1
                     nq = questions[conversation_state["current_question_index"]]
                     next_body = nq["question"]
@@ -1553,14 +2104,13 @@ def process_user_input(user_input: UserInput):
                     )
 
                 if step == STEP_MOTOR_CLAIM_ROAD_RECOVERY:
+                    responses["motor_claim_recover_from_road"] = matched_option
                     if matched_option == "No":
+                        # Skip roadside recovery location; go straight to repurchase offer.
                         conversation_state["current_question_index"] += 2
                         nq = questions[conversation_state["current_question_index"]]
-                        return _format_info_then_question(
-                            _emirates_roadside_info_text(),
-                            nq["question"],
-                            nq.get("options", []),
-                            user_language,
+                        return format_response_in_language(
+                            nq["question"], nq.get("options", []), user_language
                         )
                     conversation_state["current_question_index"] += 1
                     nq = questions[conversation_state["current_question_index"]]
@@ -1569,13 +2119,45 @@ def process_user_input(user_input: UserInput):
                     )
 
                 if step == STEP_MOTOR_CLAIM_RECOVERY_LOCATION:
+                    if matched_option == "More":
+                        current_page = int(
+                            conversation_state.get("motor_claim_recovery_page", 0)
+                            or 0
+                        )
+                        conversation_state["motor_claim_recovery_page"] = (
+                            current_page + 1
+                        )
+                        full_options = (
+                            question_data.get("options", [])
+                            if isinstance(question_data, dict)
+                            else []
+                        )
+                        next_page_options = repair_workshop_paged_options(
+                            full_options,
+                            conversation_state["motor_claim_recovery_page"],
+                        )
+                        return format_response_in_language(
+                            question,
+                            next_page_options,
+                            user_language,
+                        )
+                    conversation_state.pop("motor_claim_recovery_page", None)
+                    responses["motor_claim_repair_location"] = matched_option
+                    responses["motor_claim_roadside_provider"] = matched_option
                     conversation_state["current_question_index"] += 1
                     nq = questions[conversation_state["current_question_index"]]
-                    return _format_info_then_question(
-                        _emirates_roadside_info_text(),
-                        nq["question"],
-                        nq.get("options", []),
-                        user_language,
+                    hotline_msg = format_motor_claim_roadside_hotline_message(
+                        matched_option
+                    )
+                    if hotline_msg:
+                        return _format_info_then_question(
+                            hotline_msg,
+                            nq["question"],
+                            nq.get("options", []),
+                            user_language,
+                        )
+                    return format_response_in_language(
+                        nq["question"], nq.get("options", []), user_language
                     )
 
                 if step == STEP_MOTOR_CLAIM_REPURCHASE_OFFER:
@@ -1583,12 +2165,23 @@ def process_user_input(user_input: UserInput):
                         return _restart_to_initial_menu(
                             user_id=user_id, conversation_state=conversation_state
                         )
+                    claim_flow_try_first_step(
+                        user_id=user_id,
+                        current_flow=current_flow,
+                        responses=responses,
+                        force=True,
+                    )
                     conversation_state["current_question_index"] += 1
                     try:
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
                     except OSError:
                         pass
+                    wipe_flow_session_upload_files(
+                        user_id=user_id,
+                        current_flow=current_flow,
+                        responses=responses,
+                    )
                     completion_msg = translate_text(
                         motor_claim_handler._COMPLETE_MESSAGE,
                         user_language,
@@ -1605,12 +2198,23 @@ def process_user_input(user_input: UserInput):
                         return _restart_to_initial_menu(
                             user_id=user_id, conversation_state=conversation_state
                         )
+                    claim_flow_try_first_step(
+                        user_id=user_id,
+                        current_flow=current_flow,
+                        responses=responses,
+                        force=True,
+                    )
                     conversation_state["current_question_index"] += 1
                     try:
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
                     except OSError:
                         pass
+                    wipe_flow_session_upload_files(
+                        user_id=user_id,
+                        current_flow=current_flow,
+                        responses=responses,
+                    )
                     done_msg = translate_text(
                         "Thank you for using Insura. If you need anything else, we are here to help.",
                         user_language,
@@ -1707,6 +2311,67 @@ def process_user_input(user_input: UserInput):
                         "response": f"{general_assistant_response.content.strip()}",
                         "question": "It seems we have reached the end of the questions.",
                     }
+        elif step == STEP_MOTOR_ENQUIRY_PHONE:
+            phone_raw = re.sub(r"[\s\-]", "", user_message.strip())
+            if not is_valid_mobile_number(phone_raw):
+                retry_question = translate_text(
+                    f"Let's try again: {question}", user_language
+                )
+                return {
+                    "response": translate_text(
+                        "Please provide a valid mobile number (10–15 digits).",
+                        user_language,
+                    ),
+                    "question": retry_question,
+                }
+
+            responses[question] = phone_raw
+            motor_flow_try_enquiry_after_phone(
+                user_id=user_id,
+                current_flow=current_flow,
+                responses=responses,
+                phone=phone_raw,
+                display_name=user_name,
+            )
+            conversation_state["current_question_index"] += 1
+
+            if conversation_state["current_question_index"] < len(questions):
+                next_question = questions[conversation_state["current_question_index"]]
+                next_question_text = (
+                    next_question["question"]
+                    if isinstance(next_question, dict)
+                    else next_question
+                )
+                next_options = (
+                    next_question.get("options", [])
+                    if isinstance(next_question, dict)
+                    else []
+                )
+                response_message = translate_text(
+                    f"Thank you! Now, let's move on to: {next_question_text}",
+                    user_language,
+                )
+                return format_response_in_language(
+                    response_message, next_options, user_language
+                )
+
+            with open("user_responses.json", "w") as file:
+                json.dump(responses, file, indent=4)
+            wipe_flow_session_upload_files(
+                user_id=user_id,
+                current_flow=current_flow,
+                responses=responses,
+            )
+            del user_states[user_id]
+            result = format_response_in_language(
+                "You're all set! Thank you for providing your details. "
+                "If you need further assistance, feel free to ask.",
+                [],
+                user_language,
+            )
+            result["final_responses"] = responses
+            return result
+
         elif step == STEP_PASSKEY:
             responses[question] = user_message
 
@@ -1868,13 +2533,17 @@ def process_user_input(user_input: UserInput):
 
         elif step == STEP_UPLOAD_EMIRATES_DOC:
             try:
-                # Try to parse as JSON first
-                document_data = json.loads(user_message)
+                # Try to parse as JSON first, or accept upload path / success message (merged to path).
+                document_data = _motor_document_message_to_json(user_message)
+                if document_data is None:
+                    raise json.JSONDecodeError("Invalid document payload", user_message, 0)
+                if _claim_upload_payload_mismatch(document_data, step):
+                    return _claim_upload_mismatch_response(
+                        payload=document_data,
+                        question=question,
+                        user_language=user_language,
+                    )
                 print(f"Parsed document data: {document_data}")
-
-                # Store the document data
-                if isinstance(document_data, dict):
-                    responses[question] = document_data
 
                 # Initialize flags if they don't exist
                 if "back_page_received" not in responses:
@@ -1884,51 +2553,30 @@ def process_user_input(user_input: UserInput):
 
                 back_page_question = {
                     "step_id": STEP_UPLOAD_EID_BACK,
-                    "question": "Please Upload Back Page of Your Document",
+                    "question": "Please upload your Emirates ID — Back side",
                 }
                 front_page_question = {
                     "step_id": STEP_UPLOAD_EID_FRONT,
-                    "question": "Please Upload Front Page of Your Document",
+                    "question": "Please upload your Emirates ID — Front side",
                 }
+                file_path_hint = (user_input.file_path or "").strip() or (
+                    peek_last_upload_relative_path(user_id, "emirates_id") if user_id else ""
+                )
+                combined_upload = _emirates_upload_contains_both_sides(
+                    document_data,
+                    file_path=file_path_hint,
+                    raw_message=user_message,
+                    user_id=user_id,
+                )
 
-                # Check if card_number is present - indicates back page information
-                if "card_number" in document_data and document_data.get("card_number"):
-                    # Mark that we've received the back page information
-                    responses["back_page_received"] = True
-                    responses["Card Number"] = document_data.get("card_number")
-
-                extracted_member_name = ""
-                for _key in ("full_name", "fullName", "name"):
-                    _value = document_data.get(_key)
-                    if isinstance(_value, str) and _value.strip():
-                        extracted_member_name = _value.strip()
-                        break
-                if not extracted_member_name:
-                    _first_name = document_data.get("first_name")
-                    _last_name = document_data.get("last_name")
-                    if isinstance(_first_name, str) and _first_name.strip():
-                        extracted_member_name = _first_name.strip()
-                        if isinstance(_last_name, str) and _last_name.strip():
-                            extracted_member_name = (
-                                f"{_first_name.strip()} {_last_name.strip()}"
-                            )
-                # Check if DOB and any member name variant are present.
-                if document_data.get("date_of_birth") and extracted_member_name:
-                    # Mark that we've received the front page information
-                    responses["front_page_received"] = True
-
-                    # Store these important details in the main responses
-                    _name_k, _dob_k, _gender_k = medical_member_identity_keys(
-                        conversation_state
+                if isinstance(document_data, dict):
+                    responses[question] = document_data
+                    _remember_emirates_payload(
+                        responses, document_data, conversation_state
                     )
-                    responses[_name_k] = extracted_member_name
-                    responses[_dob_k] = document_data.get("date_of_birth")
-                    if "gender" in document_data and document_data.get("gender"):
-                        responses[_gender_k] = document_data.get("gender")
-
-                # First document upload storage for reference
-                if "first_document_upload" not in responses:
-                    responses["first_document_upload"] = document_data
+                    if combined_upload:
+                        responses["front_page_received"] = True
+                        responses["back_page_received"] = True
 
                 # Determine if we need to ask for additional pages
                 if not responses["back_page_received"]:
@@ -1940,8 +2588,8 @@ def process_user_input(user_input: UserInput):
                         )
                         responses[back_page_question["question"]] = None
 
-                    response_message = (
-                        "We couldn't detect the Back Page in the uploaded document"
+                    response_message = _motor_document_transition_message(
+                        back_page_question["question"], user_language
                     )
                     result = format_response_in_language(
                         response_message,
@@ -1949,9 +2597,6 @@ def process_user_input(user_input: UserInput):
                         user_language,
                         message_type="document_upload_request",
                         document_type="emirates_id_back",
-                    )
-                    result["question"] = translate_text(
-                        back_page_question["question"], user_language
                     )
                     return result
                 elif not responses["front_page_received"]:
@@ -1963,8 +2608,8 @@ def process_user_input(user_input: UserInput):
                         )
                         responses[front_page_question["question"]] = None
 
-                    response_message = (
-                        "We couldn't detect the Front Page in the uploaded document"
+                    response_message = _motor_document_transition_message(
+                        front_page_question["question"], user_language
                     )
                     result = format_response_in_language(
                         response_message,
@@ -1973,10 +2618,17 @@ def process_user_input(user_input: UserInput):
                         message_type="document_upload_request",
                         document_type="emirates_id_front",
                     )
-                    result["question"] = translate_text(
-                        front_page_question["question"], user_language
-                    )
                     return result
+
+                merged_payload = _merged_emirates_payload(responses, document_data)
+                _motor_quote_try_upload(
+                    user_id=user_id,
+                    file_path=file_path_hint,
+                    current_flow=current_flow,
+                    responses=responses,
+                    step=step,
+                    user_message=json.dumps(merged_payload, ensure_ascii=False),
+                )
 
                 # If both pages have been received, continue with normal flow
                 conversation_state["current_question_index"] += 1
@@ -1989,6 +2641,7 @@ def process_user_input(user_input: UserInput):
                 # Check if there are more questions
                 if conversation_state["current_question_index"] < len(questions):
                     _nq_idx = conversation_state["current_question_index"]
+                    _ensure_motor_contact_steps_before_cover(questions, _nq_idx)
                     questions[_nq_idx] = patch_medical_marital_status_question(
                         questions[_nq_idx], responses, conversation_state
                     )
@@ -2070,18 +2723,40 @@ def process_user_input(user_input: UserInput):
                 }
         elif step == STEP_UPLOAD_EID_BACK:
             try:
-                document_data = json.loads(user_message)
-                responses["Card Number"] = document_data.get("card_number")
-
-                print(user_message)
+                document_data = _motor_document_message_to_json(user_message)
+                if document_data is None:
+                    raise json.JSONDecodeError("Invalid document payload", user_message, 0)
+                if _claim_upload_payload_mismatch(document_data, step):
+                    return _claim_upload_mismatch_response(
+                        payload=document_data,
+                        question=question,
+                        user_language=user_language,
+                    )
                 if isinstance(document_data, dict):
                     responses[question] = document_data
-                    print(document_data)
+                    _remember_emirates_payload(
+                        responses, document_data, conversation_state
+                    )
+                    merged_payload = _merged_emirates_payload(responses, document_data)
+                    file_path_hint = (user_input.file_path or "").strip() or (
+                        peek_last_upload_relative_path(user_id, "emirates_id_back")
+                        if user_id
+                        else ""
+                    )
+                    _motor_quote_try_upload(
+                        user_id=user_id,
+                        file_path=file_path_hint,
+                        current_flow=current_flow,
+                        responses=responses,
+                        step=step,
+                        user_message=json.dumps(merged_payload, ensure_ascii=False),
+                    )
                     conversation_state["current_question_index"] += 1
 
                     # Check if there are more questions
                     if conversation_state["current_question_index"] < len(questions):
                         _nq_idx = conversation_state["current_question_index"]
+                        _ensure_motor_contact_steps_before_cover(questions, _nq_idx)
                         questions[_nq_idx] = patch_medical_marital_status_question(
                             questions[_nq_idx], responses, conversation_state
                         )
@@ -2186,38 +2861,40 @@ def process_user_input(user_input: UserInput):
                 }
         elif step == STEP_UPLOAD_EID_FRONT:
             try:
-                document_data = json.loads(user_message)
-                _name_k, _dob_k, _gender_k = medical_member_identity_keys(
-                    conversation_state
-                )
-                extracted_member_name = ""
-                for _key in ("full_name", "fullName", "name"):
-                    _value = document_data.get(_key)
-                    if isinstance(_value, str) and _value.strip():
-                        extracted_member_name = _value.strip()
-                        break
-                if not extracted_member_name:
-                    _first_name = document_data.get("first_name")
-                    _last_name = document_data.get("last_name")
-                    if isinstance(_first_name, str) and _first_name.strip():
-                        extracted_member_name = _first_name.strip()
-                        if isinstance(_last_name, str) and _last_name.strip():
-                            extracted_member_name = (
-                                f"{_first_name.strip()} {_last_name.strip()}"
-                            )
-                responses[_name_k] = extracted_member_name or document_data.get("name")
-                responses[_dob_k] = document_data.get("date_of_birth")
-                responses[_gender_k] = document_data.get("gender")
-
-                print(user_message)
+                document_data = _motor_document_message_to_json(user_message)
+                if document_data is None:
+                    raise json.JSONDecodeError("Invalid document payload", user_message, 0)
+                if _claim_upload_payload_mismatch(document_data, step):
+                    return _claim_upload_mismatch_response(
+                        payload=document_data,
+                        question=question,
+                        user_language=user_language,
+                    )
                 if isinstance(document_data, dict):
                     responses[question] = document_data
-                    print(document_data)
+                    _remember_emirates_payload(
+                        responses, document_data, conversation_state
+                    )
+                    merged_payload = _merged_emirates_payload(responses, document_data)
+                    file_path_hint = (user_input.file_path or "").strip() or (
+                        peek_last_upload_relative_path(user_id, "emirates_id_front")
+                        if user_id
+                        else ""
+                    )
+                    _motor_quote_try_upload(
+                        user_id=user_id,
+                        file_path=file_path_hint,
+                        current_flow=current_flow,
+                        responses=responses,
+                        step=step,
+                        user_message=json.dumps(merged_payload, ensure_ascii=False),
+                    )
                     conversation_state["current_question_index"] += 1
 
                     # Check if there are more questions
                     if conversation_state["current_question_index"] < len(questions):
                         _nq_idx = conversation_state["current_question_index"]
+                        _ensure_motor_contact_steps_before_cover(questions, _nq_idx)
                         questions[_nq_idx] = patch_medical_marital_status_question(
                             questions[_nq_idx], responses, conversation_state
                         )
@@ -2310,30 +2987,87 @@ def process_user_input(user_input: UserInput):
             STEP_UPLOAD_DRIVING_LICENSE_BACK,
         ):
             try:
-                document_data = json.loads(user_message)
-                responses["driving license Name in the License"] = document_data.get(
-                    "name"
-                )
-                responses["Date of Birth (DOB) in the License"] = document_data.get(
-                    "date_of_birth"
-                )
-                responses["License No in the License"] = document_data.get("license_no")
-                responses["Nationality in the License"] = document_data.get(
-                    "nationality"
-                )
-                responses["Issue Date in the License"] = document_data.get("issue_date")
-                responses["Expiry Date in the License"] = document_data.get(
-                    "expiry_date"
-                )
-                responses["Place Of Issue in the License"] = document_data.get(
-                    "place_of_issue"
-                )
-
-                print(user_message)
+                document_data = _motor_document_message_to_json(user_message)
+                if document_data is None:
+                    raise json.JSONDecodeError("Invalid document payload", user_message, 0)
+                if _claim_upload_payload_mismatch(document_data, step):
+                    return _claim_upload_mismatch_response(
+                        payload=document_data,
+                        question=question,
+                        user_language=user_language,
+                    )
                 if isinstance(document_data, dict):
                     responses[question] = document_data
-                    print(document_data)
+                    file_path_hint = (user_input.file_path or "").strip() or (
+                        peek_last_upload_relative_path(user_id, "driving_license")
+                        if user_id
+                        else ""
+                    )
+
+                    has_front_before = isinstance(
+                        responses.get("_motor_driving_license_front_payload"), dict
+                    )
+                    side = ""
+                    if isinstance(document_data, dict):
+                        side = str(document_data.get("side") or "").strip().lower()
+                    is_back_upload = step == STEP_UPLOAD_DRIVING_LICENSE_BACK or side in (
+                        "back",
+                        "rear",
+                    )
+                    if side == "front":
+                        is_back_upload = False
+                    elif (
+                        not is_back_upload
+                        and has_front_before
+                        and step
+                        in (
+                            STEP_UPLOAD_DRIVING_LICENSE,
+                            STEP_UPLOAD_DRIVING_LICENSE_FRONT,
+                        )
+                    ):
+                        is_back_upload = True
+
+                    _remember_driving_license_payload(
+                        responses, document_data, is_back=is_back_upload
+                    )
+
+                    if not _driving_license_upload_complete(
+                        responses,
+                        document_data,
+                        file_path=file_path_hint,
+                        raw_message=user_message,
+                        user_id=user_id,
+                    ):
+                        if step in (
+                            STEP_UPLOAD_DRIVING_LICENSE_BACK,
+                            STEP_UPLOAD_DRIVING_LICENSE_FRONT,
+                        ):
+                            _rewind_to_driving_license_step(conversation_state, questions)
+                        response_message = _motor_document_transition_message(
+                            _driving_license_incomplete_prompt(responses),
+                            user_language,
+                        )
+                        return format_response_in_language(
+                            response_message,
+                            [],
+                            user_language,
+                            message_type="document_upload_request",
+                            document_type="driving_license",
+                        )
+
+                    merged_payload = _merged_driving_license_payload(
+                        responses, document_data
+                    )
+                    _motor_quote_try_upload(
+                        user_id=user_id,
+                        file_path=file_path_hint,
+                        current_flow=current_flow,
+                        responses=responses,
+                        step=step,
+                        user_message=json.dumps(merged_payload, ensure_ascii=False),
+                    )
                     conversation_state["current_question_index"] += 1
+                    _skip_past_driving_license_substeps(conversation_state, questions)
 
                     # Check if there are more questions
                     if conversation_state["current_question_index"] < len(questions):
@@ -2344,8 +3078,12 @@ def process_user_input(user_input: UserInput):
                         next_question = questions[_nq_idx]
                         if "options" in next_question:
                             options = next_question["options"]
-                            next_question_text = next_question["question"]
-                            response_message = f"Thank you for uploading the document. Now, let's move on to: {next_question_text}"
+                            next_question_text = _motor_upload_question_display_text(
+                                next_question
+                            )
+                            response_message = _motor_document_transition_message(
+                                next_question_text, user_language
+                            )
                             # Detect document type from next question
                             msg_type, doc_type = detect_document_type_from_question(
                                 next_question_text
@@ -2358,12 +3096,12 @@ def process_user_input(user_input: UserInput):
                                 doc_type,
                             )
                         else:
-                            next_question_text = (
-                                next_question["question"]
-                                if isinstance(next_question, dict)
-                                else next_question
+                            next_question_text = _motor_upload_question_display_text(
+                                next_question
                             )
-                            response_message = f"Thank you for uploading the document. Now, let's move on to: {next_question_text}"
+                            response_message = _motor_document_transition_message(
+                                next_question_text, user_language
+                            )
                             # Detect document type from next question
                             msg_type, doc_type = detect_document_type_from_question(
                                 next_question_text
@@ -2374,7 +3112,12 @@ def process_user_input(user_input: UserInput):
                     else:
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
-                            del user_states[user_id]
+                        wipe_flow_session_upload_files(
+                            user_id=user_id,
+                            current_flow=current_flow,
+                            responses=responses,
+                        )
+                        del user_states[user_id]
                         final_message = "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask."
                         result = format_response_in_language(
                             final_message, [], user_language
@@ -2432,7 +3175,16 @@ def process_user_input(user_input: UserInput):
             STEP_UPLOAD_MULKIYA_BACK,
         ):
             try:
-                document_data = json.loads(user_message)
+                document_data = _motor_document_message_to_json(user_message)
+                if document_data is None:
+                    raise json.JSONDecodeError("Invalid document payload", user_message, 0)
+                if _claim_upload_payload_mismatch(document_data, step):
+                    return _claim_upload_mismatch_response(
+                        payload=document_data,
+                        question=question,
+                        user_language=user_language,
+                    )
+                file_path_hint = (user_input.file_path or "").strip()
                 responses["Owner in the Vehicle Mulkiya"] = document_data.get("owner")
                 responses["Place of Issues in the Vehicle License"] = document_data.get(
                     "place_of_issue"
@@ -2483,6 +3235,46 @@ def process_user_input(user_input: UserInput):
                 if isinstance(document_data, dict):
                     responses[question] = document_data
                     print(document_data)
+                    _motor_quote_try_upload(
+                        user_id=user_id,
+                        file_path=file_path_hint,
+                        current_flow=current_flow,
+                        responses=responses,
+                        step=step,
+                        user_message=user_message,
+                    )
+
+                    if step == STEP_UPLOAD_MULKIYA_FRONT and not _mulkiya_upload_contains_both_sides(
+                        document_data,
+                        file_path=file_path_hint,
+                        raw_message=user_message,
+                        user_id=user_id,
+                    ):
+                        back_question = {
+                            "step_id": STEP_UPLOAD_MULKIYA_BACK,
+                            "question": (
+                                "Please upload your vehicle registration (Mulkiya) — "
+                                "Back side"
+                            ),
+                        }
+                        next_index = conversation_state["current_question_index"] + 1
+                        next_is_back_question = (
+                            next_index < len(questions)
+                            and isinstance(questions[next_index], dict)
+                            and questions[next_index].get("step_id") == STEP_UPLOAD_MULKIYA_BACK
+                        )
+                        if not next_is_back_question:
+                            questions.insert(next_index, back_question)
+                        conversation_state["current_question_index"] += 1
+                        result = format_response_in_language(
+                            back_question["question"],
+                            [],
+                            user_language,
+                            message_type="document_upload_request",
+                            document_type="mulkiya",
+                        )
+                        return result
+
                     conversation_state["current_question_index"] += 1
 
                     insurance_expiry = _parse_vehicle_insurance_expiry_date(
@@ -2548,7 +3340,12 @@ def process_user_input(user_input: UserInput):
                     else:
                         with open("user_responses.json", "w") as file:
                             json.dump(responses, file, indent=4)
-                            del user_states[user_id]
+                        wipe_flow_session_upload_files(
+                            user_id=user_id,
+                            current_flow=current_flow,
+                            responses=responses,
+                        )
+                        del user_states[user_id]
                         final_message = "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask."
                         result = format_response_in_language(
                             final_message, [], user_language
@@ -2646,6 +3443,8 @@ def process_user_input(user_input: UserInput):
                 conversation_state=conversation_state,
                 questions=questions,
                 responses=responses,
+                user_id=user_id,
+                current_flow=current_flow,
             )
 
         elif step == STEP_EMIRATE_CHOICE_CAR:
@@ -2679,9 +3478,21 @@ def process_user_input(user_input: UserInput):
                 english_value = validation_result["matched_value"]
                 responses[question] = english_value
 
+                motor_flow_try_second_step_after_cover(
+                    user_id=user_id,
+                    current_flow=current_flow,
+                    responses=responses,
+                    cover_choice=english_value,
+                )
+
                 if english_value in {"ThirdParty Liability", "Third Party"}:
                     with open("user_responses.json", "w") as file:
                         json.dump(responses, file, indent=4)
+                    wipe_flow_session_upload_files(
+                        user_id=user_id,
+                        current_flow=current_flow,
+                        responses=responses,
+                    )
                     del user_states[user_id]
                     final_message = (
                         "Thank you for your interest in ThirdParty Liability insurance! 🙌\n\n"
@@ -2726,9 +3537,40 @@ def process_user_input(user_input: UserInput):
                 else:
                     with open("user_responses.json", "w") as file:
                         json.dump(responses, file, indent=4)
+                    wipe_flow_session_upload_files(
+                        user_id=user_id,
+                        current_flow=current_flow,
+                        responses=responses,
+                    )
                     del user_states[user_id]
+                    if _is_motor_renewal_company_flow(responses):
+                        final_message = (
+                            f"Thank you, {user_name}💚! 🙌 I'm now checking multiple insurance "
+                            "providers to get you the best motor insurance options 🚗\n\n"
+                            "⏱️ You'll receive your personalized quotes shortly."
+                        )
+                        translated_followup = translate_text(
+                            "Would you like assistance with anything else?",
+                            user_language,
+                        )
+                        yes_no_options = [
+                            translate_text("Yes", user_language),
+                            translate_text("No", user_language),
+                        ]
+                        result = format_response_in_language(
+                            final_message, [], user_language
+                        )
+                        result["final_responses"] = responses
+                        result["restart_conversation"] = True
+                        result["question"] = translated_followup
+                        result["options"] = ", ".join(yes_no_options)
+                        return result
 
-                    final_message = "Thank you for sharing the details. We will inform Insura to assist you further with your enquiry. Please wait for further assistance. If you have any questions, please contact support@insuranceclub.ae."
+                    final_message = (
+                        "Thank you for sharing the details. We will inform Insura to assist "
+                        "you further with your enquiry. Please wait for further assistance. "
+                        "If you have any questions, please contact support@insuranceclub.ae."
+                    )
 
                     result = format_response_in_language(
                         final_message, [], user_language
@@ -2807,6 +3649,12 @@ def process_user_input(user_input: UserInput):
             responses[question] = selected_option
             responses["General Insurance Type"] = selected_option
             conversation_state.pop("general_insurance_page", None)
+            general_flow_try_enquiry_after_type(
+                user_id=user_id,
+                current_flow=current_flow,
+                responses=responses,
+                general_insurance_type=selected_option,
+            )
 
             if selected_option in (
                 TRAVEL_INSURANCE_LABEL,
@@ -3384,6 +4232,11 @@ def process_user_input(user_input: UserInput):
 
             with open("user_responses.json", "w") as file:
                 json.dump(responses, file, indent=4)
+            wipe_flow_session_upload_files(
+                user_id=user_id,
+                current_flow=current_flow,
+                responses=responses,
+            )
             del user_states[user_id]
 
             result = format_response_in_language(
@@ -3395,7 +4248,13 @@ def process_user_input(user_input: UserInput):
         elif step == STEP_SPONSOR_EMAIL:
             email_value = user_message.strip()
             if re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email_value):
+                responses["motor_email"] = email_value
                 responses[question] = email_value
+                motor_flow_try_third_step_after_contact(
+                    user_id=user_id,
+                    current_flow=current_flow,
+                    responses=responses,
+                )
                 conversation_state["current_question_index"] += 1
                 if conversation_state["current_question_index"] < len(questions):
                     next_question = questions[
@@ -3426,6 +4285,11 @@ def process_user_input(user_input: UserInput):
                     )
                 with open("user_responses.json", "w") as file:
                     json.dump(responses, file, indent=4)
+                wipe_flow_session_upload_files(
+                    user_id=user_id,
+                    current_flow=current_flow,
+                    responses=responses,
+                )
                 del user_states[user_id]
                 result = format_response_in_language(
                     "You're all set! Thank you for providing your details. If you need further assistance, feel free to ask.",
@@ -3572,31 +4436,13 @@ def process_user_input(user_input: UserInput):
 
             if is_mobile_number:
                 # Store the mobile number
+                responses["motor_mobile"] = user_message.strip()
                 responses[question] = user_message
-                if _is_motor_renewal_company_flow(responses):
-                    with open("user_responses.json", "w") as file:
-                        json.dump(responses, file, indent=4)
-                    del user_states[user_id]
-                    final_message = (
-                        f"Thank you, {user_name}💚! 🙌 I'm now checking multiple insurance providers to get you the best motor insurance options 🚗\n\n"
-                        "⏱️ You'll receive your personalized quotes shortly."
-                    )
-                    translated_followup = translate_text(
-                        "Would you like assistance with anything else?",
-                        user_language,
-                    )
-                    yes_no_options = [
-                        translate_text("Yes", user_language),
-                        translate_text("No", user_language),
-                    ]
-                    result = format_response_in_language(
-                        final_message, [], user_language
-                    )
-                    result["final_responses"] = responses
-                    result["restart_conversation"] = True
-                    result["question"] = translated_followup
-                    result["options"] = ", ".join(yes_no_options)
-                    return result
+                motor_flow_try_third_step_after_contact(
+                    user_id=user_id,
+                    current_flow=current_flow,
+                    responses=responses,
+                )
                 conversation_state["current_question_index"] += 1
 
                 # Check if there are more questions
@@ -3639,6 +4485,33 @@ def process_user_input(user_input: UserInput):
                 else:
                     with open("user_responses.json", "w") as file:
                         json.dump(responses, file, indent=4)
+                    wipe_flow_session_upload_files(
+                        user_id=user_id,
+                        current_flow=current_flow,
+                        responses=responses,
+                    )
+                    if _is_motor_renewal_company_flow(responses):
+                        final_message = (
+                            f"Thank you, {user_name}💚! 🙌 I'm now checking multiple insurance "
+                            "providers to get you the best motor insurance options 🚗\n\n"
+                            "⏱️ You'll receive your personalized quotes shortly."
+                        )
+                        translated_followup = translate_text(
+                            "Would you like assistance with anything else?",
+                            user_language,
+                        )
+                        yes_no_options = [
+                            translate_text("Yes", user_language),
+                            translate_text("No", user_language),
+                        ]
+                        result = format_response_in_language(
+                            final_message, [], user_language
+                        )
+                        result["final_responses"] = responses
+                        result["restart_conversation"] = True
+                        result["question"] = translated_followup
+                        result["options"] = ", ".join(yes_no_options)
+                        return result
 
                     completion_msg = translate_text(
                         "You're all set! 🎉 Thank you for providing your details. If you need further assistance, feel free to ask.",
@@ -4030,10 +4903,26 @@ def process_user_input(user_input: UserInput):
 
         elif step == STEP_VEHICLE_TEST_CERT:
             try:
-                document_data = json.loads(user_message)
+                document_data = _motor_document_message_to_json(user_message)
+                if document_data is None:
+                    raise json.JSONDecodeError("Invalid document payload", user_message, 0)
+                if _claim_upload_payload_mismatch(document_data, step):
+                    return _claim_upload_mismatch_response(
+                        payload=document_data,
+                        question=question,
+                        user_language=user_language,
+                    )
                 if isinstance(document_data, dict):
                     responses[question] = document_data
                     responses["Vehicle Passing Paper"] = document_data
+                    _motor_quote_try_upload(
+                        user_id=user_id,
+                        file_path=(user_input.file_path or "").strip(),
+                        current_flow=current_flow,
+                        responses=responses,
+                        step=step,
+                        user_message=user_message,
+                    )
                     conversation_state["current_question_index"] += 1
 
                     _nq_idx = conversation_state["current_question_index"]
@@ -4064,41 +4953,34 @@ def process_user_input(user_input: UserInput):
                         questions.insert(
                             _nq_idx + 3,
                             {
-                                "step_id": STEP_SPONSOR_MOBILE,
-                                "question": "Please provide your mobile number so we can reach you.",
+                                "step_id": STEP_MOTOR_COVER_TYPE,
+                                "question": "What type of motor insurance are you looking for?",
+                                "options": [
+                                    "Comprehensive",
+                                    "ThirdPartyLiability",
+                                    "Know More",
+                                    "Comprehensive (Full Cover)",
+                                    "Third Party",
+                                ],
                             },
                         )
                     else:
                         questions.insert(
                             _nq_idx,
                             {
-                                "step_id": STEP_UPLOAD_DRIVING_LICENSE_FRONT,
-                                "question": "Please upload your Driving License — Front side",
+                                "step_id": STEP_UPLOAD_DRIVING_LICENSE,
+                                "question": MOTOR_DRIVING_LICENSE_COMBINED_UPLOAD_QUESTION,
                             },
                         )
                         questions.insert(
                             _nq_idx + 1,
                             {
-                                "step_id": STEP_UPLOAD_DRIVING_LICENSE_BACK,
-                                "question": "Please upload your Driving License — Back side",
+                                "step_id": STEP_UPLOAD_EMIRATES_DOC,
+                                "question": MOTOR_EMIRATES_ID_COMBINED_UPLOAD_QUESTION,
                             },
                         )
                         questions.insert(
                             _nq_idx + 2,
-                            {
-                                "step_id": STEP_UPLOAD_EID_FRONT,
-                                "question": "Please upload your Emirates ID — Front side",
-                            },
-                        )
-                        questions.insert(
-                            _nq_idx + 3,
-                            {
-                                "step_id": STEP_UPLOAD_EID_BACK,
-                                "question": "Please upload your Emirates ID — Back side",
-                            },
-                        )
-                        questions.insert(
-                            _nq_idx + 4,
                             {
                                 "step_id": STEP_SPONSOR_EMAIL,
                                 "question": "May I have the Email Address",
@@ -4136,7 +5018,12 @@ def process_user_input(user_input: UserInput):
 
                     with open("user_responses.json", "w") as file:
                         json.dump(responses, file, indent=4)
-                        del user_states[user_id]
+                    wipe_flow_session_upload_files(
+                        user_id=user_id,
+                        current_flow=current_flow,
+                        responses=responses,
+                    )
+                    del user_states[user_id]
                     final_message = (
                         "You're all set! Thank you for providing your details. "
                         "If you need further assistance, feel free to ask."
@@ -4814,6 +5701,14 @@ def process_user_input(user_input: UserInput):
                     "response": "The file format seems incorrect. Please upload a valid document."
                 }
             responses[question] = user_message.strip()
+            claim_flow_try_upload_from_message(
+                current_flow=current_flow,
+                responses=responses,
+                user_message=user_message,
+                step_id=step,
+                file_path=(user_input.file_path or "").strip(),
+                user_id=user_id,
+            )
             conversation_state["current_question_index"] += 1
             next_question = questions[conversation_state["current_question_index"]]
             next_text = (
@@ -4852,6 +5747,12 @@ def process_user_input(user_input: UserInput):
                     "language_code": get_language_code(user_language),
                 }
             responses[question] = user_message
+            store_claim_mobile(responses, user_message)
+            claim_flow_try_first_step(
+                user_id=user_id,
+                current_flow=current_flow,
+                responses=responses,
+            )
             conversation_state["current_question_index"] += 1
             if conversation_state["current_question_index"] < len(questions):
                 next_question = questions[
@@ -4873,6 +5774,12 @@ def process_user_input(user_input: UserInput):
                     next_opts,
                     user_language,
                 )
+            claim_flow_try_first_step(
+                user_id=user_id,
+                current_flow=current_flow,
+                responses=responses,
+                force=True,
+            )
             done_msg = translate_text(
                 "Thank you for using Insura. If you need anything else, we are here to help.",
                 user_language,
@@ -4905,6 +5812,12 @@ def process_user_input(user_input: UserInput):
                     "language_code": get_language_code(user_language),
                 }
             responses[question] = user_message
+            store_claim_mobile(responses, user_message)
+            claim_flow_try_first_step(
+                user_id=user_id,
+                current_flow=current_flow,
+                responses=responses,
+            )
             conversation_state["current_question_index"] += 1
             if conversation_state["current_question_index"] < len(questions):
                 next_question = questions[
@@ -4925,15 +5838,22 @@ def process_user_input(user_input: UserInput):
                     and resolve_step_id(next_question) == STEP_MOTOR_CLAIM_REPAIR_WORKSHOP
                 ):
                     conversation_state["motor_claim_repair_page"] = 0
-                    next_opts = _repair_workshop_paged_options(next_opts, 0)
+                    next_opts = repair_workshop_paged_options(next_opts, 0)
+                msg_type, doc_type = detect_document_type_from_question(next_text)
                 return format_response_in_language(
-                    next_text, next_opts, user_language
+                    next_text, next_opts, user_language, msg_type, doc_type
                 )
             try:
                 with open("user_responses.json", "w") as file:
                     json.dump(responses, file, indent=4)
             except OSError:
                 pass
+            claim_flow_try_first_step(
+                user_id=user_id,
+                current_flow=current_flow,
+                responses=responses,
+                force=True,
+            )
             completion_msg = translate_text(
                 motor_claim_handler._COMPLETE_MESSAGE,
                 user_language,
@@ -4952,6 +5872,9 @@ def process_user_input(user_input: UserInput):
                 conversation_state=conversation_state,
                 questions=questions,
                 responses=responses,
+                user_language=user_language,
+                file_path=(user_input.file_path or "").strip(),
+                user_id=user_id,
             )
         ) is not None:
             return claim_upload_response

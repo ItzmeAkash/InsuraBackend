@@ -52,3 +52,13 @@ INSURA_REVIEW_URL: str = os.environ.get(
 
 # Expected user entry for the passkey step. Override in env for different environments.
 PASSKEY_VALID_CODE: str = os.environ.get("PASSKEY_VALID_CODE", "6754")
+
+MOTOR_DRIVING_LICENSE_COMBINED_UPLOAD_QUESTION = (
+    "Please upload your Driving License — Front side and Back side"
+)
+MOTOR_DRIVING_LICENSE_BACK_UPLOAD_QUESTION = (
+    "Please upload your Driving License — Back side"
+)
+MOTOR_EMIRATES_ID_COMBINED_UPLOAD_QUESTION = (
+    "Please upload your Emirates ID — Front side and Back side"
+)

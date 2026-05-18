@@ -11,6 +11,10 @@
   ],
   "car_questions": [
     {
+      "step_id": "motor_enquiry_phone",
+      "question": "Please provide your mobile number so we can start your motor insurance quote."
+    },
+    {
       "step_id": "passkey",
       "question": "Please Enter Your PassKey"
     },
@@ -45,7 +49,7 @@
     },
     {
       "step_id": "upload_driving_license",
-      "question": "Please Upload Your Driving license"
+      "question": "Please upload your Driving License — Front side and Back side"
     },
     {
       "step_id": "upload_mulkiya",
@@ -92,6 +96,10 @@
   ],
   "motor_claim": [
     {
+      "step_id": "motor_claim_contact_mobile",
+      "question": "Please provide your mobile number so we can reach you."
+    },
+    {
       "step_id": "motor_claim_vehicle_registration",
       "question": "Upload Required Documents\n\nPlease upload your Vehicle Registration Card (Mulkiya)."
     },
@@ -106,10 +114,6 @@
     {
       "step_id": "motor_claim_police_verification",
       "question": "Please upload police verification documents related to the incident."
-    },
-    {
-      "step_id": "motor_claim_contact_mobile",
-      "question": "Please provide your mobile number so we can reach you."
     },
     {
       "step_id": "motor_claim_repair_workshop",
@@ -157,14 +161,37 @@
       "step_id": "motor_claim_recovery_location",
       "question": "Please select where you would like roadside recovery:",
       "options": [
+        "Adamjee",
+        "Al Sagr",
+        "Al Wathba",
+        "AXA",
+        "DNI",
+        "Ihouse",
+        "Oman",
+        "Orient",
+        "QIC",
+        "Sukoon",
+        "LIVA",
+        "RAK",
+        "Salama",
+        "Al Buhairah",
+        "GIG",
+        "National General",
+        "Oriental",
+        "Noor",
+        "RSA",
+        "Emirates",
+        "Methaq",
         "Dubai",
-        "Abu Dhabi",
-        "Sharjah",
-        "Ajman",
-        "Umm Al Quwain",
-        "Ras Al Khaimah",
-        "Fujairah",
-        "Al Ain"
+        "New India",
+        "Tokio Marine",
+        "Union Insurance",
+        "Watania",
+        "Alliance",
+        "Arabia Insurance",
+        "Arabian",
+        "Fidelity United",
+        "Orient Takaful"
       ]
     },
     {

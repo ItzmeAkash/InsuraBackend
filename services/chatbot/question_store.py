@@ -78,15 +78,21 @@ general_insurance_questions = general_questions_data["general_insurance_question
 # Latest binary upload path per user (see routes/upload.py). Consumed by chat when the client
 # sends a success banner in ``message`` but omits ``UserInput.file_path``.
 _LAST_UPLOAD_RELATIVE_PATH_BY_USER: dict[str, str] = {}
+_LAST_UPLOAD_RELATIVE_PATH_BY_USER_AND_TYPE: dict[str, dict[str, str]] = {}
 
 
-def remember_last_upload_relative_path(user_id: str, relative_path: str) -> None:
+def remember_last_upload_relative_path(
+    user_id: str, relative_path: str, upload_type: str = ""
+) -> None:
     uid = (user_id or "").strip()
     if not uid or not (relative_path or "").strip():
         return
-    _LAST_UPLOAD_RELATIVE_PATH_BY_USER[uid] = (
-        relative_path.strip().replace("\\", "/").replace("//", "/")
-    )
+    normalized_path = relative_path.strip().replace("\\", "/").replace("//", "/")
+    _LAST_UPLOAD_RELATIVE_PATH_BY_USER[uid] = normalized_path
+    normalized_type = (upload_type or "").strip().lower().replace("-", "_")
+    if normalized_type:
+        typed = _LAST_UPLOAD_RELATIVE_PATH_BY_USER_AND_TYPE.setdefault(uid, {})
+        typed[normalized_type] = normalized_path
 
 
 def pop_last_upload_relative_path(user_id: str) -> str:
@@ -94,4 +100,43 @@ def pop_last_upload_relative_path(user_id: str) -> str:
     if not uid:
         return ""
     return _LAST_UPLOAD_RELATIVE_PATH_BY_USER.pop(uid, "") or ""
+
+
+def peek_last_upload_relative_path(user_id: str, upload_type: str = "") -> str:
+    """Latest stored upload path for ``user_id`` without removing it (non-destructive)."""
+    uid = (user_id or "").strip()
+    if not uid:
+        return ""
+    normalized_type = (upload_type or "").strip().lower().replace("-", "_")
+    if normalized_type:
+        return _LAST_UPLOAD_RELATIVE_PATH_BY_USER_AND_TYPE.get(uid, {}).get(
+            normalized_type, ""
+        ) or ""
+    return _LAST_UPLOAD_RELATIVE_PATH_BY_USER.get(uid, "") or ""
+
+
+def snapshot_user_upload_paths(user_id: str) -> list[str]:
+    """All remembered relative paths for ``user_id`` (generic + per-type), for cleanup."""
+    uid = (user_id or "").strip()
+    if not uid:
+        return []
+    out: list[str] = []
+    generic = (_LAST_UPLOAD_RELATIVE_PATH_BY_USER.get(uid) or "").strip()
+    if generic:
+        out.append(generic.replace("\\", "/"))
+    typed = _LAST_UPLOAD_RELATIVE_PATH_BY_USER_AND_TYPE.get(uid) or {}
+    for rel in typed.values():
+        s = (rel or "").strip().replace("\\", "/")
+        if s and s not in out:
+            out.append(s)
+    return out
+
+
+def clear_user_upload_registry(user_id: str) -> None:
+    """Forget last-upload hints for ``user_id`` (e.g. after motor quote session ends)."""
+    uid = (user_id or "").strip()
+    if not uid:
+        return
+    _LAST_UPLOAD_RELATIVE_PATH_BY_USER.pop(uid, None)
+    _LAST_UPLOAD_RELATIVE_PATH_BY_USER_AND_TYPE.pop(uid, None)
 

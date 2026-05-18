@@ -799,6 +799,8 @@ def handle_vehicle_registration_car_question(
     conversation_state: dict,
     questions: list,
     responses: dict,
+    user_id: str = "",
+    current_flow: str = "",
 ) -> dict:
     """Car flow: Private skips EID + license and goes to Mulkiya front/back; Company keeps full path."""
     from services.chatbot.language_service import (
@@ -842,6 +844,14 @@ def handle_vehicle_registration_car_question(
         }
 
     responses[question] = vr["matched_value"]
+    if current_flow == "car_questions" and user_id:
+        from services.motor.api_submission import motor_insurancelab_client
+
+        motor_insurancelab_client.ensure_enquiry_and_first_step(
+            user_id=user_id,
+            responses=responses,
+            registration_type=vr["matched_value"],
+        )
     conversation_state["current_question_index"] += 1
     idx = conversation_state["current_question_index"]
     is_renewal = any(

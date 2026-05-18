@@ -1,10 +1,15 @@
 """Multipart document uploads that tie into chat state via ``process_user_input``."""
 
+import json
+
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from models.model import UserInput
 from services.chatbot.flow_labels import attach_flow_type_to_chat_response
-from services.chatbot.question_store import user_states
+from services.chatbot.question_store import (
+    remember_last_upload_relative_path,
+    user_states,
+)
 from services.general.document_upload_service import (
     ALLOWED_GENERAL_UPLOAD_FILE_TYPES,
     DEFAULT_MAX_BYTES,
@@ -24,6 +29,7 @@ _CLAIM_UPLOAD_FILE_TYPES = frozenset(
         "emirates_id",
         "insurance_card",
         "police_verification",
+        "passing_paper",
     }
 )
 
@@ -44,6 +50,8 @@ def _normalize_upload_type(raw: str) -> str:
         "insurance_card": "insurance_card",
         "police_verification": "police_verification",
         "police_report": "police_verification",
+        "passing_paper": "passing_paper",
+        "vehicle_test_cert": "passing_paper",
     }
     return claim_aliases.get(t, t)
 
@@ -75,7 +83,7 @@ async def upload_document(
                 "Allowed (after normalization): "
                 f"{', '.join(sorted([*ALLOWED_GENERAL_UPLOAD_FILE_TYPES, *_CLAIM_UPLOAD_FILE_TYPES]))}. "
                 "Examples: general_insurance_form, travel_insurance_form, trade_license, "
-                "vat_certificate, police_verification, mulkiya."
+                "vat_certificate, police_verification, mulkiya, passing_paper."
             ),
         )
 
@@ -99,9 +107,18 @@ async def upload_document(
             ) from exc
         raise HTTPException(status_code=400, detail=str(exc)) from exc
 
+    remember_last_upload_relative_path(user_id, stored_path, ft)
+
     if ft in _CLAIM_UPLOAD_FILE_TYPES:
-        # Claim upload steps accept a stored path message.
-        message = stored_path
+        # Preserve claim ``file_type`` so chat can avoid misclassifying out-of-order uploads.
+        message = json.dumps(
+            {
+                "claim_document_upload": True,
+                "file_type": ft,
+                "stored_relative_path": stored_path,
+                "original_filename": original_name,
+            }
+        )
     else:
         message = build_general_upload_chat_message(
             file_type=ft,
@@ -109,7 +126,9 @@ async def upload_document(
             original_filename=original_name,
         )
 
-    chat_result = process_user_input(UserInput(user_id=user_id, message=message))
+    chat_result = process_user_input(
+        UserInput(user_id=user_id, message=message, file_path=stored_path)
+    )
 
     if isinstance(chat_result, dict):
         chat_result = dict(chat_result)

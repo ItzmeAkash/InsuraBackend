@@ -13,9 +13,13 @@ from routes.utils import (
 from typing import List, Optional
 from fastapi import APIRouter, File, UploadFile, HTTPException, Form
 import os
+import shutil
 import tempfile
 import asyncio
 import logging
+from uuid import uuid4
+
+from services.chatbot.question_store import remember_last_upload_relative_path
 from cachetools import TTLCache
 
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10 MB
@@ -35,6 +39,21 @@ async def clear_user_states():
 @router.on_event("startup")
 async def startup_event():
     asyncio.create_task(clear_user_states())
+
+
+def _remember_extracted_upload(
+    *, user_id: str, temp_path: str, file_extension: str, upload_type: str
+) -> None:
+    if not user_id:
+        return
+    upload_dir = "uploads"
+    os.makedirs(upload_dir, exist_ok=True)
+    safe_ext = file_extension if file_extension else ".bin"
+    dest_name = f"{upload_type}_{uuid4().hex[:16]}{safe_ext}"
+    dest_path = os.path.join(upload_dir, dest_name)
+    shutil.copy2(temp_path, dest_path)
+    rel = dest_path.replace("\\", "/")
+    remember_last_upload_relative_path(user_id, rel, upload_type)
 
 
 @router.post("/extract-pdf/", tags=["PDF Processing"])
@@ -176,6 +195,13 @@ async def upload_emirate_document(
             else:  # file_type == 'image'
                 result = await extract_image_info1(temp_file.name)
 
+            _remember_extracted_upload(
+                user_id=user_id,
+                temp_path=temp_file.name,
+                file_extension=file_extension,
+                upload_type="emirates_id_back",
+            )
+
             return result
 
         except Exception as e:
@@ -231,6 +257,13 @@ async def upload_back_emirate_document(
             else:  # file_type == 'image'
                 result = await extract_back_page_emirate(temp_file.name)
 
+            _remember_extracted_upload(
+                user_id=user_id,
+                temp_path=temp_file.name,
+                file_extension=file_extension,
+                upload_type="emirates_id_front",
+            )
+
             return result
 
         except Exception as e:
@@ -285,6 +318,13 @@ async def upload_front_emirate_document(
                 result = await extract_pdf_info1(temp_file.name)
             else:  # file_type == 'image'
                 result = await extract_front_page_emirate(temp_file.name)
+
+            _remember_extracted_upload(
+                user_id=user_id,
+                temp_path=temp_file.name,
+                file_extension=file_extension,
+                upload_type="emirates_id",
+            )
 
             return result
 
@@ -384,6 +424,13 @@ async def upload_licence_document(
             else:  # file_type == 'image'
                 result = await extract_image_driving_license(temp_file.name)
 
+            _remember_extracted_upload(
+                user_id=user_id,
+                temp_path=temp_file.name,
+                file_extension=file_extension,
+                upload_type="driving_license",
+            )
+
             return result
 
         except Exception as e:
@@ -437,6 +484,14 @@ async def upload_mulkiya_document(
                 result = await extract_pdf_mulkiya(temp_file.name)
             else:  # file_type == 'image'
                 result = await extract_image_mulkiya(temp_file.name)
+
+            if isinstance(result, dict):
+                _remember_extracted_upload(
+                    user_id=user_id,
+                    temp_path=temp_file.name,
+                    file_extension=file_extension,
+                    upload_type="mulkiya",
+                )
 
             return result
 
